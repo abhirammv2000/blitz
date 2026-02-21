@@ -1,0 +1,166 @@
+%-------------------------
+% Resume - Superset AI Solutions Builder
+% Emphasizes: AI coding tools (Claude Code), full-stack apps, FastAPI,
+% JavaScript, enterprise customer-facing, API design, systems thinking
+%-------------------------
+
+\documentclass[letterpaper,10pt]{article}
+
+\usepackage{latexsym}
+\usepackage[empty]{fullpage}
+\usepackage{titlesec}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{fancyhdr}
+\usepackage[english]{babel}
+\usepackage{tabularx}
+\usepackage{fontawesome5}
+\input{glyphtounicode}
+
+\usepackage[default]{sourcesanspro}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% Tight margins
+\addtolength{\oddsidemargin}{-0.7in}
+\addtolength{\evensidemargin}{-0.7in}
+\addtolength{\textwidth}{1.4in}
+\addtolength{\topmargin}{-0.6in}
+\addtolength{\textheight}{1.0in}
+\setlength{\footskip}{4.08003pt}
+
+\urlstyle{same}
+\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{0in}
+
+% Section spacing
+\titleformat{\section}{
+  \vspace{-2pt}\scshape\raggedright\large\bfseries
+}{}{0em}{}[\color{black}\titlerule \vspace{-4pt}]
+
+\pdfgentounicode=1
+
+% Custom commands
+\newcommand{\resumeItem}[1]{
+  \item\small{#1 \vspace{-1pt}}
+}
+
+\newcommand{\resumeSubheading}[4]{
+  \vspace{-2pt}\item
+    \begin{tabular*}{1.0\textwidth}[t]{l@{\extracolsep{\fill}}r}
+      \textbf{#1} & \textbf{\small #2} \\
+      \textit{\small#3} & \textit{\small #4} \\
+    \end{tabular*}\vspace{-5pt}
+}
+
+\newcommand{\resumeProjectHeading}[2]{
+    \vspace{-5pt}\item
+    \begin{tabular*}{1.001\textwidth}{l@{\extracolsep{\fill}}r}
+      \small#1 & \textbf{\small #2}\\
+    \end{tabular*}\vspace{-5pt}
+}
+
+\renewcommand\labelitemi{$\vcenter{\hbox{\tiny$\bullet$}}$}
+
+\newcommand{\resumeSubHeadingListStart}{\begin{itemize}[leftmargin=0.0in, label={}]}
+\newcommand{\resumeSubHeadingListEnd}{\end{itemize}\vspace{-1pt}}
+\newcommand{\resumeItemListStart}{\begin{itemize}[leftmargin=0.15in]}
+\newcommand{\resumeItemListEnd}{\end{itemize}\vspace{-3pt}}
+
+%-------------------------------------------
+\begin{document}
+
+%----------HEADING----------
+\begin{center}
+    {\Huge \scshape Prathyusha Murala} \\ \vspace{3pt}
+    \small
+    \raisebox{-0.1\height}\faPhone\ +1 (680) 356-8545 ~
+    \href{mailto:pmurala.work@gmail.com}{\faEnvelope\ pmurala.work@gmail.com} ~
+    \href{https://linkedin.com/in/prathyushamurala}{\faLinkedin\ linkedin.com/in/prathyushamurala} ~
+    \href{https://github.com/prathyusha1231}{\faGithub\ github.com/prathyusha1231} ~
+    \href{https://datawithprats.com}{\faGlobe\ datawithprats.com}
+\end{center}
+\vspace{-8pt}
+
+%-----------EDUCATION-----------
+\section{Education}
+  \resumeSubHeadingListStart
+    \resumeSubheading
+      {Syracuse University}{August 2023 -- May 2025}
+      {Master's, Applied Data Science}{Syracuse, NY}
+    \vspace{-2pt}
+    \resumeSubheading
+      {Dayananda Sagar University}{August 2018 -- June 2022}
+      {Bachelor's, Computer Science}{Bengaluru, India}
+  \resumeSubHeadingListEnd
+
+%-----------SKILLS-----------
+\section{Skills}
+ \begin{itemize}[leftmargin=0.0in, label={}]
+    \small{\item{
+     \textbf{AI Development:} Claude Code, GPT-4, LangChain, LangGraph, Prompt Engineering, RAG, AI Code Review, LLM Evaluation \\
+     \textbf{Full-Stack:} Python, FastAPI, JavaScript, SQL, Tailwind CSS, Plotly.js, HTML/CSS, Jinja2, Pydantic, REST APIs \\
+     \textbf{Cloud \& DevOps:} AWS (S3, Lambda, SageMaker), Docker, Git/GitHub, Uvicorn, CI/CD, Render, ETL Pipelines \\
+     \textbf{Data \& Analytics:} Pandas, DuckDB, Snowflake, Data Modeling, API Design, Schema Design, pytest, Scikit-learn
+    }}
+ \end{itemize}
+\vspace{-6pt}
+
+%-----------EXPERIENCE-----------
+\section{Professional Experience}
+  \resumeSubHeadingListStart
+
+    \resumeSubheading
+      {Syracuse University}{July 2025 -- Present}
+      {Data Science Analyst}{Syracuse, NY}
+      \resumeItemListStart
+        \resumeItem{Built and deployed production RAG system (GPT-4o, LangChain, Pinecone) on AWS serving 60+ daily users; iterated on chunking, embedding, and retrieval pipelines over 2,000+ documents, improving answer accuracy from 65\% to 85\% through LLM evaluation.}
+        \resumeItem{Developed automated ETL pipelines (AWS Lambda, S3) integrating data from multiple source systems across 10 programs; partnered with cross-functional stakeholders to reduce data latency from 2 weeks to 2 days, driving faster iteration cycles.}
+        \resumeItem{Performed deep-dive analysis on 50K+ user interaction records using Python and SQL; engineered 15+ features and built predictive models (AUC: 0.82) that surfaced behavioral patterns driving product improvements, improving user retention by 10\%.}
+        \resumeItem{Defined and owned 8 KPIs with academic advisors and program chairs; delivered weekly insight reports to leadership that directly informed resource allocation and strategic planning decisions.}
+      \resumeItemListEnd
+
+    \resumeSubheading
+      {PricewaterhouseCoopers (PwC)}{March 2022 -- May 2023}
+      {Data Scientist Associate}{Bengaluru, India}
+      \resumeItemListStart
+        \resumeItem{Designed and deployed BERT-based document classification system for enterprise clients processing 130+ assessments annually; sat with stakeholders to translate business requirements into buildable specs, reducing review time by 87\%.}
+        \resumeItem{Implemented semantic search pipeline (SBERT, KeyBERT) on Azure for document matching and retrieval; debugged performance issues across data flow, improving classification accuracy by 35\% and delivering to enterprise quality standards.}
+        \resumeItem{Built evaluation framework using LDA topic modeling and BLEU scores to validate AI output quality; achieved 92\% consistency across document summaries, establishing criteria for when AI output was production-ready.}
+        \resumeItem{Increased fraud detection recall by 28\% using XGBoost on 5M+ transactions; applied SHAP to communicate complex model results to business stakeholders across 10+ client portfolios.}
+        \resumeItem{Established model monitoring pipeline (PSI, KS tests) with automated retraining alerts; provided technical support during critical iteration cycles, maintaining 90\%+ precision in production.}
+      \resumeItemListEnd
+
+    \resumeSubheading
+      {Wipro Technologies}{June 2021 -- August 2021}
+      {Data Analyst Intern}{Bengaluru, India}
+      \resumeItemListStart
+        \resumeItem{Created API-integrated analytics dashboard (FastAPI, Plotly Dash) and automated ETL pipeline for time-series data across 5 regions; delivered working application that improved client forecast accuracy by 30\% and informed product planning decisions.}
+      \resumeItemListEnd
+
+  \resumeSubHeadingListEnd
+
+%-----------PROJECTS-----------
+\section{Projects \& Publications}
+    \resumeSubHeadingListStart
+      \resumeProjectHeading
+          {\textbf{Ask Syracuse Data: Full-Stack AI Application} $|$ \emph{Claude Code, FastAPI, Tailwind, Plotly.js, DuckDB}}{}
+          \resumeItemListStart
+            \resumeItem{Built end-to-end web application using Claude Code with FastAPI backend, Tailwind CSS frontend, and Plotly.js visualizations; designed 4 REST API endpoints with rate limiting, input validation, and security middleware.}
+            \resumeItem{Integrated 16 datasets (150K+ records) with 3-path query routing, schema governance, and bias detection; wrote 150+ automated tests and deployed via Docker to production on Render and Hugging Face Spaces.}
+          \resumeItemListEnd
+      \resumeProjectHeading
+          {\textbf{Multi-Agent AI Copilot} $|$ \emph{LangGraph, GPT-4, Function Calling, Autonomous Agents}}{}
+          \resumeItemListStart
+            \resumeItem{Designed multi-agent system using LangGraph with specialized agents (Search, Analyst, Writer) and OpenAI function calling; reviewed AI-generated outputs, implemented guardrails and prompt controls, achieving 85\% relevance on 50 test queries.}
+            \resumeItem{Built autonomous workflow where agents collaborate to research, analyze, and generate campaign-ready content; applied systems thinking to handle edge cases in data flow and ensure reliable end-to-end execution.}
+          \resumeItemListEnd
+    \resumeSubHeadingListEnd
+
+\end{document}

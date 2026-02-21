@@ -1,0 +1,40 @@
+Company: Kana
+Role: AI Solutions Builder
+Location: Hybrid (4 days/week in office)
+URL: [paste application URL here]
+
+---
+
+Job Summary / Overview:
+
+Kana is an agentic AI platform for marketers. We help enterprise brands find better audiences, optimize campaigns, and stay visible in an AI-driven world - using synthetic data enrichment, AI-powered analytics, and answer engine optimization.
+
+Hiring an AI Solutions Builder to work directly with enterprise customers, understand their business problems, and use AI coding agents to build the applications that solve them. Not mockups. Not specs. Working software. This team is a strategic extension of the product. The goal is to convert customer builds into repeatable capabilities.
+
+Hybrid - 4 days/week
+
+What You'll Actually Do:
+- Deliver high-quality marketing applications that customers rely on in production.
+- Sit with enterprise customers to understand their workflows, pain points, and success criteria.
+- Use AI coding agents to design and build end-to-end full-stack applications - audience builders, analytics dashboards, campaign optimization tools - within Kana's platform.
+- The most important skill: judgment of knowing when AI output is production-ready and when it needs correction.
+- Review AI-generated code for correctness, performance, and architecture.
+- Debug by reading logs, tracing errors, understanding Python, React, and SQL.
+- Own the customer relationship through the build lifecycle.
+- Ensure applications meet enterprise standards: reliability, performance, clean data flow, clear UX.
+- Work with platform engineering team to surface patterns, report tool limitations, shape how we build software with AI.
+
+What We're Looking For (1-3 years experience):
+
+Must Have:
+- Hands-on experience with AI coding tools (Claude Code, Cursor, Copilot, Windsurf, Codex, or similar).
+- Technical literacy: read Python, React/JavaScript, SQL. Follow a stack trace.
+- Translate business requirements into something buildable.
+- Strong communication skills. Enterprise stakeholders and engineers on the same day.
+- Systems thinking: data flow, edge cases, performance, user experience.
+
+Nice to Have:
+- CS degree or equivalent practical experience.
+- Customer-facing B2B role: solutions engineering, technical consulting, product management.
+- Familiarity with marketing technology, SaaS platforms, or enterprise software environments.
+- Exposure to data modeling, API design, or systems architecture concepts.
