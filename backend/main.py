@@ -37,6 +37,20 @@ from langgraph.types import Command
 from pydantic import BaseModel
 
 from agents.agent_0_research.progress import cleanup_queue, get_queue
+from agents.agent_voice.models import (
+    SetupCheckResponse,
+    TranscriptMessage,
+    TranscriptResponse,
+    VoiceCallRequest,
+    VoiceCallResponse,
+)
+from agents.agent_voice.elevenlabs_client import (
+    build_agent_prompt,
+    check_setup,
+    get_transcript,
+    initiate_outbound_call,
+)
+from db import get_agent_output
 from graph import build_graph
 
 from pathlib import Path
@@ -302,3 +316,108 @@ async def pipeline_resume(run_id: str, body: ResumeRequest):
             yield event
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
+
+
+# ---------------------------------------------------------------------------
+# Voice agent endpoints (ElevenLabs Conversational AI + Twilio outbound calls)
+# ---------------------------------------------------------------------------
+
+
+@app.get("/voice/setup-check", response_model=SetupCheckResponse)
+async def voice_setup_check():
+    """Check whether all required ElevenLabs environment variables are configured.
+
+    Returns configured=True when ELEVENLABS_API_KEY, ELEVENLABS_AGENT_ID, and
+    ELEVENLABS_PHONE_NUMBER_ID are all set. No auth required — safe to call
+    from the UI on load to decide whether to show the Call button.
+    """
+    return check_setup()
+
+
+@app.post("/voice/call", response_model=VoiceCallResponse)
+async def voice_call(req: VoiceCallRequest):
+    """Initiate an outbound phone call via ElevenLabs Conversational AI.
+
+    Fetches the research dossier from ChromaDB for the given run_id, builds a
+    per-call system prompt (personality + sales script + product knowledge), and
+    triggers the call via ElevenLabs' Twilio integration.
+
+    Returns conversation_id (ElevenLabs) and call_sid (Twilio) on success.
+    Returns 503 if ElevenLabs env vars are not configured.
+    Returns 502 if the ElevenLabs API returns an error.
+    """
+    setup = check_setup()
+    if not setup.configured:
+        from fastapi import HTTPException
+        raise HTTPException(
+            status_code=503,
+            detail={"detail": "ElevenLabs not configured", "missing": setup.missing},
+        )
+
+    # Fetch research dossier from ChromaDB
+    raw_research = get_agent_output(req.run_id, "research")
+    if raw_research:
+        import json as _json
+        try:
+            research_data = _json.loads(raw_research)
+            research_dossier_text = (
+                research_data.get("executive_summary")
+                or research_data.get("summary")
+                or str(research_data)[:3000]
+            )
+        except (ValueError, TypeError):
+            research_dossier_text = str(raw_research)[:3000]
+    else:
+        research_dossier_text = ""
+
+    agent_prompt = build_agent_prompt(req.script_text, research_dossier_text)
+
+    try:
+        result = await initiate_outbound_call(req.to_number, agent_prompt, req.first_message)
+    except Exception as exc:  # noqa: BLE001
+        import httpx as _httpx
+        if isinstance(exc, _httpx.HTTPStatusError):
+            from fastapi import HTTPException
+            raise HTTPException(
+                status_code=502,
+                detail=f"ElevenLabs API error: {exc.response.status_code} {exc.response.text}",
+            ) from exc
+        raise
+
+    return VoiceCallResponse(
+        conversation_id=result.get("conversation_id"),
+        call_sid=result.get("call_sid", ""),
+    )
+
+
+@app.get("/voice/transcript/{conversation_id}", response_model=TranscriptResponse)
+async def voice_transcript(conversation_id: str):
+    """Poll for the transcript of a completed ElevenLabs conversation.
+
+    Returns status="completed" when messages are available, "in_progress" while
+    the call is still active or the transcript hasn't been indexed yet.
+    The frontend polls this endpoint after the call is initiated.
+    """
+    raw = await get_transcript(conversation_id)
+
+    raw_messages = raw.get("messages") or []
+    messages = []
+    for msg in raw_messages:
+        role = msg.get("role", "")
+        content = msg.get("message") or msg.get("content") or ""
+        if role in ("agent", "user") and content:
+            messages.append(TranscriptMessage(role=role, content=content))
+
+    status: str
+    if messages:
+        status = "completed"
+    elif raw.get("status") == "unknown":
+        status = "unknown"
+    else:
+        status = "in_progress"
+
+    return TranscriptResponse(
+        conversation_id=conversation_id,
+        status=status,  # type: ignore[arg-type]
+        messages=messages,
+    )
