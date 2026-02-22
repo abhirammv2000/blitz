@@ -33,28 +33,28 @@ Use this style for all image prompts: "Bold colors, geometric shapes, brand-alig
 ## Output Format
 Return ONLY valid JSON matching this exact schema — no markdown, no explanation:
 
-{
+{{
   "ad_copies": [
-    {
+    {{
       "segment": "segment name",
       "platform": "Google Ads | Meta Ads | LinkedIn Ads",
       "headline": "Max 30 chars for Google, 40 for Meta/LinkedIn",
       "body": "Ad body copy",
       "cta": "Call to action text"
-    }
+    }}
   ],
   "ad_visuals": [
-    {
+    {{
       "segment": "segment name",
       "platform": "Google Ads | Meta Ads | LinkedIn Ads",
       "visual_concept": "Abstract visual concept description",
       "color_palette": ["#hex1", "#hex2", "#hex3"],
       "image_prompt": "DALL-E 3 prompt for abstract branded visual",
       "image_url": null
-    }
+    }}
   ],
   "ab_variations": [
-    {
+    {{
       "ad_copy_ref": "segment + platform reference",
       "variant_label": "A | B | C",
       "headline": "Variant headline",
@@ -63,9 +63,9 @@ Return ONLY valid JSON matching this exact schema — no markdown, no explanatio
       "test_hypothesis": "What this variant tests vs. the control",
       "image_prompt": "DALL-E 3 prompt for this variation's abstract branded visual",
       "image_url": null
-    }
+    }}
   ]
-}
+}}
 """
 
 
