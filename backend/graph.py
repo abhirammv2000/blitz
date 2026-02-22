@@ -4,12 +4,12 @@ Exports:
   build_builder() — returns the uncompiled StateGraph builder
   build_graph()   — async; compiles the graph with AsyncSqliteSaver checkpointer
 
-All 6 agent nodes are real async implementations:
+Agent implementation status:
 - agent_0_research: real async implementation (Phase 2)
 - agent_1_profile: real async implementation (Phase 3)
 - agent_2_audience: real async implementation (Phase 3)
-- agent_3_content: stub (Phase 4)
-- agent_4_sales: stub (Phase 4)
+- agent_3_content: real async implementation (Phase 4)
+- agent_4_sales: real async implementation (Phase 4)
 - agent_5_ads: real async implementation with DALL-E 3 image gen (Phase 4)
 
 Why AsyncSqliteSaver (not SqliteSaver):
@@ -26,40 +26,14 @@ from contextlib import asynccontextmanager
 
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from langgraph.graph import END, START, StateGraph
-from langgraph.types import interrupt
 
 from agents.agent_0_research.node import agent_0_research_node
 from agents.agent_1_profile.node import agent_1_profile_node
 from agents.agent_2_audience.node import agent_2_audience_node
+from agents.agent_3_content.node import agent_3_content_node
+from agents.agent_4_sales.node import agent_4_sales_node
 from agents.agent_5_ads.node import agent_5_ads_node
 from state import BlitzState
-
-# ---------------------------------------------------------------------------
-# Agent node functions — stubs with interrupt() gates (agents 3-5 only)
-# ---------------------------------------------------------------------------
-
-
-def agent_3_content_node(state: BlitzState) -> dict:
-    """Content Strategist: Creates social posts, email campaigns, blog outlines, and calendar."""
-    interrupt({
-        "step": 3,
-        "agent": "agent_3_content",
-        "output": None,
-        "action": "approve | edit | reject | override",
-    })
-    return {"current_step": 3, "approved": True}
-
-
-def agent_4_sales_node(state: BlitzState) -> dict:
-    """Sales Agent: Builds email sequences, LinkedIn templates, and pipeline stages."""
-    interrupt({
-        "step": 4,
-        "agent": "agent_4_sales",
-        "output": None,
-        "action": "approve | edit | reject | override",
-    })
-    return {"current_step": 4, "approved": True}
-
 
 # ---------------------------------------------------------------------------
 # Graph builder (uncompiled — needs checkpointer attached at startup)
