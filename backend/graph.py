@@ -4,11 +4,13 @@ Exports:
   build_builder() — returns the uncompiled StateGraph builder
   build_graph()   — async; compiles the graph with AsyncSqliteSaver checkpointer
 
-Agent implementation status:
+All 6 agent nodes are real async implementations:
 - agent_0_research: real async implementation (Phase 2)
 - agent_1_profile: real async implementation (Phase 3)
 - agent_2_audience: real async implementation (Phase 3)
-- agent_3_content, agent_4_sales, agent_5_ads: stubs (Phases 4-6)
+- agent_3_content: stub (Phase 4)
+- agent_4_sales: stub (Phase 4)
+- agent_5_ads: real async implementation with DALL-E 3 image gen (Phase 4)
 
 Why AsyncSqliteSaver (not SqliteSaver):
 - graph.astream() inside async FastAPI endpoints requires an async checkpointer
@@ -29,6 +31,7 @@ from langgraph.types import interrupt
 from agents.agent_0_research.node import agent_0_research_node
 from agents.agent_1_profile.node import agent_1_profile_node
 from agents.agent_2_audience.node import agent_2_audience_node
+from agents.agent_5_ads.node import agent_5_ads_node
 from state import BlitzState
 
 # ---------------------------------------------------------------------------
@@ -56,17 +59,6 @@ def agent_4_sales_node(state: BlitzState) -> dict:
         "action": "approve | edit | reject | override",
     })
     return {"current_step": 4, "approved": True}
-
-
-def agent_5_ads_node(state: BlitzState) -> dict:
-    """Ad Creative: Generates ad copy, visual concepts, and A/B variants."""
-    interrupt({
-        "step": 5,
-        "agent": "agent_5_ads",
-        "output": None,
-        "action": "approve | edit | reject | override",
-    })
-    return {"current_step": 5, "approved": True}
 
 
 # ---------------------------------------------------------------------------
