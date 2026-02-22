@@ -28,13 +28,13 @@ export default function ProfileView({ profile }: ProfileViewProps) {
   const { brand_dna, positioning_statement, usps, marketing_gaps } = profile
 
   return (
-    <div className="rounded-2xl border border-white/8 bg-white/3 overflow-hidden">
+    <div className="rounded-2xl border border-ink/10 bg-white overflow-hidden">
       <TabGroup>
-        <TabList className="flex border-b border-white/8">
+        <TabList className="flex border-b border-ink/10">
           {['Brand DNA', 'Positioning', 'USPs & Gaps'].map((tab) => (
             <Tab
               key={tab}
-              className="flex-1 px-4 py-3 text-sm font-medium text-zinc-500 hover:text-zinc-300 data-[selected]:text-white data-[selected]:bg-white/5 data-[selected]:border-b-2 data-[selected]:border-violet-500 transition-colors outline-none"
+              className="flex-1 px-4 py-3 text-sm font-medium text-ink-muted hover:text-ink data-[selected]:text-ink data-[selected]:bg-cream-dark data-[selected]:border-b-2 data-[selected]:border-teal-600 transition-colors outline-none"
             >
               {tab}
             </Tab>
@@ -46,20 +46,20 @@ export default function ProfileView({ profile }: ProfileViewProps) {
           <TabPanel className="p-6 flex flex-col gap-5">
             {/* Mission quote block */}
             <div>
-              <p className="text-xs text-zinc-500 uppercase tracking-widest font-medium mb-2">Mission</p>
-              <blockquote className="border-l-2 border-blue-500 pl-4 italic text-zinc-300 text-sm leading-relaxed">
+              <p className="text-xs text-ink-faint uppercase tracking-widest font-medium mb-2">Mission</p>
+              <blockquote className="border-l-2 border-teal-600 pl-4 italic text-ink-muted text-sm leading-relaxed">
                 {brand_dna.mission}
               </blockquote>
             </div>
 
             {/* Values tags */}
             <div>
-              <p className="text-xs text-zinc-500 uppercase tracking-widest font-medium mb-2">Values</p>
+              <p className="text-xs text-ink-faint uppercase tracking-widest font-medium mb-2">Values</p>
               <div className="flex flex-wrap gap-2">
                 {brand_dna.values.map((value, i) => (
                   <span
                     key={i}
-                    className="inline-flex rounded-full bg-white/8 px-3 py-1 text-xs text-zinc-300 font-medium"
+                    className="inline-flex rounded-full bg-cream-dark px-3 py-1 text-xs text-ink font-medium"
                   >
                     {value}
                   </span>
@@ -69,24 +69,24 @@ export default function ProfileView({ profile }: ProfileViewProps) {
 
             {/* Tone badge */}
             <div>
-              <p className="text-xs text-zinc-500 uppercase tracking-widest font-medium mb-2">Tone</p>
-              <span className="inline-flex rounded-full bg-violet-500/15 border border-violet-500/25 px-3 py-1 text-xs text-violet-300 font-medium">
+              <p className="text-xs text-ink-faint uppercase tracking-widest font-medium mb-2">Tone</p>
+              <span className="inline-flex rounded-full bg-teal-100 border border-teal-600/25 px-3 py-1 text-xs text-teal-700 font-medium">
                 {brand_dna.tone}
               </span>
             </div>
 
             {/* Visual style */}
             <div>
-              <p className="text-xs text-zinc-500 uppercase tracking-widest font-medium mb-2">Visual Style</p>
-              <p className="text-zinc-300 text-sm leading-relaxed">{brand_dna.visual_style}</p>
+              <p className="text-xs text-ink-faint uppercase tracking-widest font-medium mb-2">Visual Style</p>
+              <p className="text-ink-muted text-sm leading-relaxed">{brand_dna.visual_style}</p>
             </div>
           </TabPanel>
 
           {/* Positioning Tab */}
           <TabPanel className="p-6">
-            <p className="text-xs text-zinc-500 uppercase tracking-widest font-medium mb-4">Positioning Statement</p>
-            <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-5">
-              <p className="text-zinc-200 text-base leading-relaxed font-medium">{positioning_statement}</p>
+            <p className="text-xs text-ink-faint uppercase tracking-widest font-medium mb-4">Positioning Statement</p>
+            <div className="rounded-xl border border-teal-600/20 bg-teal-100/50 p-5">
+              <p className="text-ink text-base leading-relaxed font-medium">{positioning_statement}</p>
             </div>
           </TabPanel>
 
@@ -95,16 +95,16 @@ export default function ProfileView({ profile }: ProfileViewProps) {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               {/* Strengths (USPs) */}
               <div>
-                <p className="text-xs text-emerald-400 uppercase tracking-widest font-medium mb-3">
+                <p className="text-xs text-success uppercase tracking-widest font-medium mb-3">
                   Strengths / USPs
                 </p>
                 <div className="flex flex-col gap-2">
                   {usps.map((usp, i) => (
                     <div
                       key={i}
-                      className="rounded-xl border border-emerald-500/15 bg-emerald-500/5 px-4 py-3 text-sm text-zinc-300 flex items-start gap-2"
+                      className="rounded-xl border border-success/15 bg-success/5 px-4 py-3 text-sm text-ink flex items-start gap-2"
                     >
-                      <span className="text-emerald-400 font-bold flex-shrink-0 mt-0.5">+</span>
+                      <span className="text-success font-bold flex-shrink-0 mt-0.5">+</span>
                       {usp}
                     </div>
                   ))}
@@ -113,20 +113,20 @@ export default function ProfileView({ profile }: ProfileViewProps) {
 
               {/* Opportunities (Gaps) */}
               <div>
-                <p className="text-xs text-amber-400 uppercase tracking-widest font-medium mb-3">
+                <p className="text-xs text-gold-600 uppercase tracking-widest font-medium mb-3">
                   Opportunities / Gaps
                 </p>
                 <div className="flex flex-col gap-2">
                   {marketing_gaps.map((gap, i) => (
                     <div
                       key={i}
-                      className="rounded-xl border border-amber-500/15 bg-amber-500/5 px-4 py-3 flex flex-col gap-1"
+                      className="rounded-xl border border-gold-400/20 bg-gold-100/50 px-4 py-3 flex flex-col gap-1"
                     >
-                      <p className="text-sm text-zinc-300 flex items-start gap-2">
-                        <span className="text-amber-400 font-bold flex-shrink-0 mt-0.5">!</span>
+                      <p className="text-sm text-ink flex items-start gap-2">
+                        <span className="text-gold-600 font-bold flex-shrink-0 mt-0.5">!</span>
                         {gap.gap}
                       </p>
-                      <p className="text-xs text-zinc-500 leading-relaxed pl-4">{gap.recommendation}</p>
+                      <p className="text-xs text-ink-muted leading-relaxed pl-4">{gap.recommendation}</p>
                     </div>
                   ))}
                 </div>

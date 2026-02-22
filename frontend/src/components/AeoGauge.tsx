@@ -47,7 +47,7 @@ export default function AeoGauge({ score, details, reasoning }: AeoGaugeProps) {
               strokeWidth={0}
             >
               <Cell fill={color} />
-              <Cell fill="#27272a" />
+              <Cell fill="#e5e7eb" />
             </Pie>
           </PieChart>
           {/* Centered score */}
@@ -55,18 +55,18 @@ export default function AeoGauge({ score, details, reasoning }: AeoGaugeProps) {
             <span className="text-3xl font-black" style={{ color }}>
               {score.toFixed(1)}
             </span>
-            <span className="text-zinc-500 text-xs">/ 10</span>
+            <span className="text-ink-faint text-xs">/ 10</span>
           </div>
         </div>
-        <p className="text-zinc-400 text-sm font-medium">AEO Visibility Score</p>
+        <p className="text-ink-muted text-sm font-medium">AEO Visibility Score</p>
       </div>
 
       {/* "Why this score?" expandable */}
       {reasoning && (
         <Disclosure>
           {({ open }) => (
-            <div className="rounded-xl border border-white/8 bg-white/2 overflow-hidden">
-              <Disclosure.Button className="w-full flex items-center justify-between px-4 py-3 text-sm text-zinc-400 hover:text-white transition-colors">
+            <div className="rounded-xl border border-ink/10 bg-cream overflow-hidden">
+              <Disclosure.Button className="w-full flex items-center justify-between px-4 py-3 text-sm text-ink-muted hover:text-ink transition-colors">
                 <span>Why this score?</span>
                 <svg
                   className={`w-4 h-4 transition-transform ${open ? 'rotate-180' : ''}`}
@@ -77,7 +77,7 @@ export default function AeoGauge({ score, details, reasoning }: AeoGaugeProps) {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </Disclosure.Button>
-              <Disclosure.Panel className="px-4 pb-4 text-sm text-zinc-400 leading-relaxed">
+              <Disclosure.Panel className="px-4 pb-4 text-sm text-ink-muted leading-relaxed">
                 {reasoning}
               </Disclosure.Panel>
             </div>
@@ -90,19 +90,19 @@ export default function AeoGauge({ score, details, reasoning }: AeoGaugeProps) {
         {details.map((d) => (
           <div
             key={d.model}
-            className="rounded-xl border border-white/8 bg-white/3 p-4 flex flex-col gap-2"
+            className="rounded-xl border border-ink/10 bg-cream p-4 flex flex-col gap-2"
           >
             <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold text-white">{d.model}</span>
+              <span className="text-sm font-semibold text-ink">{d.model}</span>
               {d.mentioned ? (
-                <span className="flex items-center gap-1 text-xs text-emerald-400">
+                <span className="flex items-center gap-1 text-xs text-success">
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
                   Mentioned
                 </span>
               ) : (
-                <span className="flex items-center gap-1 text-xs text-red-400">
+                <span className="flex items-center gap-1 text-xs text-error">
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                   </svg>
@@ -111,7 +111,7 @@ export default function AeoGauge({ score, details, reasoning }: AeoGaugeProps) {
               )}
             </div>
             <div className="flex items-center gap-2">
-              <div className="flex-1 h-1.5 rounded-full bg-zinc-800">
+              <div className="flex-1 h-1.5 rounded-full bg-ink/10">
                 <div
                   className="h-1.5 rounded-full"
                   style={{
@@ -120,10 +120,10 @@ export default function AeoGauge({ score, details, reasoning }: AeoGaugeProps) {
                   }}
                 />
               </div>
-              <span className="text-xs text-zinc-500">{Math.round(d.confidence * 100)}%</span>
+              <span className="text-xs text-ink-faint">{Math.round(d.confidence * 100)}%</span>
             </div>
             {d.quote && (
-              <p className="text-xs text-zinc-500 italic line-clamp-2">"{d.quote}"</p>
+              <p className="text-xs text-ink-muted italic line-clamp-2">"{d.quote}"</p>
             )}
           </div>
         ))}
