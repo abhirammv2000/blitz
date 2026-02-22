@@ -146,7 +146,10 @@ async def run_ads(run_id: str, feedback: str | None = None) -> AdsOutput:
             build_image_prompt(variation.image_prompt, brand_tone, color_palette)
         )
 
-    # Parallel image generation for all A/B variations
+    # Cap at 3 images to limit DALL-E 3 token/cost usage
+    image_prompts = image_prompts[:3]
+
+    # Parallel image generation for capped A/B variations
     image_urls = await asyncio.gather(*[generate_ad_image(p) for p in image_prompts])
     for i, url in enumerate(image_urls):
         output.ab_variations[i].image_url = url
