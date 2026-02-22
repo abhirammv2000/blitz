@@ -4,10 +4,11 @@ Exports:
   build_builder() — returns the uncompiled StateGraph builder
   build_graph()   — async; compiles the graph with AsyncSqliteSaver checkpointer
 
-Each agent node:
-1. Sets current_step in state to its index
-2. Calls interrupt() to pause and surface a HITL payload to the frontend
-3. Returns a stub approval (auto-approve for now — real HITL wired in Phase 2)
+Agent implementation status:
+- agent_0_research: real async implementation (Phase 2)
+- agent_1_profile: real async implementation (Phase 3)
+- agent_2_audience: real async implementation (Phase 3)
+- agent_3_content, agent_4_sales, agent_5_ads: stubs (Phases 4-6)
 
 Why AsyncSqliteSaver (not SqliteSaver):
 - graph.astream() inside async FastAPI endpoints requires an async checkpointer
@@ -26,33 +27,13 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.types import interrupt
 
 from agents.agent_0_research.node import agent_0_research_node
+from agents.agent_1_profile.node import agent_1_profile_node
+from agents.agent_2_audience.node import agent_2_audience_node
 from state import BlitzState
 
 # ---------------------------------------------------------------------------
-# Agent node functions — stubs with interrupt() gates (agent_0 is real)
+# Agent node functions — stubs with interrupt() gates (agents 3-5 only)
 # ---------------------------------------------------------------------------
-
-
-def agent_1_profile_node(state: BlitzState) -> dict:
-    """Marketing Profile: Extracts brand DNA, positioning, USPs, and marketing gaps."""
-    interrupt({
-        "step": 1,
-        "agent": "agent_1_profile",
-        "output": None,
-        "action": "approve | edit | reject | override",
-    })
-    return {"current_step": 1, "approved": True}
-
-
-def agent_2_audience_node(state: BlitzState) -> dict:
-    """Audience Identifier: Generates synthetic audience segments with psychographics."""
-    interrupt({
-        "step": 2,
-        "agent": "agent_2_audience",
-        "output": None,
-        "action": "approve | edit | reject | override",
-    })
-    return {"current_step": 2, "approved": True}
 
 
 def agent_3_content_node(state: BlitzState) -> dict:
