@@ -1,8 +1,12 @@
 import { useBlitzStore } from '../store/useBlitzStore'
 import DossierView from './DossierView'
+import ProfileView from './ProfileView'
+import AudienceView from './AudienceView'
 import ApprovalGate from './ApprovalGate'
 import ProgressTimeline from './ProgressTimeline'
 import type { ResearchOutput } from './DossierView'
+import type { MarketingProfile } from './ProfileView'
+import type { AudienceOutput } from './AudienceView'
 
 interface AgentStepProps {
   stepIndex: number
@@ -91,7 +95,121 @@ export default function AgentStep({ stepIndex, agentName }: AgentStepProps) {
     )
   }
 
-  // Steps 1-5: stub behavior (wired in later phases)
+  // Step 1: Marketing Profile
+  if (stepIndex === 1) {
+    if (isRunning && !output) {
+      return (
+        <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-3">
+              <span className="w-8 h-8 rounded-full bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-400 text-sm font-bold">
+                2
+              </span>
+              <h2 className="text-2xl font-bold text-white">{agentName}</h2>
+            </div>
+            <p className="text-zinc-500 text-sm ml-11">Synthesizing marketing profile...</p>
+          </div>
+          <div className="rounded-2xl border border-white/8 bg-white/3 p-6">
+            <p className="text-xs text-zinc-500 uppercase tracking-widest font-medium mb-4">Progress</p>
+            <ProgressTimeline steps={researchProgress} />
+          </div>
+        </div>
+      )
+    }
+
+    if (output) {
+      const profile = output as MarketingProfile
+      const uspCount = profile.usps?.length ?? 0
+      const gapCount = profile.marketing_gaps?.length ?? 0
+      const summaryStats = `Brand DNA synthesized — ${uspCount} USP${uspCount !== 1 ? 's' : ''} identified, ${gapCount} gap${gapCount !== 1 ? 's' : ''} found`
+
+      return (
+        <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-3">
+              <span className="w-8 h-8 rounded-full bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-400 text-sm font-bold">
+                2
+              </span>
+              <h2 className="text-2xl font-bold text-white">{agentName}</h2>
+            </div>
+            <p className="text-zinc-500 text-sm ml-11">Marketing Profile ready</p>
+          </div>
+
+          <ProfileView profile={profile} />
+
+          {runId && (
+            <ApprovalGate
+              output={output}
+              runId={runId}
+              onDecisionComplete={() => setStep(2)}
+              agentStep={1}
+              agentOutputKey="profile_output"
+              summaryStats={summaryStats}
+            />
+          )}
+        </div>
+      )
+    }
+  }
+
+  // Step 2: Audience Segments
+  if (stepIndex === 2) {
+    if (isRunning && !output) {
+      return (
+        <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-3">
+              <span className="w-8 h-8 rounded-full bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-400 text-sm font-bold">
+                3
+              </span>
+              <h2 className="text-2xl font-bold text-white">{agentName}</h2>
+            </div>
+            <p className="text-zinc-500 text-sm ml-11">Generating audience segments...</p>
+          </div>
+          <div className="rounded-2xl border border-white/8 bg-white/3 p-6">
+            <p className="text-xs text-zinc-500 uppercase tracking-widest font-medium mb-4">Progress</p>
+            <ProgressTimeline steps={researchProgress} />
+          </div>
+        </div>
+      )
+    }
+
+    if (output) {
+      const audienceOutput = output as AudienceOutput
+      const segCount = audienceOutput.segments?.length ?? 0
+      const highFitCount = audienceOutput.segments?.filter((s) => s.fit_label === 'High').length ?? 0
+      const summaryStats = `${segCount} segment${segCount !== 1 ? 's' : ''} generated, ${highFitCount} high-fit`
+
+      return (
+        <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-3">
+              <span className="w-8 h-8 rounded-full bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-400 text-sm font-bold">
+                3
+              </span>
+              <h2 className="text-2xl font-bold text-white">{agentName}</h2>
+            </div>
+            <p className="text-zinc-500 text-sm ml-11">Audience Segments ready</p>
+          </div>
+
+          <AudienceView output={audienceOutput} runId={runId ?? ''} />
+
+          {runId && (
+            <ApprovalGate
+              output={output}
+              runId={runId}
+              onDecisionComplete={() => setStep(3)}
+              agentStep={2}
+              agentOutputKey="audience_output"
+              summaryStats={summaryStats}
+            />
+          )}
+        </div>
+      )
+    }
+  }
+
+  // Steps 3-5: stub behavior (wired in later phases)
   return (
     <div className="flex flex-col gap-6">
       {/* Agent heading */}
