@@ -8,10 +8,18 @@ function App() {
   const [launched, setLaunched] = useState(false)
 
   if (launched || runId) {
-    return <Wizard />
+    return (
+      <div className="bg-cream text-ink min-h-screen">
+        <Wizard />
+      </div>
+    )
   }
 
-  return <Landing onLaunch={() => setLaunched(true)} />
+  return (
+    <div className="bg-cream text-ink min-h-screen">
+      <Landing onLaunch={() => setLaunched(true)} />
+    </div>
+  )
 }
 
 export default App
