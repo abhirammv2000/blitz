@@ -1,5 +1,11 @@
 import { create } from 'zustand'
 
+const OUTPUT_KEYS: Record<string, number> = {
+  research_output: 0,
+  profile_output: 1,
+  audience_output: 2,
+}
+
 export interface ResearchProgressStep {
   step: string
   status: 'pending' | 'running' | 'done'
@@ -98,16 +104,26 @@ export const useBlitzStore = create<BlitzStore>()((set) => ({
               }
             }
 
-            if (event.type === 'state' && event.data?.research_output) {
-              set((state) => ({
-                agentOutputs: { ...state.agentOutputs, 0: event.data.research_output },
-              }))
+            if (event.type === 'state' && event.data) {
+              for (const [key, step] of Object.entries(OUTPUT_KEYS)) {
+                if (event.data[key] !== undefined) {
+                  set((state) => ({
+                    agentOutputs: { ...state.agentOutputs, [step]: event.data[key] },
+                  }))
+                }
+              }
             }
 
             if (event.type === 'interrupted') {
-              // Extract research output from interrupt payload if present
+              // Extract output from interrupt payload using dynamic step from backend
               const interruptData = event.data
-              if (interruptData?.output) {
+              if (interruptData?.output !== undefined && interruptData?.step !== undefined) {
+                const step = interruptData.step as number
+                set((state) => ({
+                  agentOutputs: { ...state.agentOutputs, [step]: interruptData.output },
+                }))
+              } else if (interruptData?.output !== undefined) {
+                // Fallback: step 0 for backward compatibility
                 set((state) => ({
                   agentOutputs: { ...state.agentOutputs, 0: interruptData.output },
                 }))
