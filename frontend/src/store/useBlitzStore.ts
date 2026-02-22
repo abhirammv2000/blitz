@@ -1,9 +1,12 @@
 import { create } from 'zustand'
 
-const OUTPUT_KEYS: Record<string, number> = {
+export const OUTPUT_KEYS: Record<string, number> = {
   research_output: 0,
   profile_output: 1,
   audience_output: 2,
+  content_output: 3,
+  sales_output: 4,
+  ads_output: 5,
 }
 
 export interface ResearchProgressStep {

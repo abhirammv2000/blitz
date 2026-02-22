@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { useBlitzStore } from '../store/useBlitzStore'
+import { useBlitzStore, OUTPUT_KEYS } from '../store/useBlitzStore'
 
 type Mode = 'idle' | 'edit' | 'reject' | 'override'
 
@@ -136,7 +136,7 @@ export default function ApprovalGate({
       clearResearchProgress()
       onDecisionComplete()
 
-      const nextOutputKey = Object.entries({ research_output: 0, profile_output: 1, audience_output: 2 })
+      const nextOutputKey = Object.entries(OUTPUT_KEYS)
           .find(([, v]) => v === agentStep + 1)?.[0] ?? 'research_output'
       await readSSEStream(
         res.body,
@@ -172,7 +172,7 @@ export default function ApprovalGate({
         (step, status) => addResearchProgress({ step, status }),
         (data) => setAgentOutput(agentStep + 1, data),
         () => setIsRunning(false),
-        Object.entries({ research_output: 0, profile_output: 1, audience_output: 2 })
+        Object.entries(OUTPUT_KEYS)
           .find(([, v]) => v === agentStep + 1)?.[0] ?? 'research_output'
       )
     } else {
@@ -223,7 +223,7 @@ export default function ApprovalGate({
         (step, status) => addResearchProgress({ step, status }),
         (data) => setAgentOutput(agentStep + 1, data),
         () => setIsRunning(false),
-        Object.entries({ research_output: 0, profile_output: 1, audience_output: 2 })
+        Object.entries(OUTPUT_KEYS)
           .find(([, v]) => v === agentStep + 1)?.[0] ?? 'research_output'
       )
     } else {
