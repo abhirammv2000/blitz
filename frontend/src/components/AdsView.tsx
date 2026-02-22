@@ -42,12 +42,12 @@ interface AdsViewProps {
 }
 
 const PLATFORM_BADGE: Record<string, string> = {
-  'Google Ads': 'bg-blue-500/10 border-blue-500/20 text-blue-300',
-  'Meta Ads': 'bg-indigo-500/10 border-indigo-500/20 text-indigo-300',
-  'LinkedIn Ads': 'bg-sky-500/10 border-sky-500/20 text-sky-300',
-  Google: 'bg-blue-500/10 border-blue-500/20 text-blue-300',
-  Meta: 'bg-indigo-500/10 border-indigo-500/20 text-indigo-300',
-  LinkedIn: 'bg-sky-500/10 border-sky-500/20 text-sky-300',
+  'Google Ads': 'bg-blue-500/10 border-blue-500/20 text-blue-700',
+  'Meta Ads': 'bg-indigo-500/10 border-indigo-500/20 text-indigo-700',
+  'LinkedIn Ads': 'bg-sky-500/10 border-sky-500/20 text-sky-700',
+  Google: 'bg-blue-500/10 border-blue-500/20 text-blue-700',
+  Meta: 'bg-indigo-500/10 border-indigo-500/20 text-indigo-700',
+  LinkedIn: 'bg-sky-500/10 border-sky-500/20 text-sky-700',
 }
 
 const IMAGE_CAP = 3
@@ -105,37 +105,37 @@ function ImageGenerator({
       <img
         src={displayUrl}
         alt={label ?? 'Ad visual'}
-        className="rounded-xl border border-white/8 w-full max-h-64 object-cover"
+        className="rounded-xl border border-ink/10 w-full max-h-64 object-cover"
       />
     )
   }
 
   return (
-    <div className="rounded-xl border border-dashed border-white/10 bg-white/2 p-4 flex flex-col gap-3">
-      <p className="text-xs text-zinc-500 uppercase tracking-widest font-medium">Image Prompt</p>
+    <div className="rounded-xl border border-dashed border-ink/15 bg-cream p-4 flex flex-col gap-3">
+      <p className="text-xs text-ink-faint uppercase tracking-widest font-medium">Image Prompt</p>
       <textarea
         value={prompt}
         onChange={(e) => setPrompt(e.target.value)}
         rows={3}
-        className="w-full rounded-lg bg-zinc-800/50 border border-white/10 px-3 py-2 text-xs text-zinc-300 leading-relaxed resize-none focus:outline-none focus:border-violet-500/50 transition-colors"
+        className="w-full rounded-lg bg-white border border-ink/10 px-3 py-2 text-xs text-ink leading-relaxed resize-none focus:outline-none focus:border-teal-600/40 transition-colors"
         placeholder="Describe the image you want..."
       />
-      {error && <p className="text-xs text-red-400">{error}</p>}
+      {error && <p className="text-xs text-error">{error}</p>}
       <button
         onClick={handleGenerate}
         disabled={loading || limitReached || !prompt.trim()}
         className={`self-start rounded-lg px-4 py-2 text-xs font-semibold border transition-all ${
           loading
-            ? 'bg-violet-600/10 border-violet-500/20 text-violet-400 animate-pulse cursor-wait'
+            ? 'bg-teal-100 border-teal-600/20 text-teal-600 animate-pulse cursor-wait'
             : limitReached
-              ? 'bg-zinc-800/50 border-white/8 text-zinc-600 cursor-not-allowed'
-              : 'bg-violet-600/15 border-violet-500/30 text-violet-300 hover:bg-violet-600/25 hover:border-violet-500/50'
+              ? 'bg-cream-dark border-ink/10 text-ink-faint cursor-not-allowed'
+              : 'bg-teal-100 border-teal-600/20 text-teal-700 hover:bg-teal-100/80 hover:border-teal-600/40'
         }`}
       >
         {loading ? 'Generating...' : limitReached ? `Limit reached (${IMAGE_CAP})` : 'Generate Image'}
       </button>
       {!limitReached && !loading && (
-        <p className="text-xs text-zinc-600">{IMAGE_CAP - imagesGenerated} of {IMAGE_CAP} generations remaining</p>
+        <p className="text-xs text-ink-faint">{IMAGE_CAP - imagesGenerated} of {IMAGE_CAP} generations remaining</p>
       )}
     </div>
   )
@@ -159,13 +159,13 @@ export default function AdsView({ output }: AdsViewProps) {
   }
 
   return (
-    <div className="rounded-2xl border border-white/8 bg-white/3 overflow-hidden">
+    <div className="rounded-2xl border border-ink/10 bg-white overflow-hidden">
       <TabGroup>
-        <TabList className="flex border-b border-white/8 overflow-x-auto">
+        <TabList className="flex border-b border-ink/10 overflow-x-auto">
           {['Ad Copy', 'Visuals', 'A/B Variations'].map((tab) => (
             <Tab
               key={tab}
-              className="flex-1 min-w-max px-4 py-3 text-sm font-medium text-zinc-500 hover:text-zinc-300 data-[selected]:text-white data-[selected]:bg-white/5 data-[selected]:border-b-2 data-[selected]:border-violet-500 transition-colors outline-none"
+              className="flex-1 min-w-max px-4 py-3 text-sm font-medium text-ink-muted hover:text-ink data-[selected]:text-ink data-[selected]:bg-cream-dark data-[selected]:border-b-2 data-[selected]:border-teal-600 transition-colors outline-none"
             >
               {tab}
             </Tab>
@@ -176,29 +176,29 @@ export default function AdsView({ output }: AdsViewProps) {
           {/* Ad Copy Tab */}
           <TabPanel className="p-6 flex flex-col gap-4">
             {ad_copies.length === 0 && (
-              <p className="text-sm text-zinc-600 italic">No ad copy generated.</p>
+              <p className="text-sm text-ink-faint italic">No ad copy generated.</p>
             )}
             {ad_copies.map((ad, i) => {
-              const badgeClass = PLATFORM_BADGE[ad.platform] ?? 'bg-violet-500/10 border-violet-500/20 text-violet-300'
+              const badgeClass = PLATFORM_BADGE[ad.platform] ?? 'bg-teal-100 border-teal-600/20 text-teal-700'
               return (
-                <div key={i} className="rounded-xl border border-white/8 bg-white/3 p-4 flex flex-col gap-3">
+                <div key={i} className="rounded-xl border border-ink/10 bg-cream p-4 flex flex-col gap-3">
                   <div className="flex items-center gap-2">
                     <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-semibold ${badgeClass}`}>
                       {ad.platform}
                     </span>
-                    <span className="text-xs text-zinc-500">{ad.segment}</span>
+                    <span className="text-xs text-ink-faint">{ad.segment}</span>
                   </div>
                   <div>
-                    <p className="text-xs text-zinc-500 uppercase tracking-widest font-medium mb-1">Headline</p>
-                    <p className="text-sm font-bold text-white">{ad.headline}</p>
+                    <p className="text-xs text-ink-faint uppercase tracking-widest font-medium mb-1">Headline</p>
+                    <p className="text-sm font-bold text-ink">{ad.headline}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-zinc-500 uppercase tracking-widest font-medium mb-1">Body</p>
-                    <p className="text-xs text-zinc-300 leading-relaxed">{ad.body}</p>
+                    <p className="text-xs text-ink-faint uppercase tracking-widest font-medium mb-1">Body</p>
+                    <p className="text-xs text-ink-muted leading-relaxed">{ad.body}</p>
                   </div>
                   {ad.cta && (
-                    <div className="self-start rounded-xl bg-emerald-600/10 border border-emerald-500/20 px-4 py-2">
-                      <p className="text-xs text-emerald-400 font-semibold">{ad.cta}</p>
+                    <div className="self-start rounded-xl bg-teal-600 px-4 py-2">
+                      <p className="text-xs text-white font-semibold">{ad.cta}</p>
                     </div>
                   )}
                 </div>
@@ -209,28 +209,28 @@ export default function AdsView({ output }: AdsViewProps) {
           {/* Visuals Tab */}
           <TabPanel className="p-6 flex flex-col gap-4">
             {ad_visuals.length === 0 && (
-              <p className="text-sm text-zinc-600 italic">No ad visuals generated.</p>
+              <p className="text-sm text-ink-faint italic">No ad visuals generated.</p>
             )}
             {ad_visuals.map((visual, i) => (
-              <div key={i} className="rounded-xl border border-white/8 bg-white/3 p-4 flex flex-col gap-3">
+              <div key={i} className="rounded-xl border border-ink/10 bg-cream p-4 flex flex-col gap-3">
                 <div className="flex items-center gap-2">
-                  <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-semibold ${PLATFORM_BADGE[visual.platform] ?? 'bg-violet-500/10 border-violet-500/20 text-violet-300'}`}>
+                  <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-semibold ${PLATFORM_BADGE[visual.platform] ?? 'bg-teal-100 border-teal-600/20 text-teal-700'}`}>
                     {visual.platform}
                   </span>
-                  <span className="text-xs text-zinc-500">{visual.segment}</span>
+                  <span className="text-xs text-ink-faint">{visual.segment}</span>
                 </div>
                 <div>
-                  <p className="text-xs text-zinc-500 uppercase tracking-widest font-medium mb-1">Visual Concept</p>
-                  <p className="text-xs text-zinc-300 leading-relaxed">{visual.visual_concept}</p>
+                  <p className="text-xs text-ink-faint uppercase tracking-widest font-medium mb-1">Visual Concept</p>
+                  <p className="text-xs text-ink-muted leading-relaxed">{visual.visual_concept}</p>
                 </div>
                 {visual.color_palette && visual.color_palette.length > 0 && (
                   <div className="flex items-center gap-2">
-                    <p className="text-xs text-zinc-500 uppercase tracking-widest font-medium">Palette</p>
+                    <p className="text-xs text-ink-faint uppercase tracking-widest font-medium">Palette</p>
                     <div className="flex gap-1">
                       {visual.color_palette.map((color, ci) => (
                         <div
                           key={ci}
-                          className="w-5 h-5 rounded-full border border-white/10"
+                          className="w-5 h-5 rounded-full border border-ink/10"
                           style={{ backgroundColor: color }}
                           title={color}
                         />
@@ -252,11 +252,11 @@ export default function AdsView({ output }: AdsViewProps) {
           {/* A/B Variations Tab */}
           <TabPanel className="p-6 flex flex-col gap-6">
             {ab_variations.length === 0 && (
-              <p className="text-sm text-zinc-600 italic">No A/B variations generated.</p>
+              <p className="text-sm text-ink-faint italic">No A/B variations generated.</p>
             )}
             {Object.entries(groupedVariations).map(([ref, variations], groupIdx) => (
               <div key={groupIdx} className="flex flex-col gap-3">
-                <p className="text-xs text-zinc-500 uppercase tracking-widest font-medium">{ref}</p>
+                <p className="text-xs text-ink-faint uppercase tracking-widest font-medium">{ref}</p>
                 <div className="flex gap-2">
                   {variations.map((_, vi) => (
                     <button
@@ -264,8 +264,8 @@ export default function AdsView({ output }: AdsViewProps) {
                       onClick={() => setActiveVariations((prev) => ({ ...prev, [groupIdx]: vi }))}
                       className={`flex-1 py-2 rounded-lg text-xs font-semibold border transition-all ${
                         (activeVariations[groupIdx] ?? 0) === vi
-                          ? 'bg-violet-600/20 border-violet-500/40 text-violet-300'
-                          : 'bg-white/3 border-white/8 text-zinc-500 hover:text-zinc-300'
+                          ? 'bg-teal-100 border-teal-600/40 text-teal-700'
+                          : 'bg-cream-dark border-ink/10 text-ink-muted hover:text-ink'
                       }`}
                     >
                       Variant {variations[vi].variant_label}
@@ -276,24 +276,24 @@ export default function AdsView({ output }: AdsViewProps) {
                   const active = variations[activeVariations[groupIdx] ?? 0]
                   if (!active) return null
                   return (
-                    <div className="rounded-xl border border-white/8 bg-white/3 p-4 flex flex-col gap-3">
+                    <div className="rounded-xl border border-ink/10 bg-cream p-4 flex flex-col gap-3">
                       {active.test_hypothesis && (
-                        <div className="rounded-xl border border-amber-500/15 bg-amber-500/5 px-4 py-2">
-                          <p className="text-xs text-amber-400 uppercase tracking-widest font-medium mb-0.5">Hypothesis</p>
-                          <p className="text-xs text-zinc-300">{active.test_hypothesis}</p>
+                        <div className="rounded-xl border border-gold-400/15 bg-gold-100/50 px-4 py-2">
+                          <p className="text-xs text-gold-600 uppercase tracking-widest font-medium mb-0.5">Hypothesis</p>
+                          <p className="text-xs text-ink">{active.test_hypothesis}</p>
                         </div>
                       )}
                       <div>
-                        <p className="text-xs text-zinc-500 uppercase tracking-widest font-medium mb-1">Headline</p>
-                        <p className="text-sm font-bold text-white">{active.headline}</p>
+                        <p className="text-xs text-ink-faint uppercase tracking-widest font-medium mb-1">Headline</p>
+                        <p className="text-sm font-bold text-ink">{active.headline}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-zinc-500 uppercase tracking-widest font-medium mb-1">Body</p>
-                        <p className="text-xs text-zinc-300 leading-relaxed">{active.body}</p>
+                        <p className="text-xs text-ink-faint uppercase tracking-widest font-medium mb-1">Body</p>
+                        <p className="text-xs text-ink-muted leading-relaxed">{active.body}</p>
                       </div>
                       {active.cta && (
-                        <div className="self-start rounded-xl bg-emerald-600/10 border border-emerald-500/20 px-4 py-2">
-                          <p className="text-xs text-emerald-400 font-semibold">{active.cta}</p>
+                        <div className="self-start rounded-xl bg-teal-600 px-4 py-2">
+                          <p className="text-xs text-white font-semibold">{active.cta}</p>
                         </div>
                       )}
                       <ImageGenerator

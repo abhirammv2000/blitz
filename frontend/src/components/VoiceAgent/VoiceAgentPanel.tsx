@@ -128,14 +128,14 @@ export default function VoiceAgentPanel({ runId, segments, salesScripts }: Voice
     <div className="flex flex-col gap-6">
       {/* Setup error banner */}
       {setupError && (
-        <div className="rounded-xl border border-red-500/25 bg-red-500/5 p-5 flex flex-col gap-2">
-          <p className="text-sm font-semibold text-red-400">ElevenLabs voice agent is not configured</p>
-          <p className="text-sm text-zinc-400 leading-relaxed">
-            Set the following variables in your <code className="text-zinc-300 bg-white/5 px-1.5 py-0.5 rounded text-xs">.env</code> file:
+        <div className="rounded-xl border border-error/25 bg-error/5 p-5 flex flex-col gap-2">
+          <p className="text-sm font-semibold text-error">ElevenLabs voice agent is not configured</p>
+          <p className="text-sm text-ink-muted leading-relaxed">
+            Set the following variables in your <code className="text-ink bg-cream-dark px-1.5 py-0.5 rounded text-xs">.env</code> file:
           </p>
           <ul className="flex flex-col gap-1 mt-1">
             {['ELEVENLABS_API_KEY', 'ELEVENLABS_AGENT_ID', 'ELEVENLABS_PHONE_NUMBER_ID'].map((v) => (
-              <li key={v} className="text-xs text-zinc-300 font-mono bg-white/5 rounded px-2 py-1">
+              <li key={v} className="text-xs text-ink font-mono bg-cream-dark rounded px-2 py-1">
                 {v}
               </li>
             ))}
@@ -145,11 +145,11 @@ export default function VoiceAgentPanel({ runId, segments, salesScripts }: Voice
 
       {/* General error banner */}
       {error && !setupError && (
-        <div className="rounded-xl border border-red-500/25 bg-red-500/5 p-4 flex items-start gap-3">
-          <p className="text-sm text-red-400 flex-1">{error}</p>
+        <div className="rounded-xl border border-error/25 bg-error/5 p-4 flex items-start gap-3">
+          <p className="text-sm text-error flex-1">{error}</p>
           <button
             onClick={() => setError(null)}
-            className="text-xs text-zinc-500 hover:text-zinc-300 flex-shrink-0"
+            className="text-xs text-ink-faint hover:text-ink-muted flex-shrink-0"
           >
             Dismiss
           </button>
@@ -158,8 +158,8 @@ export default function VoiceAgentPanel({ runId, segments, salesScripts }: Voice
 
       {/* Timed out notice */}
       {timedOut && stage === 'transcript' && (
-        <div className="rounded-xl border border-amber-500/25 bg-amber-500/5 p-4">
-          <p className="text-sm text-amber-300">Call timed out or was not answered.</p>
+        <div className="rounded-xl border border-gold-400/25 bg-gold-100/50 p-4">
+          <p className="text-sm text-gold-600">Call timed out or was not answered.</p>
         </div>
       )}
 
@@ -192,7 +192,7 @@ export default function VoiceAgentPanel({ runId, segments, salesScripts }: Voice
           <TranscriptCard transcript={transcript} status="completed" />
           <button
             onClick={reset}
-            className="self-start px-4 py-2 rounded-xl border border-white/10 bg-white/3 text-sm text-zinc-400 hover:text-zinc-200 hover:border-white/20 transition-all"
+            className="self-start px-4 py-2 rounded-xl border border-ink/10 bg-cream-dark text-sm text-ink-muted hover:text-ink hover:border-ink/20 transition-all"
           >
             Make Another Call
           </button>
