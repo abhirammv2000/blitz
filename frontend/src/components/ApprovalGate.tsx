@@ -20,6 +20,35 @@ interface ApprovalGateProps {
   summaryStats?: string
 }
 
+function processSSELine(
+  line: string,
+  onProgress: (step: string, status: string) => void,
+  onOutput: (data: unknown) => void,
+  onDone: () => void,
+  outputKey: string,
+) {
+  if (!line.startsWith('data: ')) return
+  try {
+    const event = JSON.parse(line.slice(6))
+    if (event.type === 'progress') {
+      onProgress(event.data?.step ?? event.step, event.data?.status ?? event.status)
+    }
+    if (event.type === 'state' && event.data && outputKey) {
+      if (event.data[outputKey] !== undefined) {
+        onOutput(event.data[outputKey])
+      }
+    }
+    if (event.type === 'interrupted') {
+      if (event.data?.output !== undefined) {
+        onOutput(event.data.output)
+      }
+      onDone()
+    }
+  } catch {
+    // ignore parse errors on malformed events
+  }
+}
+
 async function readSSEStream(
   stream: ReadableStream<Uint8Array>,
   onProgress: (step: string, status: string) => void,
@@ -29,31 +58,29 @@ async function readSSEStream(
 ) {
   const reader = stream.getReader()
   const decoder = new TextDecoder()
+  let buffer = ''
 
   try {
     while (true) {
       const { done, value } = await reader.read()
       if (done) break
-      const text = decoder.decode(value, { stream: true })
-      for (const line of text.split('\n')) {
-        if (!line.startsWith('data: ')) continue
-        try {
-          const event = JSON.parse(line.slice(6))
-          if (event.type === 'progress') {
-            onProgress(event.data?.step ?? event.step, event.data?.status ?? event.status)
-          }
-          if (event.type === 'state' && event.data && outputKey) {
-            if (event.data[outputKey] !== undefined) {
-              onOutput(event.data[outputKey])
-            }
-          }
-          if (event.type === 'interrupted') {
-            onDone()
-          }
-        } catch {
-          // ignore parse errors
+      buffer += decoder.decode(value, { stream: true })
+
+      // SSE events are delimited by double newlines; process complete lines
+      const parts = buffer.split('\n')
+      // Keep the last part as it may be incomplete
+      buffer = parts.pop() ?? ''
+
+      for (const line of parts) {
+        const trimmed = line.trim()
+        if (trimmed) {
+          processSSELine(trimmed, onProgress, onOutput, onDone, outputKey)
         }
       }
+    }
+    // Process any remaining buffer
+    if (buffer.trim()) {
+      processSSELine(buffer.trim(), onProgress, onOutput, onDone, outputKey)
     }
   } finally {
     reader.releaseLock()
@@ -103,12 +130,28 @@ export default function ApprovalGate({
   const handleApprove = async () => {
     const res = await postDecision({ action: 'approve' })
     if (!res) return
-    onDecisionComplete()
+
+    if (res.body) {
+      setIsRunning(true)
+      clearResearchProgress()
+      onDecisionComplete()
+
+      const nextOutputKey = Object.entries({ research_output: 0, profile_output: 1, audience_output: 2 })
+          .find(([, v]) => v === agentStep + 1)?.[0] ?? 'research_output'
+      await readSSEStream(
+        res.body,
+        (step, status) => addResearchProgress({ step, status }),
+        (data) => setAgentOutput(agentStep + 1, data),
+        () => setIsRunning(false),
+        nextOutputKey
+      )
+    } else {
+      onDecisionComplete()
+    }
     setLoading(false)
   }
 
   const handleEdit = async () => {
-    // Collect edited content from the contenteditable ref
     const editedText = editRef.current?.innerText ?? ''
     let editedData: unknown
     try {
@@ -118,7 +161,23 @@ export default function ApprovalGate({
     }
     const res = await postDecision({ action: 'edit', data: editedData })
     if (!res) return
-    onDecisionComplete()
+
+    if (res.body) {
+      setIsRunning(true)
+      clearResearchProgress()
+      onDecisionComplete()
+
+      await readSSEStream(
+        res.body,
+        (step, status) => addResearchProgress({ step, status }),
+        (data) => setAgentOutput(agentStep + 1, data),
+        () => setIsRunning(false),
+        Object.entries({ research_output: 0, profile_output: 1, audience_output: 2 })
+          .find(([, v]) => v === agentStep + 1)?.[0] ?? 'research_output'
+      )
+    } else {
+      onDecisionComplete()
+    }
     setLoading(false)
   }
 
@@ -153,7 +212,23 @@ export default function ApprovalGate({
     }
     const res = await postDecision({ action: 'override', data: parsedData })
     if (!res) return
-    onDecisionComplete()
+
+    if (res.body) {
+      setIsRunning(true)
+      clearResearchProgress()
+      onDecisionComplete()
+
+      await readSSEStream(
+        res.body,
+        (step, status) => addResearchProgress({ step, status }),
+        (data) => setAgentOutput(agentStep + 1, data),
+        () => setIsRunning(false),
+        Object.entries({ research_output: 0, profile_output: 1, audience_output: 2 })
+          .find(([, v]) => v === agentStep + 1)?.[0] ?? 'research_output'
+      )
+    } else {
+      onDecisionComplete()
+    }
     setLoading(false)
   }
 

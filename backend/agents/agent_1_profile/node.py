@@ -114,12 +114,13 @@ async def agent_1_profile_node(state: BlitzState) -> dict:
         output = await run_profile(run_id, feedback)
 
         # Interrupt: surface MarketingProfile to frontend for HITL review
-        decision = interrupt({
+        interrupt_value = {
             "step": 1,
             "agent": "agent_1_profile",
             "output": output.model_dump(),
             "action": "approve | edit | reject | override",
-        })
+        }
+        decision = interrupt(interrupt_value)
 
         action = decision.get("action", "approve")
 

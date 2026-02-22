@@ -71,15 +71,18 @@ export const useBlitzStore = create<BlitzStore>()((set) => ({
       if (!reader) throw new Error('No response stream')
 
       const decoder = new TextDecoder()
+      let buffer = ''
 
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
 
-        const text = decoder.decode(value, { stream: true })
-        const lines = text.split('\n')
+        buffer += decoder.decode(value, { stream: true })
+        const parts = buffer.split('\n')
+        buffer = parts.pop() ?? ''
 
-        for (const line of lines) {
+        for (const part of parts) {
+          const line = part.trim()
           if (!line.startsWith('data: ')) continue
           try {
             const event = JSON.parse(line.slice(6))
@@ -140,6 +143,22 @@ export const useBlitzStore = create<BlitzStore>()((set) => ({
             // ignore parse errors on partial chunks
           }
         }
+      }
+      // Process remaining buffer
+      if (buffer.trim() && buffer.trim().startsWith('data: ')) {
+        try {
+          const event = JSON.parse(buffer.trim().slice(6))
+          if (event.type === 'interrupted') {
+            const interruptData = event.data
+            if (interruptData?.output !== undefined && interruptData?.step !== undefined) {
+              set((state) => ({
+                agentOutputs: { ...state.agentOutputs, [interruptData.step as number]: interruptData.output },
+              }))
+            }
+            set({ isRunning: false })
+            return
+          }
+        } catch { /* ignore */ }
       }
     } catch (err) {
       set({
