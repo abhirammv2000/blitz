@@ -2,7 +2,7 @@ import { Tab, TabGroup, TabList, TabPanel, TabPanels } from '@headlessui/react'
 
 // TypeScript interfaces matching backend Pydantic schemas
 export interface EmailInSequence {
-  email_number: number
+  step: number
   subject: string
   body: string
   delay_days: number
@@ -21,15 +21,18 @@ export interface LinkedInTemplate {
 }
 
 export interface LeadTier {
-  tier: 'Hot' | 'Warm' | 'Cold'
+  tier: string
+  description: string
   signals: string[]
   action: string
 }
 
 export interface PipelineStage {
   stage: string
-  description: string
-  key_action: string
+  definition: string
+  entry_criteria: string
+  exit_criteria: string
+  actions: string[]
 }
 
 export interface SalesOutput {
@@ -97,12 +100,12 @@ export default function SalesView({ output }: SalesViewProps) {
                 </p>
                 <div className="flex flex-col gap-2">
                   {(seq.emails ?? []).map((email, j) => {
-                    const meta = EMAIL_LABELS[email.email_number] ?? { label: `Email ${email.email_number}`, color: 'text-zinc-400 bg-zinc-500/10 border-zinc-500/20' }
+                    const meta = EMAIL_LABELS[email.step] ?? { label: `Email ${email.step}`, color: 'text-zinc-400 bg-zinc-500/10 border-zinc-500/20' }
                     return (
                       <div key={j} className="rounded-xl border border-white/8 bg-white/3 p-4 flex flex-col gap-2">
                         <div className="flex items-center gap-2">
                           <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-semibold ${meta.color}`}>
-                            Email {email.email_number}: {meta.label}
+                            Email {email.step}: {meta.label}
                           </span>
                           {email.delay_days !== undefined && (
                             <span className="inline-flex rounded-full bg-white/5 border border-white/8 px-2 py-0.5 text-xs text-zinc-500">
@@ -198,12 +201,12 @@ export default function SalesView({ output }: SalesViewProps) {
                       </span>
                       <p className="text-sm font-semibold">{stage.stage}</p>
                     </div>
-                    {stage.description && (
-                      <p className="text-xs text-zinc-400 pl-7 leading-relaxed">{stage.description}</p>
+                    {stage.definition && (
+                      <p className="text-xs text-zinc-400 pl-7 leading-relaxed">{stage.definition}</p>
                     )}
-                    {stage.key_action && (
+                    {stage.entry_criteria && (
                       <p className="text-xs text-zinc-500 pl-7">
-                        Key action: <span className="text-zinc-300">{stage.key_action}</span>
+                        Entry: <span className="text-zinc-300">{stage.entry_criteria}</span>
                       </p>
                     )}
                   </div>
