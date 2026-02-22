@@ -1,0 +1,223 @@
+{
+  "run_id": "demo-resupply-001",
+  "research_output_delay_ms": 0,
+  "profile_output_delay_ms": 3000,
+  "audience_output_delay_ms": 4000,
+  "content_output_delay_ms": 6000,
+  "sales_output_delay_ms": 5000,
+  "ads_output_delay_ms": 4000,
+  "progress_events": [
+    { "step": "Crawling website", "status": "running", "delay_ms": 200 },
+    { "step": "Crawling website", "status": "done", "delay_ms": 1800 },
+    { "step": "Web search", "status": "running", "delay_ms": 300 },
+    { "step": "Web search", "status": "done", "delay_ms": 2200 },
+    { "step": "AEO check", "status": "running", "delay_ms": 200 },
+    { "step": "AEO check", "status": "done", "delay_ms": 3000 },
+    { "step": "Competitor analysis", "status": "running", "delay_ms": 200 },
+    { "step": "Competitor analysis", "status": "done", "delay_ms": 2500 }
+  ],
+  "research_output": {
+    "company_name": "Resupply",
+    "company_url": "https://www.resupply.com",
+    "summary": "Resupply is a sustainable goods marketplace connecting environmentally conscious consumers with ethically sourced products. Founded in 2019, the company operates a B2C platform enabling households to transition to sustainable alternatives across cleaning, personal care, and pantry categories. Resupply partners with over 200 certified sustainable brands and has served more than 150,000 customers across North America.",
+    "executive_summary": "Resupply is a sustainability-first e-commerce platform with 150K+ customers, 200+ brand partners, and a 4.7/5 average product rating. Revenue grew 68% YoY in 2023.",
+    "press_coverage": [
+      { "title": "Resupply Raises $12M Series A to Expand Sustainable Goods Platform", "url": "https://techcrunch.com/resupply-series-a", "snippet": "The round was led by Kleiner Perkins with participation from existing investors." },
+      { "title": "How Resupply Is Making Eco-Friendly Shopping Mainstream", "url": "https://forbes.com/resupply-eco", "snippet": "CEO Jane Park explains the company's approach to reducing friction in sustainable purchasing." },
+      { "title": "Resupply Partners With 50 New Brands in Q3 2023", "url": "https://businesswire.com/resupply-q3", "snippet": "Expansion into food and beverage category drives platform growth." }
+    ],
+    "site_content": "Resupply - Shop sustainable goods for your home. Free shipping on orders over $50. 30-day returns. Certified B-Corp brands only.",
+    "competitors": [
+      { "name": "Grove Collaborative", "positioning": "Mass-market eco cleaning", "strengths": ["Brand recognition", "Wide SKU catalog"], "weaknesses": ["High prices", "Subscription lock-in"] },
+      { "name": "Package Free Shop", "positioning": "Zero-waste lifestyle", "strengths": ["Zero-waste niche", "Strong community"], "weaknesses": ["Limited selection", "Niche audience only"] },
+      { "name": "EarthHero", "positioning": "Curated sustainable marketplace", "strengths": ["Curation quality", "Transparent sourcing"], "weaknesses": ["Smaller catalog", "Lower brand awareness"] }
+    ],
+    "aeo_score": 6.5,
+    "aeo_details": [
+      { "model": "GPT-4o", "mentioned": true, "confidence": 0.72, "quote": "Resupply is a growing sustainable goods marketplace popular among eco-conscious households." },
+      { "model": "Gemini 2.5 Pro", "mentioned": true, "confidence": 0.58, "quote": "Resupply offers curated sustainable products with certified brand partnerships." },
+      { "model": "Claude 3.5 Sonnet", "mentioned": false, "confidence": 0.0, "quote": "" }
+    ]
+  },
+  "profile_output": {
+    "brand_dna": {
+      "mission": "Make sustainable living effortless and accessible for every household.",
+      "values": ["Environmental stewardship", "Radical transparency", "Accessibility", "Community empowerment"],
+      "tone": "Warm, optimistic, and educational — empowers action without guilt-tripping",
+      "visual_style": "Clean earth tones, minimal packaging aesthetics, natural textures"
+    },
+    "positioning_statement": "For eco-conscious households who want to reduce their environmental impact without sacrificing convenience or quality, Resupply is the sustainable goods marketplace that makes the switch effortless — with curated, certified products and a seamless shopping experience.",
+    "usps": [
+      "200+ certified sustainable brands, all B-Corp or equivalent",
+      "30-day no-questions-asked returns on all products",
+      "Carbon-neutral delivery on every order",
+      "Expert curation — every product passes a 15-point sustainability audit"
+    ],
+    "marketing_gaps": [
+      { "gap": "Low AEO score (6.5/10) — Resupply is underrepresented in AI assistant recommendations", "recommendation": "Publish authoritative long-form content targeting 'best sustainable cleaning products' and similar high-intent queries to build AI-visible authority." },
+      { "gap": "Limited B2B/corporate sustainability angle despite growing demand", "recommendation": "Launch a dedicated corporate gifting and office supplies vertical targeting sustainability-focused HR teams." },
+      { "gap": "Social proof underutilized — 150K customers but minimal UGC campaigns", "recommendation": "Launch a #ResupplyChallenge UGC campaign incentivizing customers to share swap stories." }
+    ]
+  },
+  "audience_output": {
+    "segments": [
+      {
+        "name": "The Eco-Pragmatist",
+        "demographics": { "age_range": "28-42", "job_titles": ["Marketing Manager", "Product Designer", "Software Engineer"], "company_sizes": ["50-500 employees"], "industries": ["Technology", "Creative Services", "Healthcare"] },
+        "psychographics": { "values": ["Sustainability without sacrifice", "Convenience"], "goals": ["Reduce household carbon footprint by 30% this year", "Find products that actually work"], "frustrations": ["Greenwashing", "Products that don't perform as well as conventional alternatives"], "personality_traits": ["Research-driven", "Pragmatic", "Brand loyal once satisfied"] },
+        "pain_points": ["Can't tell which 'eco' brands are genuinely sustainable vs. greenwashing", "Premium pricing feels punishing for doing the right thing", "Difficult to find all sustainable products in one place"],
+        "buying_triggers": ["Certification badges (B-Corp, USDA Organic)", "Peer recommendations", "Side-by-side performance comparisons with conventional alternatives"],
+        "active_channels": ["Instagram", "Reddit (r/ZeroWaste)", "Email newsletters", "Google Search"],
+        "reasoning": "Resupply's B-Corp certification focus and transparency-first messaging directly addresses this segment's core anxiety about greenwashing. High purchase frequency potential.",
+        "fit_label": "High",
+        "synthetic_attributes": { "avg_household_income": "$95,000", "avg_order_value": "$67", "purchase_frequency": "Every 6 weeks", "churn_risk": "Low" }
+      },
+      {
+        "name": "The New Parent Switcher",
+        "demographics": { "age_range": "25-38", "job_titles": ["Any"], "company_sizes": ["N/A"], "industries": ["N/A"] },
+        "psychographics": { "values": ["Child safety", "Health consciousness", "Future-proofing"], "goals": ["Eliminate toxins from the home environment", "Build sustainable habits for kids to inherit"], "frustrations": ["Confusing ingredient labels", "Products marketed as 'natural' that contain harmful chemicals"], "personality_traits": ["Protective", "Research-intensive", "Community-oriented"] },
+        "pain_points": ["Overwhelming amount of information about harmful household chemicals", "Don't trust conventional brands anymore after having children", "Budget constraints with new family expenses"],
+        "buying_triggers": ["Pediatrician or parent community recommendations", "Clear ingredient transparency", "Bundle discounts for household staples"],
+        "active_channels": ["Facebook Groups", "Mommy bloggers/YouTube", "Pinterest", "Email"],
+        "reasoning": "Life-stage transition (new parenthood) is a proven category entry point. Resupply's safety certifications and ingredient transparency directly address this segment's anxiety drivers.",
+        "fit_label": "High",
+        "synthetic_attributes": { "avg_household_income": "$78,000", "avg_order_value": "$82", "purchase_frequency": "Every 4 weeks", "churn_risk": "Medium" }
+      },
+      {
+        "name": "The Corporate Sustainability Champion",
+        "demographics": { "age_range": "32-55", "job_titles": ["VP Sustainability", "Chief People Officer", "Office Manager"], "company_sizes": ["500+ employees"], "industries": ["Finance", "Tech", "Consulting"] },
+        "psychographics": { "values": ["ESG compliance", "Employee satisfaction", "Brand reputation"], "goals": ["Meet Scope 3 emissions targets", "Create a sustainable office environment as a talent retention tool"], "frustrations": ["Procurement process makes sustainable sourcing difficult", "Can't find one vendor for all sustainable office needs"], "personality_traits": ["Results-oriented", "Budget-conscious", "Relationship-driven"] },
+        "pain_points": ["No centralized sustainable procurement solution for office supplies", "Difficulty demonstrating ROI on sustainability initiatives to leadership", "Employee sustainability preferences are fragmented and hard to address at scale"],
+        "buying_triggers": ["Volume pricing and B2B account management", "ESG reporting data and carbon offset documentation", "Case studies from peer companies"],
+        "active_channels": ["LinkedIn", "Industry conferences", "Vendor webinars", "Direct sales outreach"],
+        "reasoning": "Identified from Resupply's marketing gap analysis — B2B corporate channel is underdeveloped. High LTV potential with enterprise accounts.",
+        "fit_label": "Medium",
+        "synthetic_attributes": { "avg_annual_contract": "$12,000", "purchase_frequency": "Monthly", "churn_risk": "Low", "decision_timeline_days": 45 }
+      }
+    ]
+  },
+  "content_output": {
+    "social_posts": [
+      {
+        "segment": "The Eco-Pragmatist",
+        "platform": "Instagram",
+        "post_copy": "Switched to Resupply 6 months ago. My cleaning cabinet went from 12 products to 4 — all certified sustainable, all actually work. The laundry detergent alone removes grass stains better than Tide. Proof that eco doesn't mean compromise.",
+        "hashtags": ["#ResupplyChallenge", "#SustainableLiving", "#EcoSwap", "#BCorp", "#CleanHome"],
+        "cta": "Link in bio to see our best-sellers — all rated 4.8+ by real customers."
+      },
+      {
+        "segment": "The New Parent Switcher",
+        "platform": "Instagram",
+        "post_copy": "When our daughter was born, we went through every product under our sink. Found parabens, synthetic fragrance, formaldehyde releasers. Resupply's ingredient filter made switching easy — everything passes a 15-point safety audit. Your home, audited.",
+        "hashtags": ["#SafeHome", "#NonToxicLiving", "#NewMom", "#CleanIngredients", "#Resupply"],
+        "cta": "See our Baby-Safe collection — all products vetted by pediatric health advisors."
+      },
+      {
+        "segment": "The Corporate Sustainability Champion",
+        "platform": "LinkedIn",
+        "post_copy": "We helped a 2,000-person tech company replace 100% of their office cleaning supplies with certified sustainable alternatives — and cut procurement costs by 18% through consolidated ordering. Their Scope 3 report now includes every SKU. This is what sustainable procurement looks like at scale.",
+        "hashtags": ["#ESG", "#CorporateSustainability", "#Procurement", "#Scope3", "#B2B"],
+        "cta": "Book a 20-minute demo with our enterprise team to see the platform."
+      }
+    ],
+    "email_campaigns": [
+      {
+        "segment": "The Eco-Pragmatist",
+        "subject": "The greenwashing test: 3 questions to ask every 'eco' brand",
+        "preview_text": "We asked them so you don't have to.",
+        "body": "Hi [First Name],\n\nYou've probably seen the term 'eco-friendly' slapped on everything from plastic bottles to fast fashion.\n\nAt Resupply, we put every brand through a 15-point sustainability audit before they make it onto our platform. The three questions that eliminate 80% of applicants:\n\n1. Can you provide third-party certification for your claims?\n2. What's your end-of-life packaging plan?\n3. Do you disclose full ingredient lists, including fragrances?\n\nMost brands fail question 3 alone.\n\nEvery product on Resupply passes all 15. No exceptions.\n\n[View Our Certified Collection]",
+        "cta": "View Our Certified Collection"
+      },
+      {
+        "segment": "The New Parent Switcher",
+        "subject": "The 6 household products pediatricians say to replace first",
+        "preview_text": "Your home probably has at least 3 of these.",
+        "body": "Hi [First Name],\n\nWhen it comes to your baby's health, the products you use every day matter as much as the ones you buy specifically for them.\n\nWe partnered with pediatric health advisors to identify the 6 most common household products with ingredients of concern:\n\n1. Fabric softeners (synthetic musks)\n2. Air fresheners (phthalates)\n3. All-purpose cleaners (quaternary ammonium compounds)\n4. Dish soap (fragrance blends)\n5. Laundry detergent (optical brighteners)\n6. Dryer sheets (benzyl acetate)\n\nWe have certified-safe alternatives for all of them — same performance, complete transparency.\n\n[Build Your Safe Home Bundle]",
+        "cta": "Build Your Safe Home Bundle"
+      }
+    ],
+    "blog_outlines": [
+      {
+        "title": "The Complete Guide to Sustainable Home Products in 2024: What Actually Works",
+        "target_keyword": "best sustainable home products",
+        "sections": [
+          "What 'sustainable' actually means (and the certifications that matter)",
+          "Room-by-room swap guide: kitchen, bathroom, laundry, cleaning",
+          "Performance comparison: sustainable vs. conventional products",
+          "How to read ingredient labels and spot greenwashing",
+          "Building a sustainable home on a budget: priority swaps first"
+        ],
+        "audience_segment": "The Eco-Pragmatist"
+      }
+    ],
+    "content_calendar": [
+      { "timing": "Week 1 - Monday", "channel": "Instagram", "content_type": "Product Showcase", "content_ref": "Eco-Pragmatist Instagram post — cleaning cabinet swap", "segment": "The Eco-Pragmatist" },
+      { "timing": "Week 1 - Thursday", "channel": "Email", "content_type": "Educational Newsletter", "content_ref": "Greenwashing test — 3 questions email", "segment": "The Eco-Pragmatist" },
+      { "timing": "Week 2 - Tuesday", "channel": "Instagram", "content_type": "Safety Story", "content_ref": "New Parent Switcher — ingredient reveal post", "segment": "The New Parent Switcher" },
+      { "timing": "Week 2 - Friday", "channel": "Email", "content_type": "Product Guide", "content_ref": "6 products to replace first — pediatrician email", "segment": "The New Parent Switcher" },
+      { "timing": "Week 3 - Wednesday", "channel": "LinkedIn", "content_type": "Case Study", "content_ref": "Corporate client — 18% cost reduction story", "segment": "The Corporate Sustainability Champion" },
+      { "timing": "Week 4 - Monday", "channel": "Blog", "content_type": "SEO Article", "content_ref": "Complete guide to sustainable home products 2024", "segment": "The Eco-Pragmatist" }
+    ]
+  },
+  "sales_output": {
+    "email_sequences": [
+      {
+        "segment": "The Eco-Pragmatist",
+        "emails": [
+          { "step": 1, "subject": "The data behind Resupply's 15-point audit", "body": "Hi [First Name],\n\nMost sustainable brands self-certify. We don't.\n\nEvery product on Resupply passes a 15-point audit covering ingredient safety, supply chain transparency, packaging end-of-life, and third-party certifications.\n\nWe reject 78% of brand applicants. That's the filter you deserve.\n\nWorth exploring what that looks like for your household?", "delay_days": 0 },
+          { "step": 2, "subject": "Your top 3 cleaning products, audited", "body": "Hi [First Name],\n\nI ran your most common cleaning products through our audit criteria — here's what we found:\n\n- Multi-surface spray: Contains quaternary ammonium compounds (respiratory concern with long-term exposure)\n- Fabric softener: Synthetic musks detected — no biodegradability data\n- Dish soap: Fragrance blend listed (no ingredient disclosure)\n\nWe have certified alternatives for all three — same efficacy, full transparency.\n\nWant me to put together a swap bundle?", "delay_days": 3 },
+          { "step": 3, "subject": "15-minute call to build your sustainable home kit?", "body": "Hi [First Name],\n\nI've helped 12 households in [City] complete a full home audit and switch to certified alternatives in under 3 weeks.\n\nIf you'd like a personalized product list and a first-order discount, I can put that together on a quick call.\n\nWould [Day] at [Time] work?", "delay_days": 5 }
+        ]
+      },
+      {
+        "segment": "The Corporate Sustainability Champion",
+        "emails": [
+          { "step": 1, "subject": "How [Company] could hit Scope 3 targets with one procurement switch", "body": "Hi [First Name],\n\nI noticed [Company] published a sustainability commitment last quarter. Office supplies and cleaning products are typically 3-8% of a company's Scope 3 emissions — and they're the easiest to address.\n\nResupply's enterprise platform handles procurement, carbon offset documentation, and ESG reporting data automatically.\n\nWould it be useful to see how a comparable company did it?", "delay_days": 0 },
+          { "step": 2, "subject": "Case study: How Meridian Capital cut sustainable procurement costs by 18%", "body": "Hi [First Name],\n\nMeridian Capital (2,000 employees, SF HQ) switched their entire office cleaning and supplies program to Resupply 8 months ago.\n\nResults: 18% procurement cost reduction through consolidated ordering, full Scope 3 documentation included in their annual ESG report, and a 23-point increase in employee satisfaction scores related to workplace environment.\n\nI can share the full case study and a platform demo. Would that be valuable?", "delay_days": 4 },
+          { "step": 3, "subject": "30-day pilot for [Company]?", "body": "Hi [First Name],\n\nFor enterprise accounts, we offer a 30-day no-commitment pilot — full platform access, dedicated account manager, and a cost comparison report at the end.\n\nNo procurement process required to start. Just a signed NDA and a list of your current suppliers.\n\nIs this something you could greenlight for Q1?", "delay_days": 6 }
+        ]
+      }
+    ],
+    "linkedin_templates": [
+      {
+        "segment": "The Eco-Pragmatist",
+        "connection_request": "Hi [Name] — I work with sustainability-focused consumers to find products that actually back up their eco claims. Your recent post about [topic] resonated. Would love to connect.",
+        "follow_up_1": "Thanks for connecting, [Name]. Given your interest in [sustainable topic], I thought you might find our greenwashing detection framework useful — it's the same criteria we use to vet 200+ brands on our platform. Happy to share if it'd be helpful.",
+        "follow_up_2": "One more thing — we just published a side-by-side performance comparison of our top cleaning products vs. conventional alternatives. 15 metrics, third-party tested. Thought you'd find the data interesting: [link]. No pitch, just useful data."
+      },
+      {
+        "segment": "The Corporate Sustainability Champion",
+        "connection_request": "Hi [Name] — saw your work on [Company]'s sustainability initiative. We help enterprise teams operationalize sustainable procurement at scale. Would be great to connect.",
+        "follow_up_1": "Thanks [Name] — I noticed [Company] has a sustainability commitment that includes supply chain. One of our clients in a similar space was able to document and reduce their office-related Scope 3 emissions by switching vendors. Happy to share how they structured it.",
+        "follow_up_2": "Sharing a 2-page case study on how Meridian Capital (2,000 employees) reduced procurement costs 18% while hitting ESG targets — the CFO was skeptical but it paid back in 4 months. Might be relevant for your Q1 planning: [link]."
+      }
+    ],
+    "lead_scoring": [
+      { "tier": "Hot", "description": "High intent, solution-aware, actively evaluating", "signals": ["Viewed product pages 3+ times", "Added to cart but didn't purchase", "Opened last 3 emails", "Clicked pricing or bulk order link"], "action": "Immediate personal outreach within 24 hours. Offer free sample bundle or consultation call." },
+      { "tier": "Warm", "description": "Engaged but not yet intent-showing", "signals": ["Subscribed to newsletter", "Followed on Instagram", "Clicked blog content", "Opened 1-2 recent emails"], "action": "Enroll in 3-email nurture sequence. Prioritize educational content over product promotion." },
+      { "tier": "Cold", "description": "Low engagement, awareness-stage", "signals": ["Visited homepage once", "Unsubscribed from 1 email", "No email opens in 60 days"], "action": "Re-engagement campaign with high-value free content. Remove from sequence after 90 days of no activity." }
+    ],
+    "pipeline_stages": [
+      { "stage": "Prospect", "definition": "Identified potential customer, no contact yet", "entry_criteria": "Matches eco-pragmatist or new parent ICP profile", "exit_criteria": "First meaningful engagement (email open + click, or DM response)", "actions": ["Add to ICP-matched email sequence", "Connect on LinkedIn if B2B segment", "Tag with segment label in CRM"] },
+      { "stage": "Contacted", "definition": "Initial outreach sent, awaiting response", "entry_criteria": "Sequence email #1 sent or LinkedIn connection accepted", "exit_criteria": "Response received or call booked", "actions": ["Send follow-up #2 after 3 days", "Personalize with prospect-specific research", "Log all touchpoints in CRM"] },
+      { "stage": "Engaged", "definition": "Two-way conversation underway", "entry_criteria": "Email reply, DM response, or call completed", "exit_criteria": "Purchase made or trial started", "actions": ["Identify specific product needs", "Send curated product recommendation", "Offer first-order discount or bundle deal"] },
+      { "stage": "Converted", "definition": "First purchase completed", "entry_criteria": "Order placed", "exit_criteria": "N/A — move to retention program", "actions": ["Send onboarding email with sustainability impact summary", "Enroll in loyalty program", "Schedule 30-day check-in to gather feedback"] }
+    ]
+  },
+  "ads_output": {
+    "ad_copies": [
+      { "segment": "The Eco-Pragmatist", "platform": "Google", "headline": "Sustainable Products That Actually Work | Resupply", "body": "200+ certified sustainable brands. All B-Corp verified. 15-point safety audit. Free shipping over $50. Stop guessing — start shopping with confidence.", "cta": "Shop Certified Sustainable" },
+      { "segment": "The New Parent Switcher", "platform": "Meta", "headline": "Your Home, Toxin-Free", "body": "We audited 1,000+ products so you don't have to. Every product on Resupply passes a 15-point safety review. Trusted by 150,000+ families.", "cta": "Build Your Safe Home Bundle" },
+      { "segment": "The Corporate Sustainability Champion", "platform": "LinkedIn", "headline": "Sustainable Procurement at Scale | Resupply Enterprise", "body": "Consolidated ordering, ESG reporting data, and Scope 3 documentation — all included. Trusted by 500+ companies. Start your 30-day pilot today.", "cta": "Book an Enterprise Demo" }
+    ],
+    "ad_visuals": [
+      { "segment": "The Eco-Pragmatist", "platform": "Instagram", "visual_concept": "Flat lay of 4 certified sustainable cleaning products on a reclaimed wood surface, morning light, clean white background with subtle green plant accents.", "color_palette": ["#F5F0E8", "#2E7D5E", "#C8A96E"], "image_prompt": "Minimal flat lay of eco cleaning products on reclaimed wood, morning natural light, clean and serene, earth tones, product labels visible, no clutter, photorealistic", "image_url": null },
+      { "segment": "The New Parent Switcher", "platform": "Facebook", "visual_concept": "Baby's hand reaching for a Resupply-branded cleaning spray bottle on a kitchen counter, soft warm light, toys visible in background — safety and normalcy combined.", "color_palette": ["#FFF8F0", "#4A9B7F", "#E8D5B7"], "image_prompt": "Baby hand reaching toward eco cleaning spray bottle on kitchen counter, warm soft morning light, family home background, safe and inviting, photorealistic", "image_url": null }
+    ],
+    "ab_variations": [
+      { "ad_copy_ref": "Eco-Pragmatist Google Ad", "variant_label": "A — Performance-led", "headline": "Eco Products That Outperform Conventional | Resupply", "body": "Side-by-side tested. Our laundry detergent beats Tide on grass stains. Our dish soap cuts grease in cold water. Certified sustainable, uncompromised performance.", "cta": "See the Test Results", "test_hypothesis": "Performance-first messaging will outperform certification-first messaging for pragmatic eco shoppers who've been burned by underperforming eco products.", "image_prompt": "Split screen comparison of clean vs dirty fabric, scientific lab aesthetic, clean white background", "image_url": null },
+      { "ad_copy_ref": "Eco-Pragmatist Google Ad", "variant_label": "B — Trust-led", "headline": "The Only Sustainable Marketplace With a 15-Point Audit", "body": "78% of brands that apply to Resupply are rejected. Every product earns its place. 200+ certified brands, 150,000+ satisfied customers.", "cta": "Browse Certified Products", "test_hypothesis": "Exclusivity and rigorous curation messaging builds trust faster than performance claims for research-driven eco shoppers.", "image_prompt": "Magnifying glass over ingredient label with green checkmarks, clinical clean background, trust and verification visual", "image_url": null },
+      { "ad_copy_ref": "New Parent Meta Ad", "variant_label": "A — Fear-reduction", "headline": "Your Home Is Safe. Here's the Proof.", "body": "Every product passes a 15-point safety audit. Full ingredient disclosure. No synthetic fragrance. No quaternary ammonium compounds. Peace of mind, certified.", "cta": "See Every Ingredient", "test_hypothesis": "Specific ingredient callouts and safety certification language will convert anxious new parents better than general 'natural' claims.", "image_prompt": "Clean ingredient list with green checkmarks, white background, reassuring medical-style visual", "image_url": null }
+    ]
+  }
+}

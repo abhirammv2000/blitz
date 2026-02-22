@@ -1,0 +1,223 @@
+{
+  "run_id": "demo-airbnb-001",
+  "research_output_delay_ms": 0,
+  "profile_output_delay_ms": 3500,
+  "audience_output_delay_ms": 3000,
+  "content_output_delay_ms": 5000,
+  "sales_output_delay_ms": 4500,
+  "ads_output_delay_ms": 3500,
+  "progress_events": [
+    { "step": "Crawling website", "status": "running", "delay_ms": 200 },
+    { "step": "Crawling website", "status": "done", "delay_ms": 2100 },
+    { "step": "Web search", "status": "running", "delay_ms": 300 },
+    { "step": "Web search", "status": "done", "delay_ms": 1900 },
+    { "step": "AEO check", "status": "running", "delay_ms": 200 },
+    { "step": "AEO check", "status": "done", "delay_ms": 2800 },
+    { "step": "Competitor analysis", "status": "running", "delay_ms": 200 },
+    { "step": "Competitor analysis", "status": "done", "delay_ms": 2400 }
+  ],
+  "research_output": {
+    "company_name": "Airbnb",
+    "company_url": "https://www.airbnb.com",
+    "summary": "Airbnb is the world's largest online marketplace for short-term lodging and travel experiences, connecting hosts who list spaces with guests seeking unique accommodations. Founded in 2008 by Brian Chesky, Joe Gebbia, and Nathan Blecharczyk, Airbnb operates in 220+ countries and regions with over 7 million active listings. The platform has facilitated over 1.5 billion guest arrivals since launch.",
+    "executive_summary": "Airbnb is the global leader in short-term rentals with 7M+ listings, 220+ countries, and $9.9B in 2023 revenue. The platform earned $4.8B in net income in 2023 — its highest ever.",
+    "press_coverage": [
+      { "title": "Airbnb Reports Record $4.8B Net Income for 2023", "url": "https://wsj.com/airbnb-2023-earnings", "snippet": "The company's profitability milestone signals a new era of sustainable growth after years of losses." },
+      { "title": "Airbnb's New 'Rooms' Feature Bets on the Original Homesharing Vision", "url": "https://techcrunch.com/airbnb-rooms-2024", "snippet": "CEO Brian Chesky says the company is returning to its roots with room-sharing as a core product." },
+      { "title": "Airbnb Launches Anti-Party Technology Across 100,000 Listings", "url": "https://bloomberg.com/airbnb-party-tech", "snippet": "New AI-powered screening tools aim to reduce disruptive guest behavior and build host trust." }
+    ],
+    "site_content": "Airbnb - Find unique places to stay with local hosts in 191 countries. Belong anywhere. Host your home and earn extra income. Book experiences with local guides.",
+    "competitors": [
+      { "name": "Vrbo", "positioning": "Whole-home family travel", "strengths": ["Family-focused trust", "Whole-property inventory"], "weaknesses": ["Limited international presence", "No experiences product"] },
+      { "name": "Booking.com", "positioning": "Global accommodation aggregator", "strengths": ["Massive inventory", "Hotel integration"], "weaknesses": ["Less community focus", "Commoditized pricing wars"] },
+      { "name": "Hotels.com / Expedia", "positioning": "Traditional hotel booking", "strengths": ["Loyalty programs", "Brand trust"], "weaknesses": ["No unique/local inventory", "Impersonal experience"] }
+    ],
+    "aeo_score": 9.2,
+    "aeo_details": [
+      { "model": "GPT-4o", "mentioned": true, "confidence": 0.97, "quote": "Airbnb is the leading global marketplace for short-term rentals and travel experiences, with millions of listings worldwide." },
+      { "model": "Gemini 2.5 Pro", "mentioned": true, "confidence": 0.94, "quote": "Airbnb connects travelers with unique accommodations and local experiences in over 220 countries." },
+      { "model": "Claude 3.5 Sonnet", "mentioned": true, "confidence": 0.91, "quote": "Airbnb is one of the most recognized travel brands, known for unique accommodations and the 'belong anywhere' philosophy." }
+    ]
+  },
+  "profile_output": {
+    "brand_dna": {
+      "mission": "Create a world where anyone can belong anywhere — enabling economic opportunity for hosts and authentic travel for guests.",
+      "values": ["Belonging", "Trust", "Community", "Entrepreneurship", "Authenticity"],
+      "tone": "Warm, human, and inspiring — celebrates diversity and local culture; aspirational but grounded in real people's stories",
+      "visual_style": "Warm photography of real spaces and hosts; vibrant, multicultural imagery; the Bélo symbol as a universal icon of belonging"
+    },
+    "positioning_statement": "For travelers who want more than a hotel room and for people looking to earn income from their space, Airbnb is the global community marketplace that transforms any home into a destination and any stay into a story worth telling.",
+    "usps": [
+      "7 million+ unique listings — no two stays are the same",
+      "Experiences product connects travelers with local experts for authentic activities",
+      "Host income program — average US host earns $14,000/year",
+      "AirCover protection for hosts and guests — $3M damage protection, 24/7 support"
+    ],
+    "marketing_gaps": [
+      { "gap": "Host acquisition messaging underrepresents the income opportunity in new markets", "recommendation": "Launch a targeted 'Host Income Calculator' campaign in 20 underrepresented cities showing real earning potential by neighborhood." },
+      { "gap": "Long-stay (28+ nights) segment growing rapidly but undermarketed to remote workers", "recommendation": "Create a dedicated 'Work from Anywhere' content series targeting digital nomads and remote-first companies with monthly stay deals." },
+      { "gap": "Experiences product has 10x lower brand awareness than Homes despite strong unit economics", "recommendation": "Launch an 'Experiences First' campaign for city-break travelers who aren't yet booking accommodations — use experiences as the entry product." }
+    ]
+  },
+  "audience_output": {
+    "segments": [
+      {
+        "name": "The Experience-Seeking Traveler",
+        "demographics": { "age_range": "24-38", "job_titles": ["Designer", "Marketer", "Consultant", "Engineer"], "company_sizes": ["Any"], "industries": ["Technology", "Creative", "Finance"] },
+        "psychographics": { "values": ["Authenticity over luxury", "Cultural immersion", "Instagram-worthy moments"], "goals": ["Have a story to tell, not just a place to sleep", "Discover neighborhoods locals actually live in"], "frustrations": ["Generic hotel experiences feel transactional", "Tourist traps that don't reflect local culture", "Booking platforms that optimize for price over experience"], "personality_traits": ["Adventurous", "Social media savvy", "Values-driven consumer"] },
+        "pain_points": ["Hard to find truly unique properties that match the photos", "Cancellation anxiety — what if the host cancels last minute?", "Pricing transparency — fees often make Airbnb more expensive than hotels"],
+        "buying_triggers": ["Stunning photography of unique property", "Superhost badge and 50+ reviews", "Local neighborhood guide included", "Experiences bundle available"],
+        "active_channels": ["Instagram", "TikTok", "YouTube travel vlogs", "Google Search"],
+        "reasoning": "Airbnb's core 'belong anywhere' brand promise directly targets this segment's desire for authentic local experience over standardized hospitality. Highest LTV through repeat booking behavior.",
+        "fit_label": "High",
+        "synthetic_attributes": { "avg_booking_value": "$420", "trips_per_year": 3.2, "churn_risk": "Low", "referral_rate": "High" }
+      },
+      {
+        "name": "The New Host Entrepreneur",
+        "demographics": { "age_range": "30-55", "job_titles": ["Homeowner", "Property Manager", "Real Estate Investor"], "company_sizes": ["N/A"], "industries": ["N/A"] },
+        "psychographics": { "values": ["Financial independence", "Making assets work harder", "Community participation"], "goals": ["Generate $1,500+/month passive income from spare bedroom or vacation property", "Build a hospitality micro-business"], "frustrations": ["Fear of bad guests or property damage", "Complexity of pricing optimization and calendar management", "Tax and regulatory uncertainty"], "personality_traits": ["Entrepreneurial", "Detail-oriented", "Risk-aware"] },
+        "pain_points": ["Worried about property damage — is AirCover actually enough?", "Pricing is complex — how do I know if I'm charging the right amount?", "Managing bookings takes more time than expected"],
+        "buying_triggers": ["Neighbor or friend who hosts shares positive income story", "Airbnb income calculator showing earning potential for their specific zip code", "AirCover damage protection prominently featured"],
+        "active_channels": ["Facebook Groups (local host communities)", "YouTube (hosting tutorials)", "Google Search", "Neighborhood apps (Nextdoor)"],
+        "reasoning": "Host supply is Airbnb's primary growth constraint in most markets. This segment's activation directly drives platform value for all other segments.",
+        "fit_label": "High",
+        "synthetic_attributes": { "avg_annual_host_revenue": "$14,000", "time_to_first_booking_days": 18, "churn_risk": "Medium", "property_count": 1.4 }
+      },
+      {
+        "name": "The Remote-First Nomad",
+        "demographics": { "age_range": "26-42", "job_titles": ["Software Engineer", "Product Manager", "Freelancer", "Content Creator"], "company_sizes": ["Any — remote-enabled"], "industries": ["Technology", "Media", "Consulting"] },
+        "psychographics": { "values": ["Location independence", "Work-life integration", "Cost of living optimization"], "goals": ["Live in a new city every 1-3 months without sacrificing productivity", "Find accommodations with reliable WiFi and a proper workspace"], "frustrations": ["Monthly pricing on Airbnb is often higher than local rent for the same property", "Inconsistent WiFi quality ruins remote work plans", "Can't find properties with dedicated desks in all cities"], "personality_traits": ["Optimization-focused", "Community-seeking", "Self-sufficient"] },
+        "pain_points": ["Monthly pricing not competitive with furnished apartment rentals for 28+ day stays", "No reliable WiFi speed verification before booking", "Checkout process for long stays feels designed for short-term guests"],
+        "buying_triggers": ["Dedicated workspace visible in photos", "WiFi speed listed in amenities", "Monthly discount of 30%+ for 28+ day stays", "Flexible cancellation policy"],
+        "active_channels": ["Reddit (r/digitalnomad)", "Nomad List", "Twitter/X", "LinkedIn", "Slack communities"],
+        "reasoning": "Post-pandemic remote work normalization created a large and growing segment Airbnb is well-positioned to serve. Long-stay bookings have higher gross margins and lower customer acquisition cost through repeat use.",
+        "fit_label": "Medium",
+        "synthetic_attributes": { "avg_stay_length_days": 34, "avg_booking_value": "$1,850", "churn_risk": "Medium", "platform_sessions_before_booking": 7 }
+      }
+    ]
+  },
+  "content_output": {
+    "social_posts": [
+      {
+        "segment": "The Experience-Seeking Traveler",
+        "platform": "Instagram",
+        "post_copy": "Stayed in a 1920s jazz musician's apartment in New Orleans. His record collection was still there. His neighbor came by on day 2 to share stories. You can't book that at a Marriott. This is why we travel.",
+        "hashtags": ["#BelongAnywhere", "#Airbnb", "#NewOrleans", "#TravelAuthentic", "#TravelStory"],
+        "cta": "Find your story. Link in bio to search one-of-a-kind stays near you."
+      },
+      {
+        "segment": "The New Host Entrepreneur",
+        "platform": "Instagram",
+        "post_copy": "Turned our spare bedroom into $1,847/month. We thought we'd try it for summer. 11 months later it's covered our mortgage payment every month. Our first guest was a retired teacher from Japan. She still sends us postcards.",
+        "hashtags": ["#AirbnbHost", "#HostLife", "#PassiveIncome", "#HomeSharing", "#BecomeAHost"],
+        "cta": "Find out what your space could earn. Free estimate at airbnb.com/host."
+      },
+      {
+        "segment": "The Remote-First Nomad",
+        "platform": "LinkedIn",
+        "post_copy": "Month 14 of working fully remote across 9 cities. What I've learned about finding Airbnbs that actually work for remote work: 1) Search 'dedicated workspace' in amenities 2) Message host about WiFi speed before booking 3) Monthly discount threshold is usually 28 days — ask hosts to honor it at 21. The right setup costs the same as a bad hotel.",
+        "hashtags": ["#RemoteWork", "#DigitalNomad", "#WorkFromAnywhere", "#Airbnb", "#NomadLife"],
+        "cta": "Save this post for your next remote work trip. Drop your current city in the comments."
+      }
+    ],
+    "email_campaigns": [
+      {
+        "segment": "The Experience-Seeking Traveler",
+        "subject": "The 8 Airbnb listings that went viral this year (and why)",
+        "preview_text": "One is a treehouse. One is a converted lighthouse.",
+        "body": "Hi [First Name],\n\nSome of the most-shared travel photos of 2023 weren't taken in Santorini or Bali.\n\nThey were taken in Airbnb listings that nobody had heard of a year earlier.\n\nWe've curated the 8 listings that generated the most social sharing in 2023 — a converted 1920s fire station in Chicago, a floating boathouse in Seattle, a desert dome in Joshua Tree, and five others.\n\nEvery one is bookable right now.\n\n[See the 8 Most-Shared Listings of 2023]",
+        "cta": "See the 8 Most-Shared Listings of 2023"
+      },
+      {
+        "segment": "The New Host Entrepreneur",
+        "subject": "What Airbnb hosts in your zip code earned last month",
+        "preview_text": "Real numbers, real hosts, your neighborhood.",
+        "body": "Hi [First Name],\n\nHosts in [City] earned an average of $[X] last month from short-term rentals.\n\nThe range is wide — it depends on bedroom count, location, and how optimized your listing is.\n\nWe built a free tool that estimates your earning potential based on your specific property and comparable listings in your neighborhood.\n\nThe estimate takes 90 seconds. No signup required.\n\n[Get My Free Earning Estimate]",
+        "cta": "Get My Free Earning Estimate"
+      }
+    ],
+    "blog_outlines": [
+      {
+        "title": "The Remote Worker's Guide to Airbnb: Finding Long-Stay Listings That Actually Work",
+        "target_keyword": "airbnb for remote workers long term stay",
+        "sections": [
+          "What to search for: The exact amenity filters that matter for remote work",
+          "How to evaluate WiFi before booking (and what to ask hosts)",
+          "Negotiating monthly discounts: the 21-day vs 28-day threshold",
+          "Setting up a productive workspace in any Airbnb",
+          "The best cities for remote Airbnb stays in 2024: cost vs. quality index"
+        ],
+        "audience_segment": "The Remote-First Nomad"
+      }
+    ],
+    "content_calendar": [
+      { "timing": "Week 1 - Monday", "channel": "Instagram", "content_type": "Story Spotlight", "content_ref": "Experience-seeker — New Orleans jazz apartment story", "segment": "The Experience-Seeking Traveler" },
+      { "timing": "Week 1 - Wednesday", "channel": "Email", "content_type": "Curated List", "content_ref": "8 most-shared listings of 2023", "segment": "The Experience-Seeking Traveler" },
+      { "timing": "Week 2 - Tuesday", "channel": "Instagram", "content_type": "Host Income Story", "content_ref": "Spare bedroom to $1,847/month — host story", "segment": "The New Host Entrepreneur" },
+      { "timing": "Week 2 - Thursday", "channel": "Email", "content_type": "Personalized Data", "content_ref": "What hosts in your zip code earned — income estimate email", "segment": "The New Host Entrepreneur" },
+      { "timing": "Week 3 - Wednesday", "channel": "LinkedIn", "content_type": "Productivity Tips", "content_ref": "14 months remote — tips for finding work-ready Airbnbs", "segment": "The Remote-First Nomad" },
+      { "timing": "Week 4 - Tuesday", "channel": "Blog", "content_type": "SEO Guide", "content_ref": "Remote worker guide to Airbnb long stays", "segment": "The Remote-First Nomad" }
+    ]
+  },
+  "sales_output": {
+    "email_sequences": [
+      {
+        "segment": "The New Host Entrepreneur",
+        "emails": [
+          { "step": 1, "subject": "Your neighbor is earning $2,100/month from a spare bedroom", "body": "Hi [First Name],\n\nHosts in your area earned an average of $2,100 last month from a single spare bedroom.\n\nAirbnb handles payments, basic guest screening, and provides $3M in property damage protection through AirCover.\n\nThe most common reason people wait: they're not sure if their space qualifies. Most do.\n\nWould it be worth 2 minutes to find out what yours could earn?", "delay_days": 0 },
+          { "step": 2, "subject": "The 3 questions new hosts ask us most", "body": "Hi [First Name],\n\nWe talk to hundreds of new hosts every month. Three questions come up in almost every conversation:\n\n1. 'What if a guest damages my property?' — AirCover covers up to $3M.\n2. 'How do I set the right price?' — Our Smart Pricing tool adjusts automatically based on demand in your area.\n3. 'How much time does it take?' — Most hosts spend 2-4 hours per booking on communication and turnover.\n\nThe answer to all three is simpler than most people expect. Happy to walk through it?", "delay_days": 3 },
+          { "step": 3, "subject": "Ready to list your space? I'll help you set it up.", "body": "Hi [First Name],\n\nFor hosts who are ready to get started, we have a dedicated onboarding specialist program — a 30-minute call where we help you set up your listing, price it competitively, and prepare for your first guest.\n\nHosts who go through onboarding earn 23% more in their first 90 days than those who self-setup.\n\nWould [Day] at [Time] work for a quick call?", "delay_days": 5 }
+        ]
+      },
+      {
+        "segment": "The Remote-First Nomad",
+        "emails": [
+          { "step": 1, "subject": "The Airbnb trick remote workers use to get monthly pricing", "body": "Hi [First Name],\n\nAirbnb's monthly discount threshold is technically 28 days. But here's what most people don't know: hosts can customize their discount to apply earlier.\n\nSimply message hosts directly: 'I'm looking for a 21-day stay for remote work — would you be willing to apply the monthly discount?' 70% say yes when asked directly.\n\nWe also have a filter for listings with dedicated workspaces and verified WiFi speeds — want me to share it?", "delay_days": 0 },
+          { "step": 2, "subject": "The 5 cities with the best Airbnb value for remote workers right now", "body": "Hi [First Name],\n\nWe analyzed 6 months of booking data across 50 cities to find where remote workers get the best combination of reliable WiFi, dedicated workspaces, and competitive monthly pricing.\n\nTop 5 right now: Medellín, Lisbon, Chiang Mai, Mexico City, and Tbilisi.\n\nAll five have strong digital nomad communities, excellent internet infrastructure, and monthly Airbnb rates 40-60% below comparable furnished apartments.\n\nI'll share the full breakdown if useful.", "delay_days": 4 },
+          { "step": 3, "subject": "Set up a long-stay alert for your next destination?", "body": "Hi [First Name],\n\nIf you're planning your next city move, I can set up a custom alert for listings in [destination] that match your criteria — dedicated workspace, verified WiFi, monthly discount available.\n\nYou'll be the first to know when new listings go up or existing ones drop their price.\n\nWant me to configure that for you? Just reply with your next destination and preferred dates.", "delay_days": 6 }
+        ]
+      }
+    ],
+    "linkedin_templates": [
+      {
+        "segment": "The New Host Entrepreneur",
+        "connection_request": "Hi [Name] — I work with property owners helping them evaluate short-term rental income potential in their area. Saw your post about [real estate/homeownership topic] and thought it might be relevant. Would love to connect.",
+        "follow_up_1": "Thanks for connecting, [Name]. Based on comparable listings near you, your type of property could potentially earn $X-X/month with Airbnb. Happy to share the data breakdown if that'd be useful — no commitment, just the numbers.",
+        "follow_up_2": "One thing that surprises most new hosts: the AirCover program (up to $3M property protection) removes the biggest risk concern. I put together a 1-pager on what's covered and what isn't — might be helpful as you think through it: [link]."
+      },
+      {
+        "segment": "The Remote-First Nomad",
+        "connection_request": "Hi [Name] — your post about working remotely from [city] caught my attention. I help remote workers find Airbnb setups that actually work for deep work. Would be great to connect.",
+        "follow_up_1": "Thanks [Name] — I noticed you're heading to [city] next. We have a curated list of listings there with verified WiFi 100+ Mbps, dedicated desk, and hosts who accommodate long stays. Want me to share the shortlist?",
+        "follow_up_2": "Sharing our Remote Work Airbnb checklist — it's the 12 things to confirm before booking (WiFi speed, dedicated workspace, host response rate, cancellation policy for long stays). Saved dozens of nomads from bad setups: [link]."
+      }
+    ],
+    "lead_scoring": [
+      { "tier": "Hot", "description": "High intent, ready to act within days", "signals": ["Started host listing setup but didn't complete", "Used income calculator 2+ times", "Opened all 3 sequence emails", "Visited AirCover protection page"], "action": "Personal outreach from host success specialist within 48 hours. Offer 1:1 onboarding call." },
+      { "tier": "Warm", "description": "Interested but not yet committed", "signals": ["Visited 'Become a Host' page once", "Opened 1-2 emails", "Clicked income calculator but didn't submit"], "action": "Enroll in nurture sequence. Lead with social proof and income data." },
+      { "tier": "Cold", "description": "Low engagement, early awareness stage", "signals": ["Visited homepage", "No email opens in 45 days", "Bounced from host signup page"], "action": "Re-engagement with high-value content (income report for their city). Remove after 60 days of inactivity." }
+    ],
+    "pipeline_stages": [
+      { "stage": "Prospect", "definition": "Identified potential host, no contact yet", "entry_criteria": "Visited 'Become a Host' page or used income calculator", "exit_criteria": "Started listing setup or responded to outreach", "actions": ["Tag as host prospect in CRM", "Enroll in host nurture sequence", "Trigger geo-specific income data email"] },
+      { "stage": "Contacted", "definition": "Outreach sent, awaiting first response", "entry_criteria": "Sequence email #1 sent", "exit_criteria": "Reply received or listing setup started", "actions": ["Follow up at day 3 with social proof content", "Personalize with their city's earning data"] },
+      { "stage": "Engaged", "definition": "Active conversation or listing in progress", "entry_criteria": "Email reply, DM, or listing draft started", "exit_criteria": "First listing published", "actions": ["Offer 1:1 onboarding call with host success specialist", "Share AirCover and Smart Pricing setup guides"] },
+      { "stage": "Converted", "definition": "First listing published and live", "entry_criteria": "Listing goes live on platform", "exit_criteria": "N/A — move to Superhost growth track", "actions": ["Send welcome kit and first booking tips", "Introduce Smart Pricing tool", "Set 30-day check-in to review performance and optimize listing"] }
+    ]
+  },
+  "ads_output": {
+    "ad_copies": [
+      { "segment": "The Experience-Seeking Traveler", "platform": "Meta", "headline": "Stay Where the Story Happens", "body": "7 million unique places. None of them are hotel rooms. Find your stay on Airbnb — rated, reviewed, and unlike anything else.", "cta": "Find a Unique Stay" },
+      { "segment": "The New Host Entrepreneur", "platform": "Google", "headline": "Your Spare Room Could Earn $1,800/Month | Airbnb", "body": "Hosts in your area earn an average of $14,000/year. AirCover protects your property up to $3M. Setup takes 10 minutes. Find out what your space is worth.", "cta": "Get Your Free Estimate" },
+      { "segment": "The Remote-First Nomad", "platform": "LinkedIn", "headline": "Work from Anywhere. Airbnb Has the Workspace.", "body": "Monthly stays with dedicated desks, verified WiFi, and flexible check-in. The best cities for remote work — from $45/night. Filter by 'dedicated workspace' and start planning.", "cta": "Find Work-Ready Stays" }
+    ],
+    "ad_visuals": [
+      { "segment": "The Experience-Seeking Traveler", "platform": "Instagram", "visual_concept": "Aerial shot of a treehouse in the Pacific Northwest at golden hour — warm lights glowing inside, misty forest background, single person on the deck with coffee mug visible.", "color_palette": ["#2C4A3E", "#C8A96E", "#F5EDD6"], "image_prompt": "Aerial view of luxury treehouse in Pacific Northwest forest at golden hour, warm interior lights, misty forest, single person on deck with coffee, cinematic photography", "image_url": null },
+      { "segment": "The New Host Entrepreneur", "platform": "Facebook", "visual_concept": "Smiling couple standing in front of their charming suburban home, holding a 'Superhost' sign, morning light — approachable, aspirational, real people not models.", "color_palette": ["#FF5A5F", "#F5F5F5", "#484848"], "image_prompt": "Real couple smiling in front of their home holding Airbnb Superhost badge, warm morning light, suburban neighborhood, genuine and approachable, documentary style photography", "image_url": null }
+    ],
+    "ab_variations": [
+      { "ad_copy_ref": "Experience-Seeking Traveler Meta Ad", "variant_label": "A — Curiosity-led", "headline": "What's Actually Inside This $89/Night Cabin?", "body": "It has a wood-fired hot tub, a library of 400 books, and a host who leaves homemade jam in the fridge. There are 6,000 places like this on Airbnb. Start looking.", "cta": "Explore Unique Stays", "test_hypothesis": "Curiosity-gap headlines with specific sensory details will outperform category-level messaging for experience-seekers who've already seen generic travel ads.", "image_prompt": "Cozy cabin interior with wood-fired hot tub visible through window, book shelves, warm fireplace light, inviting and intimate", "image_url": null },
+      { "ad_copy_ref": "Experience-Seeking Traveler Meta Ad", "variant_label": "B — Social proof-led", "headline": "4.96 Stars. 847 Reviews. One Night Available.", "body": "The best Airbnbs book fast. This one has 847 reviews, a 4.96 average, and the host has been Superhost for 6 years. One night available in March.", "cta": "Check Availability", "test_hypothesis": "Scarcity + social proof combination (limited availability + high review count) will drive higher CTR among travelers who respond to FOMO triggers.", "image_prompt": "Pristine modern Airbnb living room with natural light, minimalist design, cozy but premium, no people, inviting atmosphere", "image_url": null },
+      { "ad_copy_ref": "New Host Google Ad", "variant_label": "A — Income-led", "headline": "Earn $1,847/Month From Your Spare Bedroom", "body": "Real numbers from real hosts in your city. AirCover protects your property. Smart Pricing optimizes your rates automatically. List in 10 minutes.", "cta": "Calculate My Earnings", "test_hypothesis": "Specific income figure headline will outperform general income language for entrepreneurially-minded prospects who respond to concrete financial data.", "image_prompt": "Clean infographic showing monthly income breakdown from Airbnb hosting, simple and trustworthy visual design", "image_url": null }
+    ]
+  }
+}
