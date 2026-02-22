@@ -119,10 +119,6 @@ async def pipeline_start(payload: PipelineStartRequest):
         try:
             interrupted_step = 0
             was_interrupted = False
-            # astream() yields the full state dict after each node executes.
-            # When interrupt() is called, the graph emits a chunk containing
-            # '__interrupt__' with Interrupt objects (not JSON-serializable).
-            # We strip '__interrupt__' before emitting the SSE state event.
             async for chunk in graph.astream(
                 initial_state,
                 config=config,
@@ -130,12 +126,19 @@ async def pipeline_start(payload: PipelineStartRequest):
             ):
                 if isinstance(chunk, dict):
                     interrupted_step = chunk.get("current_step", 0)
+                    # interrupt() produces Interrupt objects in __interrupt__
+                    # that are NOT JSON-serializable — must check and strip
+                    # before any json.dumps attempt
                     if "__interrupt__" in chunk:
-                        # Graph paused — emit interrupted event and stop streaming
                         was_interrupted = True
                         yield sse_event({"type": "interrupted", "step": interrupted_step})
                         break
-                    yield sse_event({"type": "state", "data": chunk})
+                    # Strip any non-serializable keys before emitting
+                    safe_chunk = {
+                        k: v for k, v in chunk.items()
+                        if not k.startswith("__")
+                    }
+                    yield sse_event({"type": "state", "data": safe_chunk})
             # Stream ended naturally — emit interrupted if not already done
             if not was_interrupted:
                 yield sse_event({"type": "interrupted", "step": interrupted_step})
