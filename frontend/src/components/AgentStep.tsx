@@ -400,27 +400,7 @@ export default function AgentStep({ stepIndex, agentName }: AgentStepProps) {
     }
   }
 
-  // Pipeline complete (step >= 6) or unrecognized step
-  if (stepIndex >= 6) {
-    return (
-      <div className="flex flex-col gap-6">
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-3">
-            <span className="w-8 h-8 rounded-full bg-success/10 border border-success/30 flex items-center justify-center text-success text-sm font-bold">
-              ✓
-            </span>
-            <h2 className="font-display text-2xl font-bold text-ink">Pipeline Complete</h2>
-          </div>
-          <p className="text-ink-muted text-sm ml-11">All 6 agents have completed and been approved.</p>
-        </div>
-        <div className="rounded-2xl border border-success/15 bg-success/5 p-6 flex flex-col items-center gap-3">
-          <p className="text-success font-semibold text-sm">Your full marketing pipeline is ready.</p>
-          <p className="text-ink-faint text-xs text-center">Research, Profile, Audience, Content, Sales, and Ads — all approved and ready to deploy.</p>
-        </div>
-      </div>
-    )
-  }
-
+  // Note: step >= 6 is handled by Wizard.tsx (renders SummaryPage instead)
   // Fallback: step without output yet (waiting for pipeline)
   return (
     <div className="flex flex-col gap-6">

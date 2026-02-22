@@ -1,5 +1,6 @@
 import { useBlitzStore } from '../store/useBlitzStore'
 import AgentStep from './AgentStep'
+import SummaryPage from './SummaryPage'
 
 const AGENTS = [
   { name: 'Research Scout', description: 'Company intelligence & competitor analysis' },
@@ -106,10 +107,14 @@ export default function Wizard() {
       {/* Main content area */}
       <main className="flex-1 overflow-y-auto bg-cream">
         <div className="max-w-3xl mx-auto py-12 px-8">
-          <AgentStep
-            stepIndex={currentStep}
-            agentName={AGENTS[currentStep]?.name ?? 'Agent'}
-          />
+          {currentStep >= 6 ? (
+            <SummaryPage />
+          ) : (
+            <AgentStep
+              stepIndex={currentStep}
+              agentName={AGENTS[currentStep]?.name ?? 'Agent'}
+            />
+          )}
         </div>
       </main>
     </div>
