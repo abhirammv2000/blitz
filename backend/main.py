@@ -39,8 +39,10 @@ from pydantic import BaseModel
 from agents.agent_0_research.progress import cleanup_queue, get_queue
 from graph import build_graph
 
-load_dotenv()  # backend/.env
-load_dotenv(dotenv_path="../.env")  # project root .env
+from pathlib import Path
+_backend_dir = Path(__file__).resolve().parent
+load_dotenv(_backend_dir / ".env", override=True)
+load_dotenv(_backend_dir.parent / ".env", override=True)
 
 # ---------------------------------------------------------------------------
 # App-level graph instance (set during lifespan startup)

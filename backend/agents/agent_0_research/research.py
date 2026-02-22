@@ -199,7 +199,7 @@ async def aeo_check(
                     api_key=api_key,
                     temperature=0.3,
                 ),
-                timeout=25.0,
+                timeout=60.0,
             )
             content = response.choices[0].message.content or ""
             # Parse the last line as JSON
