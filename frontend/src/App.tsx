@@ -1,8 +1,17 @@
+import { useState } from 'react'
+import Landing from './pages/Landing'
+import Wizard from './components/Wizard'
+import { useBlitzStore } from './store/useBlitzStore'
+
 function App() {
-  return (
-    <div className="min-h-screen bg-black text-white flex items-center justify-center">
-      <h1 className="text-4xl font-bold">Blitz</h1>
-    </div>
-  )
+  const { runId } = useBlitzStore()
+  const [inWizard, setInWizard] = useState(false)
+
+  if (runId && inWizard) {
+    return <Wizard />
+  }
+
+  return <Landing onLaunch={() => setInWizard(true)} />
 }
+
 export default App
