@@ -25,22 +25,12 @@ from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import interrupt
 
+from agents.agent_0_research.node import agent_0_research_node
 from state import BlitzState
 
 # ---------------------------------------------------------------------------
-# Agent node functions — stubs with interrupt() gates
+# Agent node functions — stubs with interrupt() gates (agent_0 is real)
 # ---------------------------------------------------------------------------
-
-
-def agent_0_research_node(state: BlitzState) -> dict:
-    """Research Scout: Gathers company intelligence, press coverage, competitor analysis."""
-    interrupt({
-        "step": 0,
-        "agent": "agent_0_research",
-        "output": None,
-        "action": "approve | edit | reject | override",
-    })
-    return {"current_step": 0, "approved": True}
 
 
 def agent_1_profile_node(state: BlitzState) -> dict:
