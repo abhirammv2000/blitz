@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { IS_DEMO_MODE } from '../demo/demoConfig'
 
 export const OUTPUT_KEYS: Record<string, number> = {
   research_output: 0,
@@ -61,6 +62,11 @@ export const useBlitzStore = create<BlitzStore>()((set) => ({
   clearResearchProgress: () => set({ researchProgress: [] }),
   setError: (err) => set({ error: err }),
   startPipeline: async (url: string) => {
+    if (IS_DEMO_MODE) {
+      const { startDemoPipeline } = await import('../demo/demoPlayer')
+      await startDemoPipeline(url)
+      return
+    }
     set({ error: null, isRunning: true, researchProgress: [] })
     try {
       const res = await fetch('http://localhost:8000/pipeline/start', {

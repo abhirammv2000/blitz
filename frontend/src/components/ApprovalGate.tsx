@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { useBlitzStore, OUTPUT_KEYS } from '../store/useBlitzStore'
+import { IS_DEMO_MODE } from '../demo/demoConfig'
 
 type Mode = 'idle' | 'edit' | 'reject' | 'override'
 
@@ -128,6 +129,14 @@ export default function ApprovalGate({
   }
 
   const handleApprove = async () => {
+    if (IS_DEMO_MODE) {
+      clearResearchProgress()
+      onDecisionComplete()
+      const { advanceDemoPipeline } = await import('../demo/demoPlayer')
+      await advanceDemoPipeline(agentStep + 1)
+      return
+    }
+
     const res = await postDecision({ action: 'approve' })
     if (!res) return
 
@@ -182,6 +191,14 @@ export default function ApprovalGate({
   }
 
   const handleReject = async () => {
+    if (IS_DEMO_MODE) {
+      // In demo mode, reject re-shows the same output (no re-generation)
+      setMode('idle')
+      setSelectedReasons([])
+      setRejectText('')
+      return
+    }
+
     const combined = [...selectedReasons, rejectText].filter(Boolean).join('; ')
     const res = await postDecision({ action: 'reject', feedback: combined })
     if (!res || !res.body) return
