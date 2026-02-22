@@ -9,7 +9,7 @@ export default function Landing({ onLaunch }: LandingProps) {
   const [url, setUrl] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { setRunId, setIsRunning } = useBlitzStore()
+  const { setRunId, setIsRunning, addResearchProgress, setAgentOutput } = useBlitzStore()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -46,17 +46,37 @@ export default function Landing({ onLaunch }: LandingProps) {
           if (!line.startsWith('data: ')) continue
           try {
             const event = JSON.parse(line.slice(6))
+
             if (event.type === 'init') {
               runId = event.run_id
               setRunId(event.run_id)
-            }
-            if (event.type === 'interrupted' && runId) {
-              setIsRunning(false)
+              setIsRunning(true)
+              // Navigate to Wizard immediately so user sees progress timeline
               onLaunch()
+            }
+
+            if (event.type === 'progress') {
+              const step = event.data?.step ?? event.step
+              const status = event.data?.status ?? event.status
+              if (step && status) {
+                addResearchProgress({ step, status })
+              }
+            }
+
+            if (event.type === 'state' && event.data?.research_output) {
+              setAgentOutput(0, event.data.research_output)
+            }
+
+            if (event.type === 'interrupted') {
+              setIsRunning(false)
+              // onLaunch already called on init; just stop loading
+              setLoading(false)
               return
             }
+
             if (event.type === 'error') {
               setError(event.message)
+              setIsRunning(false)
               setLoading(false)
               return
             }
@@ -67,6 +87,7 @@ export default function Landing({ onLaunch }: LandingProps) {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to connect to backend')
+      setIsRunning(false)
       setLoading(false)
     }
   }
