@@ -125,34 +125,8 @@ async def run_ads(run_id: str, feedback: str | None = None) -> AdsOutput:
     data = json.loads(content)
     output = AdsOutput(**data)
 
-    # Step 2: Generate DALL-E 3 images for all A/B variations concurrently
-    # Extract brand tone from profile for richer image prompts
-    try:
-        profile_dict = json.loads(profile_data)
-        brand_tone = profile_dict.get("brand_voice", {}).get("tone", "professional")
-    except (json.JSONDecodeError, AttributeError):
-        brand_tone = "professional"
-
-    # Build image prompts for each A/B variation
-    image_prompts = []
-    for variation in output.ab_variations:
-        # Get matching visual's color palette if available, else default
-        matching_visual = next(
-            (v for v in output.ad_visuals if variation.ad_copy_ref in (v.segment + " " + v.platform)),
-            None,
-        )
-        color_palette = matching_visual.color_palette if matching_visual else []
-        image_prompts.append(
-            build_image_prompt(variation.image_prompt, brand_tone, color_palette)
-        )
-
-    # Cap at 3 images to limit DALL-E 3 token/cost usage
-    image_prompts = image_prompts[:3]
-
-    # Parallel image generation for capped A/B variations
-    image_urls = await asyncio.gather(*[generate_ad_image(p) for p in image_prompts])
-    for i, url in enumerate(image_urls):
-        output.ab_variations[i].image_url = url
+    # Image generation is now user-triggered via /ads/generate-image endpoint.
+    # The LLM-suggested image_prompt fields are passed through for user editing.
 
     return output
 

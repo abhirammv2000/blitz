@@ -246,6 +246,39 @@ async def pipeline_start(payload: PipelineStartRequest):
     return StreamingResponse(event_stream(), media_type="text/event-stream")
 
 
+# ---------------------------------------------------------------------------
+# Ad image generation (user-triggered, capped at 3 per run)
+# ---------------------------------------------------------------------------
+
+# Track image generation count per run to enforce server-side cap
+_image_counts: dict[str, int] = {}
+IMAGE_CAP = 3
+
+
+class ImageGenRequest(BaseModel):
+    prompt: str
+
+
+@app.post("/ads/{run_id}/generate-image")
+async def generate_ad_image_endpoint(run_id: str, body: ImageGenRequest):
+    """Generate a single DALL-E 3 image from a user-edited prompt.
+
+    Capped at IMAGE_CAP (3) generations per run_id to control costs.
+    """
+    count = _image_counts.get(run_id, 0)
+    if count >= IMAGE_CAP:
+        return {"error": f"Image generation limit ({IMAGE_CAP}) reached for this run.", "image_url": None}
+
+    from agents.agent_5_ads.node import generate_ad_image
+
+    image_url = await generate_ad_image(body.prompt)
+    if image_url:
+        _image_counts[run_id] = count + 1
+
+    remaining = IMAGE_CAP - _image_counts.get(run_id, 0)
+    return {"image_url": image_url, "remaining": remaining}
+
+
 @app.post("/pipeline/{run_id}/resume")
 async def pipeline_resume(run_id: str, body: ResumeRequest):
     """Resume a paused pipeline run and stream progress as SSE.

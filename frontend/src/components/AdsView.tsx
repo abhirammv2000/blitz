@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from '@headlessui/react'
+import { useBlitzStore } from '../store/useBlitzStore'
 
 // TypeScript interfaces matching backend Pydantic schemas
 export interface AdCopy {
@@ -49,19 +50,93 @@ const PLATFORM_BADGE: Record<string, string> = {
   LinkedIn: 'bg-sky-500/10 border-sky-500/20 text-sky-300',
 }
 
-function AdImageBlock({ imageUrl, label }: { imageUrl: string | null; label?: string }) {
-  if (imageUrl) {
+const IMAGE_CAP = 3
+
+function ImageGenerator({
+  initialPrompt,
+  imageUrl,
+  label,
+  imagesGenerated,
+  onImageGenerated,
+}: {
+  initialPrompt: string
+  imageUrl: string | null
+  label?: string
+  imagesGenerated: number
+  onImageGenerated: (url: string) => void
+}) {
+  const runId = useBlitzStore((s) => s.runId)
+  const [prompt, setPrompt] = useState(initialPrompt)
+  const [localUrl, setLocalUrl] = useState(imageUrl)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const displayUrl = localUrl ?? imageUrl
+  const limitReached = imagesGenerated >= IMAGE_CAP && !displayUrl
+
+  async function handleGenerate() {
+    if (!runId || !prompt.trim()) return
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch(`http://localhost:8000/ads/${runId}/generate-image`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+      })
+      const data = await res.json()
+      if (data.image_url) {
+        setLocalUrl(data.image_url)
+        onImageGenerated(data.image_url)
+      } else if (data.error) {
+        setError(data.error)
+      } else {
+        setError('Image generation failed. Try editing the prompt.')
+      }
+    } catch {
+      setError('Network error. Is the backend running?')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (displayUrl) {
     return (
       <img
-        src={imageUrl}
+        src={displayUrl}
         alt={label ?? 'Ad visual'}
         className="rounded-xl border border-white/8 w-full max-h-64 object-cover"
       />
     )
   }
+
   return (
-    <div className="rounded-xl border border-dashed border-white/10 bg-white/2 p-6 flex flex-col items-center justify-center gap-2 min-h-[120px]">
-      <p className="text-xs text-zinc-600 uppercase tracking-widest font-medium">Image generation pending</p>
+    <div className="rounded-xl border border-dashed border-white/10 bg-white/2 p-4 flex flex-col gap-3">
+      <p className="text-xs text-zinc-500 uppercase tracking-widest font-medium">Image Prompt</p>
+      <textarea
+        value={prompt}
+        onChange={(e) => setPrompt(e.target.value)}
+        rows={3}
+        className="w-full rounded-lg bg-zinc-800/50 border border-white/10 px-3 py-2 text-xs text-zinc-300 leading-relaxed resize-none focus:outline-none focus:border-violet-500/50 transition-colors"
+        placeholder="Describe the image you want..."
+      />
+      {error && <p className="text-xs text-red-400">{error}</p>}
+      <button
+        onClick={handleGenerate}
+        disabled={loading || limitReached || !prompt.trim()}
+        className={`self-start rounded-lg px-4 py-2 text-xs font-semibold border transition-all ${
+          loading
+            ? 'bg-violet-600/10 border-violet-500/20 text-violet-400 animate-pulse cursor-wait'
+            : limitReached
+              ? 'bg-zinc-800/50 border-white/8 text-zinc-600 cursor-not-allowed'
+              : 'bg-violet-600/15 border-violet-500/30 text-violet-300 hover:bg-violet-600/25 hover:border-violet-500/50'
+        }`}
+      >
+        {loading ? 'Generating...' : limitReached ? `Limit reached (${IMAGE_CAP})` : 'Generate Image'}
+      </button>
+      {!limitReached && !loading && (
+        <p className="text-xs text-zinc-600">{IMAGE_CAP - imagesGenerated} of {IMAGE_CAP} generations remaining</p>
+      )}
     </div>
   )
 }
@@ -69,6 +144,11 @@ function AdImageBlock({ imageUrl, label }: { imageUrl: string | null; label?: st
 export default function AdsView({ output }: AdsViewProps) {
   const { ad_copies = [], ad_visuals = [], ab_variations = [] } = output
   const [activeVariations, setActiveVariations] = useState<Record<number, number>>({})
+  const [imagesGenerated, setImagesGenerated] = useState(0)
+
+  function handleImageGenerated(_url: string) {
+    setImagesGenerated((prev) => prev + 1)
+  }
 
   // Group A/B variations by ad_copy_ref for toggle display
   const groupedVariations: Record<string, AbVariation[]> = {}
@@ -158,7 +238,13 @@ export default function AdsView({ output }: AdsViewProps) {
                     </div>
                   </div>
                 )}
-                <AdImageBlock imageUrl={visual.image_url} label={`${visual.segment} - ${visual.platform}`} />
+                <ImageGenerator
+                  initialPrompt={visual.image_prompt ?? ''}
+                  imageUrl={visual.image_url}
+                  label={`${visual.segment} - ${visual.platform}`}
+                  imagesGenerated={imagesGenerated}
+                  onImageGenerated={handleImageGenerated}
+                />
               </div>
             ))}
           </TabPanel>
@@ -210,7 +296,13 @@ export default function AdsView({ output }: AdsViewProps) {
                           <p className="text-xs text-emerald-400 font-semibold">{active.cta}</p>
                         </div>
                       )}
-                      <AdImageBlock imageUrl={active.image_url} label={`Variant ${active.variant_label}`} />
+                      <ImageGenerator
+                        initialPrompt={active.image_prompt ?? ''}
+                        imageUrl={active.image_url}
+                        label={`Variant ${active.variant_label}`}
+                        imagesGenerated={imagesGenerated}
+                        onImageGenerated={handleImageGenerated}
+                      />
                     </div>
                   )
                 })()}
