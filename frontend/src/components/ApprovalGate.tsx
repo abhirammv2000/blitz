@@ -15,13 +15,17 @@ interface ApprovalGateProps {
   output: unknown
   runId: string
   onDecisionComplete: () => void
+  agentStep?: number
+  agentOutputKey?: string
+  summaryStats?: string
 }
 
 async function readSSEStream(
   stream: ReadableStream<Uint8Array>,
   onProgress: (step: string, status: string) => void,
   onOutput: (data: unknown) => void,
-  onDone: () => void
+  onDone: () => void,
+  outputKey: string = 'research_output'
 ) {
   const reader = stream.getReader()
   const decoder = new TextDecoder()
@@ -38,8 +42,10 @@ async function readSSEStream(
           if (event.type === 'progress') {
             onProgress(event.data?.step ?? event.step, event.data?.status ?? event.status)
           }
-          if (event.type === 'state' && event.data?.research_output) {
-            onOutput(event.data.research_output)
+          if (event.type === 'state' && event.data && outputKey) {
+            if (event.data[outputKey] !== undefined) {
+              onOutput(event.data[outputKey])
+            }
           }
           if (event.type === 'interrupted') {
             onDone()
@@ -54,7 +60,14 @@ async function readSSEStream(
   }
 }
 
-export default function ApprovalGate({ output, runId, onDecisionComplete }: ApprovalGateProps) {
+export default function ApprovalGate({
+  output,
+  runId,
+  onDecisionComplete,
+  agentStep = 0,
+  agentOutputKey = 'research_output',
+  summaryStats,
+}: ApprovalGateProps) {
   const [mode, setMode] = useState<Mode>('idle')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -122,8 +135,9 @@ export default function ApprovalGate({ output, runId, onDecisionComplete }: Appr
     await readSSEStream(
       res.body,
       (step, status) => addResearchProgress({ step, status }),
-      (data) => setAgentOutput(0, data),
-      () => setIsRunning(false)
+      (data) => setAgentOutput(agentStep, data),
+      () => setIsRunning(false),
+      agentOutputKey
     )
     setLoading(false)
   }
@@ -163,6 +177,12 @@ export default function ApprovalGate({ output, runId, onDecisionComplete }: Appr
 
       {/* IDLE: four action buttons */}
       {mode === 'idle' && (
+        <div className="flex flex-col gap-3">
+          {summaryStats && (
+            <p className="text-xs text-zinc-500 border border-white/8 rounded-xl px-4 py-2 bg-white/3 mb-3">
+              {summaryStats}
+            </p>
+          )}
         <div className="flex gap-3">
           <button
             onClick={handleApprove}
@@ -192,6 +212,7 @@ export default function ApprovalGate({ output, runId, onDecisionComplete }: Appr
           >
             Override
           </button>
+        </div>
         </div>
       )}
 
