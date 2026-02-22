@@ -20,6 +20,14 @@ interface AgentStepProps {
   agentName: string
 }
 
+function StepBadge({ number }: { number: number | string }) {
+  return (
+    <span className="w-8 h-8 rounded-full bg-teal-100 border border-teal-600/30 flex items-center justify-center text-teal-700 text-sm font-bold flex-shrink-0">
+      {number}
+    </span>
+  )
+}
+
 export default function AgentStep({ stepIndex, agentName }: AgentStepProps) {
   const { agentOutputs, researchProgress, isRunning, setStep, runId } = useBlitzStore()
   const output = agentOutputs[stepIndex]
@@ -32,16 +40,14 @@ export default function AgentStep({ stepIndex, agentName }: AgentStepProps) {
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-3">
-              <span className="w-8 h-8 rounded-full bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-400 text-sm font-bold">
-                1
-              </span>
-              <h2 className="text-2xl font-bold text-white">{agentName}</h2>
+              <StepBadge number={1} />
+              <h2 className="font-display text-2xl font-bold text-ink">{agentName}</h2>
             </div>
-            <p className="text-zinc-500 text-sm ml-11">Researching your company...</p>
+            <p className="text-ink-muted text-sm ml-11">Researching your company...</p>
           </div>
 
-          <div className="rounded-2xl border border-white/8 bg-white/3 p-6">
-            <p className="text-xs text-zinc-500 uppercase tracking-widest font-medium mb-4">
+          <div className="rounded-2xl border border-ink/10 bg-white p-6">
+            <p className="text-xs text-ink-faint uppercase tracking-widest font-medium mb-4">
               Progress
             </p>
             <ProgressTimeline steps={researchProgress} />
@@ -56,12 +62,10 @@ export default function AgentStep({ stepIndex, agentName }: AgentStepProps) {
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-3">
-              <span className="w-8 h-8 rounded-full bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-400 text-sm font-bold">
-                1
-              </span>
-              <h2 className="text-2xl font-bold text-white">{agentName}</h2>
+              <StepBadge number={1} />
+              <h2 className="font-display text-2xl font-bold text-ink">{agentName}</h2>
             </div>
-            <p className="text-zinc-500 text-sm ml-11">Company Intelligence Dossier ready</p>
+            <p className="text-ink-muted text-sm ml-11">Company Intelligence Dossier ready</p>
           </div>
 
           <DossierView output={output as ResearchOutput} />
@@ -82,17 +86,15 @@ export default function AgentStep({ stepIndex, agentName }: AgentStepProps) {
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-3">
-            <span className="w-8 h-8 rounded-full bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-400 text-sm font-bold">
-              1
-            </span>
-            <h2 className="text-2xl font-bold text-white">{agentName}</h2>
+            <StepBadge number={1} />
+            <h2 className="font-display text-2xl font-bold text-ink">{agentName}</h2>
           </div>
-          <p className="text-zinc-500 text-sm ml-11">Waiting for pipeline...</p>
+          <p className="text-ink-muted text-sm ml-11">Waiting for pipeline...</p>
         </div>
 
-        <div className="rounded-2xl border border-white/8 bg-white/3 p-6 min-h-[200px] flex items-center justify-center">
-          <div className="flex flex-col items-center gap-3 text-zinc-600">
-            <div className="w-10 h-10 rounded-full border-2 border-zinc-700 border-dashed flex items-center justify-center">
+        <div className="rounded-2xl border border-ink/10 bg-white p-6 min-h-[200px] flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3 text-ink-faint">
+            <div className="w-10 h-10 rounded-full border-2 border-ink/20 border-dashed flex items-center justify-center">
               <span className="text-lg">...</span>
             </div>
             <p className="text-sm">Research will begin shortly</p>
@@ -109,15 +111,13 @@ export default function AgentStep({ stepIndex, agentName }: AgentStepProps) {
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-3">
-              <span className="w-8 h-8 rounded-full bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-400 text-sm font-bold">
-                2
-              </span>
-              <h2 className="text-2xl font-bold text-white">{agentName}</h2>
+              <StepBadge number={2} />
+              <h2 className="font-display text-2xl font-bold text-ink">{agentName}</h2>
             </div>
-            <p className="text-zinc-500 text-sm ml-11">Synthesizing marketing profile...</p>
+            <p className="text-ink-muted text-sm ml-11">Synthesizing marketing profile...</p>
           </div>
-          <div className="rounded-2xl border border-white/8 bg-white/3 p-6">
-            <p className="text-xs text-zinc-500 uppercase tracking-widest font-medium mb-4">Progress</p>
+          <div className="rounded-2xl border border-ink/10 bg-white p-6">
+            <p className="text-xs text-ink-faint uppercase tracking-widest font-medium mb-4">Progress</p>
             <ProgressTimeline steps={researchProgress} />
           </div>
         </div>
@@ -134,12 +134,10 @@ export default function AgentStep({ stepIndex, agentName }: AgentStepProps) {
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-3">
-              <span className="w-8 h-8 rounded-full bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-400 text-sm font-bold">
-                2
-              </span>
-              <h2 className="text-2xl font-bold text-white">{agentName}</h2>
+              <StepBadge number={2} />
+              <h2 className="font-display text-2xl font-bold text-ink">{agentName}</h2>
             </div>
-            <p className="text-zinc-500 text-sm ml-11">Marketing Profile ready</p>
+            <p className="text-ink-muted text-sm ml-11">Marketing Profile ready</p>
           </div>
 
           <ProfileView profile={profile} />
@@ -166,15 +164,13 @@ export default function AgentStep({ stepIndex, agentName }: AgentStepProps) {
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-3">
-              <span className="w-8 h-8 rounded-full bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-400 text-sm font-bold">
-                3
-              </span>
-              <h2 className="text-2xl font-bold text-white">{agentName}</h2>
+              <StepBadge number={3} />
+              <h2 className="font-display text-2xl font-bold text-ink">{agentName}</h2>
             </div>
-            <p className="text-zinc-500 text-sm ml-11">Generating audience segments...</p>
+            <p className="text-ink-muted text-sm ml-11">Generating audience segments...</p>
           </div>
-          <div className="rounded-2xl border border-white/8 bg-white/3 p-6">
-            <p className="text-xs text-zinc-500 uppercase tracking-widest font-medium mb-4">Progress</p>
+          <div className="rounded-2xl border border-ink/10 bg-white p-6">
+            <p className="text-xs text-ink-faint uppercase tracking-widest font-medium mb-4">Progress</p>
             <ProgressTimeline steps={researchProgress} />
           </div>
         </div>
@@ -191,12 +187,10 @@ export default function AgentStep({ stepIndex, agentName }: AgentStepProps) {
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-3">
-              <span className="w-8 h-8 rounded-full bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-400 text-sm font-bold">
-                3
-              </span>
-              <h2 className="text-2xl font-bold text-white">{agentName}</h2>
+              <StepBadge number={3} />
+              <h2 className="font-display text-2xl font-bold text-ink">{agentName}</h2>
             </div>
-            <p className="text-zinc-500 text-sm ml-11">Audience Segments ready</p>
+            <p className="text-ink-muted text-sm ml-11">Audience Segments ready</p>
           </div>
 
           <AudienceView output={audienceOutput} runId={runId ?? ''} />
@@ -223,15 +217,13 @@ export default function AgentStep({ stepIndex, agentName }: AgentStepProps) {
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-3">
-              <span className="w-8 h-8 rounded-full bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-400 text-sm font-bold">
-                4
-              </span>
-              <h2 className="text-2xl font-bold text-white">{agentName}</h2>
+              <StepBadge number={4} />
+              <h2 className="font-display text-2xl font-bold text-ink">{agentName}</h2>
             </div>
-            <p className="text-zinc-500 text-sm ml-11">Generating content strategy...</p>
+            <p className="text-ink-muted text-sm ml-11">Generating content strategy...</p>
           </div>
-          <div className="rounded-2xl border border-white/8 bg-white/3 p-6">
-            <p className="text-xs text-zinc-500 uppercase tracking-widest font-medium mb-4">Progress</p>
+          <div className="rounded-2xl border border-ink/10 bg-white p-6">
+            <p className="text-xs text-ink-faint uppercase tracking-widest font-medium mb-4">Progress</p>
             <ProgressTimeline steps={researchProgress} />
           </div>
         </div>
@@ -248,12 +240,10 @@ export default function AgentStep({ stepIndex, agentName }: AgentStepProps) {
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-3">
-              <span className="w-8 h-8 rounded-full bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-400 text-sm font-bold">
-                4
-              </span>
-              <h2 className="text-2xl font-bold text-white">{agentName}</h2>
+              <StepBadge number={4} />
+              <h2 className="font-display text-2xl font-bold text-ink">{agentName}</h2>
             </div>
-            <p className="text-zinc-500 text-sm ml-11">Content Strategy ready</p>
+            <p className="text-ink-muted text-sm ml-11">Content Strategy ready</p>
           </div>
 
           <ContentView output={contentOutput} />
@@ -280,15 +270,13 @@ export default function AgentStep({ stepIndex, agentName }: AgentStepProps) {
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-3">
-              <span className="w-8 h-8 rounded-full bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-400 text-sm font-bold">
-                5
-              </span>
-              <h2 className="text-2xl font-bold text-white">{agentName}</h2>
+              <StepBadge number={5} />
+              <h2 className="font-display text-2xl font-bold text-ink">{agentName}</h2>
             </div>
-            <p className="text-zinc-500 text-sm ml-11">Generating sales outreach...</p>
+            <p className="text-ink-muted text-sm ml-11">Generating sales outreach...</p>
           </div>
-          <div className="rounded-2xl border border-white/8 bg-white/3 p-6">
-            <p className="text-xs text-zinc-500 uppercase tracking-widest font-medium mb-4">Progress</p>
+          <div className="rounded-2xl border border-ink/10 bg-white p-6">
+            <p className="text-xs text-ink-faint uppercase tracking-widest font-medium mb-4">Progress</p>
             <ProgressTimeline steps={researchProgress} />
           </div>
         </div>
@@ -319,12 +307,10 @@ export default function AgentStep({ stepIndex, agentName }: AgentStepProps) {
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-3">
-              <span className="w-8 h-8 rounded-full bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-400 text-sm font-bold">
-                5
-              </span>
-              <h2 className="text-2xl font-bold text-white">{agentName}</h2>
+              <StepBadge number={5} />
+              <h2 className="font-display text-2xl font-bold text-ink">{agentName}</h2>
             </div>
-            <p className="text-zinc-500 text-sm ml-11">Sales Outreach ready</p>
+            <p className="text-ink-muted text-sm ml-11">Sales Outreach ready</p>
           </div>
 
           <SalesView output={salesOutput} />
@@ -341,10 +327,10 @@ export default function AgentStep({ stepIndex, agentName }: AgentStepProps) {
           )}
 
           {runId && (
-            <div className="mt-8 border-t border-white/10 pt-8">
+            <div className="mt-8 border-t border-ink/10 pt-8">
               <div className="flex flex-col gap-2 mb-6">
-                <h3 className="text-lg font-bold text-white">Launch Voice Sales Agent</h3>
-                <p className="text-sm text-zinc-500">
+                <h3 className="font-display text-lg font-bold text-ink">Launch Voice Sales Agent</h3>
+                <p className="text-sm text-ink-muted">
                   Pick a segment, review the script, and place a live outbound call — powered by ElevenLabs Conversational AI.
                 </p>
               </div>
@@ -367,15 +353,13 @@ export default function AgentStep({ stepIndex, agentName }: AgentStepProps) {
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-3">
-              <span className="w-8 h-8 rounded-full bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-400 text-sm font-bold">
-                6
-              </span>
-              <h2 className="text-2xl font-bold text-white">{agentName}</h2>
+              <StepBadge number={6} />
+              <h2 className="font-display text-2xl font-bold text-ink">{agentName}</h2>
             </div>
-            <p className="text-zinc-500 text-sm ml-11">Generating ad creative...</p>
+            <p className="text-ink-muted text-sm ml-11">Generating ad creative...</p>
           </div>
-          <div className="rounded-2xl border border-white/8 bg-white/3 p-6">
-            <p className="text-xs text-zinc-500 uppercase tracking-widest font-medium mb-4">Progress</p>
+          <div className="rounded-2xl border border-ink/10 bg-white p-6">
+            <p className="text-xs text-ink-faint uppercase tracking-widest font-medium mb-4">Progress</p>
             <ProgressTimeline steps={researchProgress} />
           </div>
         </div>
@@ -393,12 +377,10 @@ export default function AgentStep({ stepIndex, agentName }: AgentStepProps) {
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-3">
-              <span className="w-8 h-8 rounded-full bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-400 text-sm font-bold">
-                6
-              </span>
-              <h2 className="text-2xl font-bold text-white">{agentName}</h2>
+              <StepBadge number={6} />
+              <h2 className="font-display text-2xl font-bold text-ink">{agentName}</h2>
             </div>
-            <p className="text-zinc-500 text-sm ml-11">Ad Creative ready</p>
+            <p className="text-ink-muted text-sm ml-11">Ad Creative ready</p>
           </div>
 
           <AdsView output={adsOutput} />
@@ -424,16 +406,16 @@ export default function AgentStep({ stepIndex, agentName }: AgentStepProps) {
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-3">
-            <span className="w-8 h-8 rounded-full bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-sm font-bold">
+            <span className="w-8 h-8 rounded-full bg-success/10 border border-success/30 flex items-center justify-center text-success text-sm font-bold">
               ✓
             </span>
-            <h2 className="text-2xl font-bold text-white">Pipeline Complete</h2>
+            <h2 className="font-display text-2xl font-bold text-ink">Pipeline Complete</h2>
           </div>
-          <p className="text-zinc-500 text-sm ml-11">All 6 agents have completed and been approved.</p>
+          <p className="text-ink-muted text-sm ml-11">All 6 agents have completed and been approved.</p>
         </div>
-        <div className="rounded-2xl border border-emerald-500/15 bg-emerald-500/5 p-6 flex flex-col items-center gap-3">
-          <p className="text-emerald-400 font-semibold text-sm">Your full marketing pipeline is ready.</p>
-          <p className="text-zinc-500 text-xs text-center">Research, Profile, Audience, Content, Sales, and Ads — all approved and ready to deploy.</p>
+        <div className="rounded-2xl border border-success/15 bg-success/5 p-6 flex flex-col items-center gap-3">
+          <p className="text-success font-semibold text-sm">Your full marketing pipeline is ready.</p>
+          <p className="text-ink-faint text-xs text-center">Research, Profile, Audience, Content, Sales, and Ads — all approved and ready to deploy.</p>
         </div>
       </div>
     )
@@ -444,16 +426,14 @@ export default function AgentStep({ stepIndex, agentName }: AgentStepProps) {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-3">
-          <span className="w-8 h-8 rounded-full bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-400 text-sm font-bold">
-            {stepIndex + 1}
-          </span>
-          <h2 className="text-2xl font-bold text-white">{agentName}</h2>
+          <StepBadge number={stepIndex + 1} />
+          <h2 className="font-display text-2xl font-bold text-ink">{agentName}</h2>
         </div>
-        <p className="text-zinc-500 text-sm ml-11">Waiting for pipeline...</p>
+        <p className="text-ink-muted text-sm ml-11">Waiting for pipeline...</p>
       </div>
-      <div className="rounded-2xl border border-white/8 bg-white/3 p-6 min-h-[200px] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3 text-zinc-600">
-          <div className="w-10 h-10 rounded-full border-2 border-zinc-700 border-dashed flex items-center justify-center">
+      <div className="rounded-2xl border border-ink/10 bg-white p-6 min-h-[200px] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3 text-ink-faint">
+          <div className="w-10 h-10 rounded-full border-2 border-ink/20 border-dashed flex items-center justify-center">
             <span className="text-lg">...</span>
           </div>
           <p className="text-sm">Agent output will appear here</p>

@@ -239,13 +239,13 @@ export default function ApprovalGate({
   }
 
   return (
-    <div className="flex flex-col gap-4 mt-6">
-      <p className="text-xs text-zinc-600 uppercase tracking-widest font-medium">
+    <div className="flex flex-col gap-4 mt-6 rounded-2xl border border-teal-600/20 ring-2 ring-teal-600/10 bg-white p-6">
+      <p className="text-xs text-ink-faint uppercase tracking-widest font-medium">
         Review &amp; Approve
       </p>
 
       {error && (
-        <p className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">
+        <p className="text-error text-sm bg-error/5 border border-error/20 rounded-xl px-4 py-3">
           {error}
         </p>
       )}
@@ -254,54 +254,54 @@ export default function ApprovalGate({
       {mode === 'idle' && (
         <div className="flex flex-col gap-3">
           {summaryStats && (
-            <p className="text-xs text-zinc-500 border border-white/8 rounded-xl px-4 py-2 bg-white/3 mb-3">
+            <p className="text-xs text-ink-muted border border-ink/10 rounded-xl px-4 py-2 bg-cream mb-3">
               {summaryStats}
             </p>
           )}
-        <div className="flex gap-3">
-          <button
-            onClick={handleApprove}
-            disabled={loading}
-            className="flex-1 py-3 rounded-xl bg-emerald-600/10 border border-emerald-500/20 text-emerald-500 font-semibold text-sm hover:bg-emerald-600/20 hover:border-emerald-500/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-          >
-            {loading ? '...' : 'Approve'}
-          </button>
-          <button
-            onClick={() => setMode('edit')}
-            disabled={loading}
-            className="flex-1 py-3 rounded-xl bg-blue-600/10 border border-blue-500/20 text-blue-400 font-semibold text-sm hover:bg-blue-600/20 hover:border-blue-500/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-          >
-            Edit
-          </button>
-          <button
-            onClick={() => setMode('reject')}
-            disabled={loading}
-            className="flex-1 py-3 rounded-xl bg-red-600/10 border border-red-500/20 text-red-500 font-semibold text-sm hover:bg-red-600/20 hover:border-red-500/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-          >
-            Reject
-          </button>
-          <button
-            onClick={() => setMode('override')}
-            disabled={loading}
-            className="flex-1 py-3 rounded-xl bg-zinc-600/10 border border-zinc-500/20 text-zinc-400 font-semibold text-sm hover:bg-zinc-600/20 hover:border-zinc-500/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-          >
-            Override
-          </button>
-        </div>
+          <div className="flex gap-3">
+            <button
+              onClick={handleApprove}
+              disabled={loading}
+              className="flex-1 py-3.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+            >
+              {loading ? '...' : 'Approve'}
+            </button>
+            <button
+              onClick={() => setMode('edit')}
+              disabled={loading}
+              className="flex-1 py-3.5 rounded-xl bg-gold-100 text-gold-600 border border-gold-400/30 hover:bg-gold-100/80 font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              Edit
+            </button>
+            <button
+              onClick={() => setMode('reject')}
+              disabled={loading}
+              className="flex-1 py-3.5 rounded-xl bg-error/10 text-error border border-error/30 hover:bg-error/20 font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              Reject
+            </button>
+            <button
+              onClick={() => setMode('override')}
+              disabled={loading}
+              className="flex-1 py-3.5 rounded-xl bg-ink/5 text-ink-muted border border-ink/10 hover:bg-ink/10 font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              Override
+            </button>
+          </div>
         </div>
       )}
 
       {/* EDIT mode */}
       {mode === 'edit' && (
         <div className="flex flex-col gap-3">
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-ink-muted">
             Edit the JSON below inline, then save.
           </p>
           <pre
             ref={editRef}
             contentEditable
             suppressContentEditableWarning
-            className="rounded-xl border border-blue-500/30 bg-blue-500/5 p-4 text-xs text-zinc-300 font-mono overflow-auto max-h-96 outline-none focus:border-blue-400/60 whitespace-pre-wrap"
+            className="rounded-xl border border-gold-400/30 bg-gold-100/50 p-4 text-xs text-ink font-mono overflow-auto max-h-96 outline-none focus:border-gold-500/60 whitespace-pre-wrap"
           >
             {JSON.stringify(output, null, 2)}
           </pre>
@@ -309,14 +309,14 @@ export default function ApprovalGate({
             <button
               onClick={handleEdit}
               disabled={loading}
-              className="flex-1 py-3 rounded-xl bg-blue-600/20 border border-blue-500/30 text-blue-300 font-semibold text-sm hover:bg-blue-600/30 disabled:opacity-50 transition-all"
+              className="flex-1 py-3 rounded-xl bg-gold-500 hover:bg-gold-600 text-white font-semibold text-sm disabled:opacity-50 transition-all"
             >
               {loading ? 'Saving...' : 'Save Edits'}
             </button>
             <button
               onClick={() => setMode('idle')}
               disabled={loading}
-              className="px-6 py-3 rounded-xl border border-zinc-700 text-zinc-500 font-semibold text-sm hover:bg-white/3 transition-all"
+              className="px-6 py-3 rounded-xl border border-ink/10 text-ink-muted font-semibold text-sm hover:bg-cream-dark transition-all"
             >
               Cancel
             </button>
@@ -327,7 +327,7 @@ export default function ApprovalGate({
       {/* REJECT mode */}
       {mode === 'reject' && (
         <div className="flex flex-col gap-3">
-          <p className="text-xs text-zinc-500">Select reasons and/or add details:</p>
+          <p className="text-xs text-ink-muted">Select reasons and/or add details:</p>
           <div className="flex flex-wrap gap-2">
             {REJECT_REASONS.map((r) => (
               <button
@@ -335,8 +335,8 @@ export default function ApprovalGate({
                 onClick={() => toggleReason(r)}
                 className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
                   selectedReasons.includes(r)
-                    ? 'bg-red-500/20 border-red-500/40 text-red-300'
-                    : 'bg-white/3 border-white/10 text-zinc-400 hover:border-white/20'
+                    ? 'bg-error/10 border-error/40 text-error'
+                    : 'bg-cream-dark border-ink/10 text-ink-muted hover:border-ink/20'
                 }`}
               >
                 {r}
@@ -348,20 +348,20 @@ export default function ApprovalGate({
             onChange={(e) => setRejectText(e.target.value)}
             placeholder="Additional feedback..."
             rows={3}
-            className="rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-zinc-300 placeholder-zinc-600 outline-none focus:border-red-400/40 resize-none"
+            className="rounded-xl border border-error/20 bg-error/5 px-4 py-3 text-sm text-ink placeholder-ink-faint outline-none focus:border-error/40 resize-none"
           />
           <div className="flex gap-3">
             <button
               onClick={handleReject}
               disabled={loading || (selectedReasons.length === 0 && !rejectText.trim())}
-              className="flex-1 py-3 rounded-xl bg-red-600/20 border border-red-500/30 text-red-300 font-semibold text-sm hover:bg-red-600/30 disabled:opacity-50 transition-all"
+              className="flex-1 py-3 rounded-xl bg-error/10 border border-error/30 text-error font-semibold text-sm hover:bg-error/20 disabled:opacity-50 transition-all"
             >
               {loading ? 'Submitting...' : 'Submit Feedback'}
             </button>
             <button
               onClick={() => setMode('idle')}
               disabled={loading}
-              className="px-6 py-3 rounded-xl border border-zinc-700 text-zinc-500 font-semibold text-sm hover:bg-white/3 transition-all"
+              className="px-6 py-3 rounded-xl border border-ink/10 text-ink-muted font-semibold text-sm hover:bg-cream-dark transition-all"
             >
               Cancel
             </button>
@@ -372,27 +372,27 @@ export default function ApprovalGate({
       {/* OVERRIDE mode */}
       {mode === 'override' && (
         <div className="flex flex-col gap-3">
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-ink-muted">
             Paste or type replacement JSON (must match dossier schema):
           </p>
           <textarea
             value={overrideText}
             onChange={(e) => setOverrideText(e.target.value)}
             rows={14}
-            className="rounded-xl border border-zinc-600/30 bg-zinc-900/50 px-4 py-3 text-xs text-zinc-300 font-mono outline-none focus:border-zinc-500/50 resize-none"
+            className="rounded-xl border border-ink/15 bg-cream-dark px-4 py-3 text-xs text-ink font-mono outline-none focus:border-ink/30 resize-none"
           />
           <div className="flex gap-3">
             <button
               onClick={handleOverride}
               disabled={loading}
-              className="flex-1 py-3 rounded-xl bg-zinc-600/20 border border-zinc-500/30 text-zinc-300 font-semibold text-sm hover:bg-zinc-600/30 disabled:opacity-50 transition-all"
+              className="flex-1 py-3 rounded-xl bg-ink/5 border border-ink/15 text-ink font-semibold text-sm hover:bg-ink/10 disabled:opacity-50 transition-all"
             >
               {loading ? 'Applying...' : 'Apply Override'}
             </button>
             <button
               onClick={() => setMode('idle')}
               disabled={loading}
-              className="px-6 py-3 rounded-xl border border-zinc-700 text-zinc-500 font-semibold text-sm hover:bg-white/3 transition-all"
+              className="px-6 py-3 rounded-xl border border-ink/10 text-ink-muted font-semibold text-sm hover:bg-cream-dark transition-all"
             >
               Cancel
             </button>
