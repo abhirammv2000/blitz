@@ -3,14 +3,14 @@
 Implements the HITL reject loop pattern:
 - Reads Agent 1's marketing profile and Agent 2's audience segments from ChromaDB
 - Calls run_ads() to generate platform-specific ad copy via GPT-4o
-- Generates DALL-E 3 images for each A/B variation concurrently via asyncio.gather()
+- Returns LLM-suggested image_prompt fields for user editing (no auto image gen)
 - Interrupts with AdsOutput for human review
 - Handles approve / edit / override / reject decisions
 - On reject: loops back with feedback to refine ad creative
 - Stores final HITL decision in ChromaDB for downstream reference
 
-Why async: litellm.acompletion() and aimage_generation() are awaited; DALL-E 3
-image generation is parallelized via asyncio.gather() for throughput.
+Image generation is user-triggered via POST /ads/{run_id}/generate-image endpoint
+(capped at 3 per run). Users edit prompts in the UI before generating.
 """
 
 from __future__ import annotations

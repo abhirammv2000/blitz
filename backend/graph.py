@@ -10,7 +10,7 @@ Agent implementation status:
 - agent_2_audience: real async implementation (Phase 3)
 - agent_3_content: real async implementation (Phase 4)
 - agent_4_sales: real async implementation (Phase 4)
-- agent_5_ads: real async implementation with DALL-E 3 image gen (Phase 4)
+- agent_5_ads: real async implementation with user-triggered DALL-E 3 image gen (Phase 4)
 
 Why AsyncSqliteSaver (not SqliteSaver):
 - graph.astream() inside async FastAPI endpoints requires an async checkpointer

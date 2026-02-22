@@ -43,8 +43,9 @@ class AdsOutput(BaseModel):
     Produces ad copy variants, visual direction briefs, and A/B test variations
     ready for Google, Meta, and LinkedIn campaign setup.
 
-    image_url fields on AdVisual and AbVariation are populated after the LLM
-    generates the ad copy — DALL-E 3 image generation runs as a separate async step.
+    image_url fields on AdVisual and AbVariation default to None. Image generation
+    is user-triggered via POST /ads/{run_id}/generate-image (capped at 3 per run).
+    Users can edit the LLM-suggested image_prompt before generating.
     """
 
     ad_copies: list[AdCopy]
