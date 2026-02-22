@@ -39,7 +39,8 @@ from pydantic import BaseModel
 from agents.agent_0_research.progress import cleanup_queue, get_queue
 from graph import build_graph
 
-load_dotenv()
+load_dotenv()  # backend/.env
+load_dotenv(dotenv_path="../.env")  # project root .env
 
 # ---------------------------------------------------------------------------
 # App-level graph instance (set during lifespan startup)
@@ -152,7 +153,13 @@ async def stream_graph_with_progress(run_id: str, graph_input: Any, config: dict
                 chunk = results.pop(0)
                 step = chunk.get("current_step", 0)
                 if "__interrupt__" in chunk:
-                    yield sse_event({"type": "interrupted", "step": step})
+                    # Extract interrupt payload (contains agent output for HITL review)
+                    interrupts = chunk["__interrupt__"]
+                    interrupt_data = None
+                    if interrupts and len(interrupts) > 0:
+                        iv = interrupts[0]
+                        interrupt_data = iv.value if hasattr(iv, 'value') else iv
+                    yield sse_event({"type": "interrupted", "step": step, "data": interrupt_data})
                     return
                 safe = {k: v for k, v in chunk.items() if not k.startswith("__")}
                 yield sse_event({"type": "state", "data": safe})
@@ -178,7 +185,12 @@ async def stream_graph_with_progress(run_id: str, graph_input: Any, config: dict
             chunk = results.pop(0)
             step = chunk.get("current_step", 0)
             if "__interrupt__" in chunk:
-                yield sse_event({"type": "interrupted", "step": step})
+                interrupts = chunk["__interrupt__"]
+                interrupt_data = None
+                if interrupts and len(interrupts) > 0:
+                    iv = interrupts[0]
+                    interrupt_data = iv.value if hasattr(iv, 'value') else iv
+                yield sse_event({"type": "interrupted", "step": step, "data": interrupt_data})
                 return
             interrupted_step = step
             safe = {k: v for k, v in chunk.items() if not k.startswith("__")}

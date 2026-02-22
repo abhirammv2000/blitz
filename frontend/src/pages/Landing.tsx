@@ -8,88 +8,17 @@ interface LandingProps {
 export default function Landing({ onLaunch }: LandingProps) {
   const [url, setUrl] = useState('')
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const { setRunId, setIsRunning, addResearchProgress, setAgentOutput } = useBlitzStore()
+  const { error, startPipeline } = useBlitzStore()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!url.trim()) return
 
     setLoading(true)
-    setError(null)
-
-    try {
-      const res = await fetch('http://localhost:8000/pipeline/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: url.trim() }),
-      })
-
-      if (!res.ok) {
-        throw new Error(`Server error: ${res.status}`)
-      }
-
-      const reader = res.body?.getReader()
-      if (!reader) throw new Error('No response stream')
-
-      const decoder = new TextDecoder()
-      let runId: string | null = null
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        const text = decoder.decode(value, { stream: true })
-        const lines = text.split('\n')
-
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue
-          try {
-            const event = JSON.parse(line.slice(6))
-
-            if (event.type === 'init') {
-              runId = event.run_id
-              setRunId(event.run_id)
-              setIsRunning(true)
-              // Navigate to Wizard immediately so user sees progress timeline
-              onLaunch()
-            }
-
-            if (event.type === 'progress') {
-              const step = event.data?.step ?? event.step
-              const status = event.data?.status ?? event.status
-              if (step && status) {
-                addResearchProgress({ step, status })
-              }
-            }
-
-            if (event.type === 'state' && event.data?.research_output) {
-              setAgentOutput(0, event.data.research_output)
-            }
-
-            if (event.type === 'interrupted') {
-              setIsRunning(false)
-              // onLaunch already called on init; just stop loading
-              setLoading(false)
-              return
-            }
-
-            if (event.type === 'error') {
-              setError(event.message)
-              setIsRunning(false)
-              setLoading(false)
-              return
-            }
-          } catch {
-            // ignore parse errors on partial chunks
-          }
-        }
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to connect to backend')
-      setIsRunning(false)
-      setLoading(false)
-    }
+    // Start pipeline in the store (survives unmount)
+    startPipeline(url.trim())
+    // Navigate immediately so user sees progress timeline
+    onLaunch()
   }
 
   return (

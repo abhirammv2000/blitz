@@ -128,7 +128,7 @@ async def firecrawl_scrape(url: str, queue: asyncio.Queue) -> str:
 
             app = AsyncFirecrawlApp(api_key=os.environ.get("FIRECRAWL_API_KEY", ""))
             result = await asyncio.wait_for(
-                app.scrape_url(url, params={"formats": ["markdown"]}),
+                app.scrape(url, params={"formats": ["markdown"]}),
                 timeout=25.0,
             )
         except (ImportError, AttributeError):
@@ -138,7 +138,7 @@ async def firecrawl_scrape(url: str, queue: asyncio.Queue) -> str:
             sync_app = FirecrawlApp(api_key=os.environ.get("FIRECRAWL_API_KEY", ""))
 
             def _sync_scrape() -> dict:
-                return sync_app.scrape_url(url, params={"formats": ["markdown"]})
+                return sync_app.scrape(url, params={"formats": ["markdown"]})
 
             result = await asyncio.wait_for(
                 asyncio.get_event_loop().run_in_executor(None, _sync_scrape),

@@ -5,13 +5,13 @@ import { useBlitzStore } from './store/useBlitzStore'
 
 function App() {
   const { runId } = useBlitzStore()
-  const [inWizard, setInWizard] = useState(false)
+  const [launched, setLaunched] = useState(false)
 
-  if (runId && inWizard) {
+  if (launched || runId) {
     return <Wizard />
   }
 
-  return <Landing onLaunch={() => setInWizard(true)} />
+  return <Landing onLaunch={() => setLaunched(true)} />
 }
 
 export default App
