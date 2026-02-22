@@ -7,6 +7,7 @@ import SalesView from './SalesView'
 import AdsView from './AdsView'
 import ApprovalGate from './ApprovalGate'
 import ProgressTimeline from './ProgressTimeline'
+import VoiceAgentPanel from './VoiceAgent/VoiceAgentPanel'
 import type { ResearchOutput } from './DossierView'
 import type { MarketingProfile } from './ProfileView'
 import type { AudienceOutput } from './AudienceView'
@@ -300,6 +301,20 @@ export default function AgentStep({ stepIndex, agentName }: AgentStepProps) {
       const linkedInCount = salesOutput.linkedin_templates?.length ?? 0
       const summaryStats = `${seqCount} email sequence${seqCount !== 1 ? 's' : ''}, ${linkedInCount} LinkedIn template${linkedInCount !== 1 ? 's' : ''}`
 
+      // Build segments from audience output (step 2)
+      const audienceOutput = agentOutputs[2] as AudienceOutput | undefined
+      const voiceSegments = (audienceOutput?.segments ?? []).map((seg) => ({
+        name: seg.name,
+        description: seg.reasoning ?? `${seg.fit_label ?? ''} fit segment`.trim(),
+      }))
+
+      // Build salesScripts: concatenate email bodies per segment
+      const salesScripts: Record<string, string> = {}
+      for (const seq of salesOutput.email_sequences ?? []) {
+        const bodies = (seq.emails ?? []).map((e) => `Subject: ${e.subject}\n\n${e.body}`).join('\n\n---\n\n')
+        salesScripts[seq.segment] = bodies
+      }
+
       return (
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-2">
@@ -323,6 +338,22 @@ export default function AgentStep({ stepIndex, agentName }: AgentStepProps) {
               agentOutputKey="sales_output"
               summaryStats={summaryStats}
             />
+          )}
+
+          {runId && (
+            <div className="mt-8 border-t border-white/10 pt-8">
+              <div className="flex flex-col gap-2 mb-6">
+                <h3 className="text-lg font-bold text-white">Launch Voice Sales Agent</h3>
+                <p className="text-sm text-zinc-500">
+                  Pick a segment, review the script, and place a live outbound call — powered by ElevenLabs Conversational AI.
+                </p>
+              </div>
+              <VoiceAgentPanel
+                runId={runId}
+                segments={voiceSegments}
+                salesScripts={salesScripts}
+              />
+            </div>
           )}
         </div>
       )
