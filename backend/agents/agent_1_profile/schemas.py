@@ -3,6 +3,22 @@
 from pydantic import BaseModel
 
 
+class BrandDNA(BaseModel):
+    """Structured brand identity extracted from research data."""
+
+    mission: str
+    values: list[str]
+    tone: str
+    visual_style: str
+
+
+class MarketingGap(BaseModel):
+    """A single identified marketing gap with an actionable recommendation."""
+
+    gap: str
+    recommendation: str
+
+
 class MarketingProfile(BaseModel):
     """Structured output from the Marketing Profile agent.
 
@@ -10,7 +26,7 @@ class MarketingProfile(BaseModel):
     and actionable marketing gap analysis.
     """
 
-    brand_dna: dict  # {mission, values, tone, visual_style}
+    brand_dna: BrandDNA
     positioning_statement: str
     usps: list[str]
-    marketing_gaps: list[dict]  # [{gap, recommendation}]
+    marketing_gaps: list[MarketingGap]

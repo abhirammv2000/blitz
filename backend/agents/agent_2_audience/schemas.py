@@ -13,13 +13,14 @@ class AudienceSegment(BaseModel):
     buying_triggers: list[str]
     active_channels: list[str]
     reasoning: str  # why this segment was identified from research
+    fit_label: str  # "High", "Medium", or "Low"
     synthetic_attributes: dict  # generated enrichment data for demo realism
 
 
 class AudienceOutput(BaseModel):
     """Structured output from the Audience Intelligence agent.
 
-    Produces 3–5 synthetic audience segments grounded in research data.
+    Produces 3-5 synthetic audience segments grounded in research data.
     """
 
     segments: list[AudienceSegment]
