@@ -30,7 +30,7 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from langgraph.types import Command
@@ -135,6 +135,18 @@ async def stream_graph_with_progress(run_id: str, graph_input: Any, config: dict
         graph_input: Initial state dict or Command(resume=...) passed to graph.astream().
         config: LangGraph config dict with configurable thread_id.
     """
+    def _extract_interrupt(chunk: dict) -> dict | None:
+        """If chunk contains an __interrupt__, return the SSE payload; else None."""
+        interrupts = chunk.get("__interrupt__")
+        if interrupts is None:
+            return None
+        step = chunk.get("current_step", 0)
+        interrupt_data = None
+        if interrupts and len(interrupts) > 0:
+            iv = interrupts[0]
+            interrupt_data = iv.value if hasattr(iv, 'value') else iv
+        return {"type": "interrupted", "step": step, "data": interrupt_data}
+
     queue = get_queue(run_id)
     results: list[dict] = []
     graph_error: Exception | None = None
@@ -167,15 +179,9 @@ async def stream_graph_with_progress(run_id: str, graph_input: Any, config: dict
             # Drain graph state results accumulated by graph_runner
             while results:
                 chunk = results.pop(0)
-                step = chunk.get("current_step", 0)
-                if "__interrupt__" in chunk:
-                    # Extract interrupt payload (contains agent output for HITL review)
-                    interrupts = chunk["__interrupt__"]
-                    interrupt_data = None
-                    if interrupts and len(interrupts) > 0:
-                        iv = interrupts[0]
-                        interrupt_data = iv.value if hasattr(iv, 'value') else iv
-                    yield sse_event({"type": "interrupted", "step": step, "data": interrupt_data})
+                interrupt_evt = _extract_interrupt(chunk)
+                if interrupt_evt is not None:
+                    yield sse_event(interrupt_evt)
                     return
                 safe = {k: v for k, v in chunk.items() if not k.startswith("__")}
                 yield sse_event({"type": "state", "data": safe})
@@ -199,16 +205,11 @@ async def stream_graph_with_progress(run_id: str, graph_input: Any, config: dict
         interrupted_step = 0
         while results:
             chunk = results.pop(0)
-            step = chunk.get("current_step", 0)
-            if "__interrupt__" in chunk:
-                interrupts = chunk["__interrupt__"]
-                interrupt_data = None
-                if interrupts and len(interrupts) > 0:
-                    iv = interrupts[0]
-                    interrupt_data = iv.value if hasattr(iv, 'value') else iv
-                yield sse_event({"type": "interrupted", "step": step, "data": interrupt_data})
+            interrupt_evt = _extract_interrupt(chunk)
+            if interrupt_evt is not None:
+                yield sse_event(interrupt_evt)
                 return
-            interrupted_step = step
+            interrupted_step = chunk.get("current_step", 0)
             safe = {k: v for k, v in chunk.items() if not k.startswith("__")}
             yield sse_event({"type": "state", "data": safe})
 
@@ -347,7 +348,6 @@ async def voice_signed_url(req: SignedUrlRequest):
     """
     setup = check_setup()
     if not setup.configured:
-        from fastapi import HTTPException
         raise HTTPException(
             status_code=503,
             detail={"detail": "ElevenLabs not configured", "missing": setup.missing},

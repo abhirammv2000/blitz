@@ -26,17 +26,27 @@ from agents.agent_0_research.prompts import AEO_CHECK_PROMPT, COMPETITOR_EXTRACT
 from agents.agent_0_research.schemas import ResearchOutput
 
 
+_COMMON_TLDS_RE = r"\.(com|io|ai|co|net|org|app|dev|tech|so|me|us|xyz|gg|ly|to)$"
+
+
+def _extract_bare_domain(url: str) -> str:
+    """Extract bare domain from a URL, stripping protocol, www, and path.
+
+    Example: "https://www.acme.com/about" -> "acme.com"
+    """
+    url = re.sub(r"^https?://", "", url)
+    url = re.sub(r"^www\.", "", url)
+    return url.split("/")[0]
+
+
 def _extract_company_name(url: str) -> str:
     """Extract a clean company name from a URL.
 
     Strips protocol, www prefix, path, and common TLDs.
     Example: "https://www.acme.com/about" -> "acme"
     """
-    url = re.sub(r"^https?://", "", url)
-    url = re.sub(r"^www\.", "", url)
-    url = url.split("/")[0]  # strip path
-    # Remove common TLDs (.com, .io, .ai, .co, etc.)
-    name = re.sub(r"\.(com|io|ai|co|net|org|app|dev|tech|so|me|us|xyz|gg|ly|to)$", "", url, flags=re.IGNORECASE)
+    domain = _extract_bare_domain(url)
+    name = re.sub(_COMMON_TLDS_RE, "", domain, flags=re.IGNORECASE)
     return name.capitalize()
 
 
@@ -74,8 +84,7 @@ async def tavily_search(
 
     feedback_suffix = f" {feedback}" if feedback else ""
 
-    # Extract bare domain for anchoring queries (e.g. "resupplyme.com")
-    bare_domain = company_url.replace("https://", "").replace("http://", "").split("/")[0].replace("www.", "")
+    bare_domain = _extract_bare_domain(company_url)
 
     competitor_query = f"\"{bare_domain}\" OR \"{company_name}\" competitors alternatives comparison{feedback_suffix}"
 
@@ -115,9 +124,8 @@ async def tavily_search(
         if not press_results and isinstance(press_own_resp, Exception) and isinstance(press_ext_resp, Exception):
             press_results = [{"title": f"Tavily press search failed: {press_own_resp}", "url": "", "content": ""}]
 
-        competitor_results: list[dict] = []
         if isinstance(competitor_resp, Exception):
-            competitor_results = []
+            competitor_results: list[dict] = []
         else:
             competitor_results = competitor_resp.get("results", []) if isinstance(competitor_resp, dict) else []
 
@@ -351,9 +359,7 @@ async def run_research(
     queue = get_queue(run_id)
 
     company_name = _extract_company_name(company_url)
-    # Extract bare domain (strip protocol, www, path)
-    domain = re.sub(r"^https?://", "", company_url)
-    domain = re.sub(r"^www\.", "", domain).split("/")[0]
+    domain = _extract_bare_domain(company_url)
 
     await queue.put({"step": "research", "status": "starting", "company": company_name})
 
@@ -374,11 +380,10 @@ async def run_research(
     competitors = await extract_competitors(competitor_raw, company_name)
 
     # Build press coverage list — filter out irrelevant results
-    bare_domain = company_url.replace("https://", "").replace("http://", "").split("/")[0].replace("www.", "")
+    bare_domain = _extract_bare_domain(company_url)
     name_lower = company_name.lower()
     domain_lower = bare_domain.lower()
-    # Also match name without TLD suffix (e.g. "notion" from "notion.so")
-    name_stem = re.sub(r"\.(com|io|ai|co|net|org|app|dev|tech|so|me|us|xyz|gg|ly|to)$", "", bare_domain, flags=re.IGNORECASE).lower()
+    name_stem = re.sub(_COMMON_TLDS_RE, "", bare_domain, flags=re.IGNORECASE).lower()
 
     press_coverage = []
     for r in press_results:

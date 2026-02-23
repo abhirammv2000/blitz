@@ -10,6 +10,32 @@ interface TranscriptCardProps {
   onEndConversation?: () => void
 }
 
+interface MessageBubbleProps {
+  msg: TranscriptMessage
+  variant: 'live' | 'completed'
+}
+
+function MessageBubble({ msg, variant }: MessageBubbleProps) {
+  const isAgent = msg.role === 'agent'
+  const agentBg = variant === 'live'
+    ? 'bg-white/70 border border-teal-600/15 text-ink'
+    : 'bg-teal-100 border border-teal-600/15 text-ink'
+  const userBg = variant === 'live'
+    ? 'bg-teal-600/10 border border-teal-600/15 text-ink'
+    : 'bg-cream-dark border border-ink/10 text-ink-muted'
+
+  return (
+    <div className={`flex flex-col gap-1 ${isAgent ? 'items-start' : 'items-end'}`}>
+      <p className={`text-xs font-medium ${isAgent ? 'text-teal-700' : 'text-ink-muted'}`}>
+        {isAgent ? 'Agent' : 'You'}
+      </p>
+      <div className={`max-w-[80%] rounded-xl px-4 py-2.5 text-sm leading-relaxed ${isAgent ? agentBg : userBg}`}>
+        {msg.content}
+      </div>
+    </div>
+  )
+}
+
 export default function TranscriptCard({ transcript, status, isSpeaking, onEndConversation }: TranscriptCardProps) {
   if (status === 'live') {
     return (
@@ -36,25 +62,9 @@ export default function TranscriptCard({ transcript, status, isSpeaking, onEndCo
 
         {transcript.length > 0 && (
           <div className="flex flex-col gap-3 max-h-80 overflow-y-auto">
-            {transcript.map((msg, i) => {
-              const isAgent = msg.role === 'agent'
-              return (
-                <div key={i} className={`flex flex-col gap-1 ${isAgent ? 'items-start' : 'items-end'}`}>
-                  <p className={`text-xs font-medium ${isAgent ? 'text-teal-700' : 'text-ink-muted'}`}>
-                    {isAgent ? 'Agent' : 'You'}
-                  </p>
-                  <div
-                    className={`max-w-[80%] rounded-xl px-4 py-2.5 text-sm leading-relaxed ${
-                      isAgent
-                        ? 'bg-white/70 border border-teal-600/15 text-ink'
-                        : 'bg-teal-600/10 border border-teal-600/15 text-ink'
-                    }`}
-                  >
-                    {msg.content}
-                  </div>
-                </div>
-              )
-            })}
+            {transcript.map((msg, i) => (
+              <MessageBubble key={i} msg={msg} variant="live" />
+            ))}
           </div>
         )}
       </div>
@@ -98,25 +108,9 @@ export default function TranscriptCard({ transcript, status, isSpeaking, onEndCo
         Conversation Transcript
       </p>
       <div className="flex flex-col gap-3">
-        {transcript.map((msg, i) => {
-          const isAgent = msg.role === 'agent'
-          return (
-            <div key={i} className={`flex flex-col gap-1 ${isAgent ? 'items-start' : 'items-end'}`}>
-              <p className={`text-xs font-medium ${isAgent ? 'text-teal-700' : 'text-ink-muted'}`}>
-                {isAgent ? 'Agent' : 'You'}
-              </p>
-              <div
-                className={`max-w-[80%] rounded-xl px-4 py-2.5 text-sm leading-relaxed ${
-                  isAgent
-                    ? 'bg-teal-100 border border-teal-600/15 text-ink'
-                    : 'bg-cream-dark border border-ink/10 text-ink-muted'
-                }`}
-              >
-                {msg.content}
-              </div>
-            </div>
-          )
-        })}
+        {transcript.map((msg, i) => (
+          <MessageBubble key={i} msg={msg} variant="completed" />
+        ))}
       </div>
     </div>
   )
