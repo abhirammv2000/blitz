@@ -359,7 +359,6 @@ superset/
 │       ├── pages/Landing.tsx      # URL input landing page
 │       ├── store/useBlitzStore.ts # Zustand state + SSE parser
 │       └── demo/                  # Cached fixture data for demo mode
-└── imp/                           # Application materials
 ```
 
 ## API Endpoints
