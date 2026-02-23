@@ -218,38 +218,26 @@ export default function SegmentCard({ segment, index, onFlag }: SegmentCardProps
           Synthetic Attributes
         </button>
 
-        {expanded && (
+        {expanded && synth && (
           <div className="mt-2 flex flex-col gap-1.5 rounded-xl border border-ink/8 bg-cream-dark px-3 py-2.5">
-            {synth.sample_job_title && (
-              <div className="flex justify-between gap-2">
-                <span className="text-xs text-ink-faint">Job Title</span>
-                <span className="text-xs text-ink text-right">{synth.sample_job_title}</span>
-              </div>
-            )}
-            {synth.tools_used && synth.tools_used.length > 0 && (
-              <div>
-                <span className="text-xs text-ink-faint">Tools</span>
-                <TagList items={synth.tools_used} className="mt-1" />
-              </div>
-            )}
-            {synth.content_habits && (
-              <div className="flex justify-between gap-2">
-                <span className="text-xs text-ink-faint flex-shrink-0">Content</span>
-                <span className="text-xs text-ink text-right">{synth.content_habits}</span>
-              </div>
-            )}
-            {synth.estimated_salary_range && (
-              <div className="flex justify-between gap-2">
-                <span className="text-xs text-ink-faint">Salary</span>
-                <span className="text-xs text-ink">{synth.estimated_salary_range}</span>
-              </div>
-            )}
-            {synth.decision_timeline && (
-              <div className="flex justify-between gap-2">
-                <span className="text-xs text-ink-faint">Timeline</span>
-                <span className="text-xs text-ink">{synth.decision_timeline}</span>
-              </div>
-            )}
+            {Object.entries(synth).map(([key, value]) => {
+              if (value == null) return null
+              const label = key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+              if (Array.isArray(value) && value.length > 0) {
+                return (
+                  <div key={key}>
+                    <span className="text-xs text-ink-faint">{label}</span>
+                    <TagList items={value.map(String)} className="mt-1" />
+                  </div>
+                )
+              }
+              return (
+                <div key={key} className="flex justify-between gap-2">
+                  <span className="text-xs text-ink-faint flex-shrink-0">{label}</span>
+                  <span className="text-xs text-ink text-right">{String(value)}</span>
+                </div>
+              )
+            })}
           </div>
         )}
       </div>
