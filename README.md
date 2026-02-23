@@ -387,6 +387,15 @@ ELEVENLABS_API_KEY=    # Voice agent
 ELEVENLABS_AGENT_ID=   # Conversational AI agent ID
 ```
 
+## What's Next
+
+- **Parallel agent execution** — Fan-out agents with no data dependency (e.g., Content + Sales) to cut pipeline time
+- **Feedback loop** — Let downstream agents flag weak upstream outputs and trigger targeted re-generation
+- **Campaign export** — One-click export to CSV/PDF or direct push to platforms (HubSpot, Mailchimp, Meta Ads Manager)
+- **Multi-run comparison** — Side-by-side diffs across pipeline runs to track how edits and feedback shift outputs
+- **Persistent brand memory** — Store approved profiles and audience segments so repeat runs for the same company skip redundant work
+- **Auth + multi-tenant** — User accounts with isolated pipeline histories and API key management
+
 ## License
 
 Private project — built for interview demonstration.

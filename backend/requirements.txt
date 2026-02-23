@@ -10,3 +10,5 @@ httpx
 typing-extensions
 tavily-python
 firecrawl-py
+sse-starlette
+aiosqlite
