@@ -1,0 +1,12 @@
+python-dotenv
+fastapi
+uvicorn
+pydantic
+langgraph
+langgraph-checkpoint-sqlite
+litellm
+chromadb
+httpx
+typing-extensions
+tavily-python
+firecrawl-py

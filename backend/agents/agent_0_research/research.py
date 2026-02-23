@@ -22,7 +22,7 @@ import re
 import litellm
 
 from agents.agent_0_research.progress import get_queue
-from agents.agent_0_research.prompts import AEO_CHECK_PROMPT, COMPETITOR_EXTRACTION_PROMPT
+from agents.agent_0_research.prompts import AEO_CHECK_PROMPT, COMPETITOR_EXTRACTION_PROMPT, RESEARCH_SYNTHESIS_PROMPT
 from agents.agent_0_research.schemas import ResearchOutput
 
 
@@ -36,7 +36,7 @@ def _extract_company_name(url: str) -> str:
     url = re.sub(r"^www\.", "", url)
     url = url.split("/")[0]  # strip path
     # Remove common TLDs (.com, .io, .ai, .co, etc.)
-    name = re.sub(r"\.(com|io|ai|co|net|org|app|dev|tech)$", "", url, flags=re.IGNORECASE)
+    name = re.sub(r"\.(com|io|ai|co|net|org|app|dev|tech|so|me|us|xyz|gg|ly|to)$", "", url, flags=re.IGNORECASE)
     return name.capitalize()
 
 
@@ -48,9 +48,14 @@ async def tavily_search(
 ) -> tuple[list[dict], list[dict]]:
     """Search for press coverage and competitor information using Tavily.
 
-    Runs two concurrent searches:
-    1. Press/news search (topic="news", max_results=5)
-    2. Competitor discovery search (max_results=8)
+    Runs three concurrent searches:
+    1. Company's own press/blog content (include_domains=[company domain])
+    2. Third-party press coverage (exclude_domains=[company domain])
+    3. Competitor discovery search (max_results=8)
+
+    Uses general search mode (not topic="news") so results are ranked by
+    relevance instead of recency — prevents trending news from drowning out
+    actual company coverage.
 
     Args:
         company_name: Clean company name for search queries.
@@ -69,25 +74,46 @@ async def tavily_search(
 
     feedback_suffix = f" {feedback}" if feedback else ""
 
-    press_query = f"{company_name} press coverage news announcements{feedback_suffix}"
-    competitor_query = f"{company_name} competitors alternatives comparison{feedback_suffix}"
+    # Extract bare domain for anchoring queries (e.g. "resupplyme.com")
+    bare_domain = company_url.replace("https://", "").replace("http://", "").split("/")[0].replace("www.", "")
+
+    competitor_query = f"\"{bare_domain}\" OR \"{company_name}\" competitors alternatives comparison{feedback_suffix}"
 
     try:
-        press_task = asyncio.wait_for(
-            client.search(press_query, topic="news", max_results=5),
+        # Search 1: Company's own press/blog content
+        press_own_task = asyncio.wait_for(
+            client.search(
+                f"{company_name} press news blog",
+                include_domains=[bare_domain],
+                max_results=3,
+            ),
+            timeout=25.0,
+        )
+        # Search 2: Third-party coverage (exclude company's own site)
+        press_external_task = asyncio.wait_for(
+            client.search(
+                f"\"{company_name}\" press coverage news announcement{feedback_suffix}",
+                exclude_domains=[bare_domain],
+                max_results=5,
+            ),
             timeout=25.0,
         )
         competitor_task = asyncio.wait_for(
             client.search(competitor_query, max_results=8),
             timeout=25.0,
         )
-        press_resp, competitor_resp = await asyncio.gather(press_task, competitor_task, return_exceptions=True)
+        press_own_resp, press_ext_resp, competitor_resp = await asyncio.gather(
+            press_own_task, press_external_task, competitor_task, return_exceptions=True,
+        )
 
         press_results: list[dict] = []
-        if isinstance(press_resp, Exception):
-            press_results = [{"title": f"Tavily news search failed: {press_resp}", "url": "", "content": ""}]
-        else:
-            press_results = press_resp.get("results", []) if isinstance(press_resp, dict) else []
+        for resp in (press_own_resp, press_ext_resp):
+            if isinstance(resp, Exception):
+                continue
+            press_results.extend(resp.get("results", []) if isinstance(resp, dict) else [])
+
+        if not press_results and isinstance(press_own_resp, Exception) and isinstance(press_ext_resp, Exception):
+            press_results = [{"title": f"Tavily press search failed: {press_own_resp}", "url": "", "content": ""}]
 
         competitor_results: list[dict] = []
         if isinstance(competitor_resp, Exception):
@@ -217,9 +243,10 @@ async def aeo_check(
                 "mentioned": bool(parsed.get("mentioned", False)),
                 "confidence": float(parsed.get("confidence", 0.0)),
                 "quote": str(parsed.get("quote", "")),
+                "reasoning": content,  # Full LLM response for manual verification
             }
         except asyncio.TimeoutError:
-            return {"model": model, "mentioned": False, "confidence": 0.0, "quote": "[timeout]"}
+            return {"model": model, "mentioned": False, "confidence": 0.0, "quote": "[timeout]", "reasoning": "[timeout]"}
         except Exception as exc:
             return {"model": model, "mentioned": False, "confidence": 0.0, "quote": f"[error: {exc}]"}
 
@@ -346,32 +373,87 @@ async def run_research(
     await queue.put({"step": "assembly", "status": "running", "detail": "Extracting competitor profiles"})
     competitors = await extract_competitors(competitor_raw, company_name)
 
-    # Build press coverage list from Tavily results
-    press_coverage = [
-        {
-            "title": r.get("title", ""),
-            "url": r.get("url", ""),
-            "snippet": r.get("content", "")[:300],
-        }
-        for r in press_results
-        if r.get("title") or r.get("url")
-    ]
+    # Build press coverage list — filter out irrelevant results
+    bare_domain = company_url.replace("https://", "").replace("http://", "").split("/")[0].replace("www.", "")
+    name_lower = company_name.lower()
+    domain_lower = bare_domain.lower()
+    # Also match name without TLD suffix (e.g. "notion" from "notion.so")
+    name_stem = re.sub(r"\.(com|io|ai|co|net|org|app|dev|tech|so|me|us|xyz|gg|ly|to)$", "", bare_domain, flags=re.IGNORECASE).lower()
 
-    # Build summary from site content and press
-    site_excerpt = site_content[:1000] if site_content else ""
-    summary = site_excerpt if site_excerpt else f"Research gathered for {company_name} at {company_url}."
+    press_coverage = []
+    for r in press_results:
+        title = r.get("title", "")
+        content = r.get("content", "")
+        url = r.get("url", "")
+        title_lower = title.lower()
+        url_lower = url.lower()
+        # Strict relevance: domain must appear in the article URL,
+        # OR the company name must appear in the article TITLE (not body — too many false positives)
+        is_from_company_site = domain_lower in url_lower
+        is_named_in_title = name_lower in title_lower or name_stem in title_lower
+        if is_from_company_site or is_named_in_title:
+            press_coverage.append({
+                "title": title,
+                "url": url,
+                "snippet": content[:300],
+            })
 
-    press_titles = [p["title"] for p in press_coverage[:3] if p["title"]]
-    executive_summary = (
-        f"{company_name} is a company at {domain}. "
-        f"Found {len(press_coverage)} press items and {len(competitors)} competitors. "
-        f"AEO visibility score: {aeo_score:.1f}/10."
+    # If nothing relevant found, say so instead of showing garbage
+    if not press_coverage and press_results:
+        press_coverage = [{"title": "No relevant press coverage found", "url": "", "snippet": f"Tavily returned {len(press_results)} results but none mentioned {company_name}."}]
+
+    # Synthesize insights via LLM instead of mechanical copy-paste
+    await queue.put({"step": "synthesis", "status": "running", "detail": "Synthesizing strategic insights"})
+
+    site_excerpt = site_content[:3000] if site_content else "No website content available."
+    press_summary = "\n".join(
+        f"- {p['title']}: {p['snippet']}" for p in press_coverage[:5] if p.get("title")
+    ) or "No press coverage found."
+    competitor_summary = "\n".join(
+        f"- {c.get('name', '?')}: {c.get('positioning', '')} | Strengths: {', '.join(c.get('strengths', []))} | Weaknesses: {', '.join(c.get('weaknesses', []))}"
+        for c in competitors
+    ) or "No competitors identified."
+    aeo_summary = "\n".join(
+        f"- {d.get('model', '?')}: {'Mentioned' if d.get('mentioned') else 'Not mentioned'} (confidence {d.get('confidence', 0):.0%}) {d.get('quote', '')}"
+        for d in aeo_details
+    ) or "No AEO data."
+
+    synthesis_prompt = RESEARCH_SYNTHESIS_PROMPT.format(
+        company_name=company_name,
+        company_url=company_url,
+        site_excerpt=site_excerpt,
+        press_summary=press_summary,
+        competitor_summary=competitor_summary,
+        aeo_score=f"{aeo_score:.1f}",
+        aeo_summary=aeo_summary,
     )
-    if press_titles:
-        executive_summary += f" Recent coverage: {press_titles[0]}."
+
+    try:
+        synth_response = await asyncio.wait_for(
+            litellm.acompletion(
+                model="openai/gpt-4o",
+                messages=[{"role": "user", "content": synthesis_prompt}],
+                api_key=os.environ.get("OPENAI_API_KEY", ""),
+                temperature=0.4,
+            ),
+            timeout=30.0,
+        )
+        synth_content = synth_response.choices[0].message.content or "{}"
+        synth_content = re.sub(r"```(?:json)?\n?", "", synth_content).strip().rstrip("```").strip()
+        synth_data = json.loads(synth_content)
+        summary = synth_data.get("summary", f"Research gathered for {company_name}.")
+        executive_summary = synth_data.get("executive_summary", f"{company_name}: {aeo_score:.1f}/10 AEO score.")
+    except (asyncio.TimeoutError, json.JSONDecodeError, Exception):
+        # Fallback to basic assembly if synthesis fails
+        summary = site_excerpt[:1000] if site_content else f"Research gathered for {company_name} at {company_url}."
+        executive_summary = (
+            f"{company_name} at {domain}. "
+            f"{len(press_coverage)} press items, {len(competitors)} competitors. "
+            f"AEO score: {aeo_score:.1f}/10."
+        )
 
     await queue.put({
-        "step": "assembly",
+        "step": "synthesis",
         "status": "done",
         "detail": f"Research complete — {len(press_coverage)} articles, {len(competitors)} competitors",
     })

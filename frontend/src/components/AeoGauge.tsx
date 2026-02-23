@@ -110,20 +110,42 @@ export default function AeoGauge({ score, details, reasoning }: AeoGaugeProps) {
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-2">
-              <div className="flex-1 h-1.5 rounded-full bg-ink/10">
-                <div
-                  className="h-1.5 rounded-full"
-                  style={{
-                    width: `${d.confidence * 100}%`,
-                    backgroundColor: scoreColor(d.confidence * 10),
-                  }}
-                />
+            <div className="flex flex-col gap-1">
+              <span className="text-[11px] text-ink-muted">
+                {d.mentioned ? 'Confidence' : 'Brand awareness'}
+              </span>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 h-1.5 rounded-full bg-ink/10">
+                  <div
+                    className="h-1.5 rounded-full"
+                    style={{
+                      width: `${d.confidence * 100}%`,
+                      backgroundColor: scoreColor(d.confidence * 10),
+                    }}
+                  />
+                </div>
+                <span className="text-xs text-ink-faint">{Math.round(d.confidence * 100)}%</span>
               </div>
-              <span className="text-xs text-ink-faint">{Math.round(d.confidence * 100)}%</span>
             </div>
             {d.quote && (
               <p className="text-xs text-ink-muted italic line-clamp-2">"{d.quote}"</p>
+            )}
+            {d.reasoning && (
+              <Disclosure>
+                {({ open }) => (
+                  <>
+                    <Disclosure.Button className="text-[11px] text-ink-faint hover:text-ink-muted transition-colors flex items-center gap-1 mt-1">
+                      <span>{open ? 'Hide' : 'View'} raw response</span>
+                      <svg className={`w-3 h-3 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </Disclosure.Button>
+                    <Disclosure.Panel className="mt-1 p-2 rounded-lg bg-ink/5 text-[11px] text-ink-muted leading-relaxed max-h-40 overflow-y-auto whitespace-pre-wrap">
+                      {d.reasoning}
+                    </Disclosure.Panel>
+                  </>
+                )}
+              </Disclosure>
             )}
           </div>
         ))}

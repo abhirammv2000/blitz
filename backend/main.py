@@ -39,16 +39,16 @@ from pydantic import BaseModel
 from agents.agent_0_research.progress import cleanup_queue, get_queue
 from agents.agent_voice.models import (
     SetupCheckResponse,
+    SignedUrlRequest,
+    SignedUrlResponse,
     TranscriptMessage,
     TranscriptResponse,
-    VoiceCallRequest,
-    VoiceCallResponse,
 )
 from agents.agent_voice.elevenlabs_client import (
     build_agent_prompt,
     check_setup,
+    get_signed_url,
     get_transcript,
-    initiate_outbound_call,
 )
 from db import get_agent_output
 from graph import build_graph
@@ -319,7 +319,7 @@ async def pipeline_resume(run_id: str, body: ResumeRequest):
 
 
 # ---------------------------------------------------------------------------
-# Voice agent endpoints (ElevenLabs Conversational AI + Twilio outbound calls)
+# Voice agent endpoints (ElevenLabs Conversational AI — browser WebSocket)
 # ---------------------------------------------------------------------------
 
 
@@ -327,22 +327,21 @@ async def pipeline_resume(run_id: str, body: ResumeRequest):
 async def voice_setup_check():
     """Check whether all required ElevenLabs environment variables are configured.
 
-    Returns configured=True when ELEVENLABS_API_KEY, ELEVENLABS_AGENT_ID, and
-    ELEVENLABS_PHONE_NUMBER_ID are all set. No auth required — safe to call
-    from the UI on load to decide whether to show the Call button.
+    Returns configured=True when ELEVENLABS_API_KEY and ELEVENLABS_AGENT_ID
+    are set. No auth required — safe to call from the UI on load.
     """
     return check_setup()
 
 
-@app.post("/voice/call", response_model=VoiceCallResponse)
-async def voice_call(req: VoiceCallRequest):
-    """Initiate an outbound phone call via ElevenLabs Conversational AI.
+@app.post("/voice/signed-url", response_model=SignedUrlResponse)
+async def voice_signed_url(req: SignedUrlRequest):
+    """Get a signed WebSocket URL for browser-based voice conversation.
 
     Fetches the research dossier from ChromaDB for the given run_id, builds a
-    per-call system prompt (personality + sales script + product knowledge), and
-    triggers the call via ElevenLabs' Twilio integration.
+    per-session system prompt (personality + sales script + product knowledge),
+    and requests a signed URL from ElevenLabs.
 
-    Returns conversation_id (ElevenLabs) and call_sid (Twilio) on success.
+    Returns signed_url for the browser to connect via WebSocket.
     Returns 503 if ElevenLabs env vars are not configured.
     Returns 502 if the ElevenLabs API returns an error.
     """
@@ -373,7 +372,7 @@ async def voice_call(req: VoiceCallRequest):
     agent_prompt = build_agent_prompt(req.script_text, research_dossier_text)
 
     try:
-        result = await initiate_outbound_call(req.to_number, agent_prompt, req.first_message)
+        signed_url = await get_signed_url(agent_prompt, req.first_message)
     except Exception as exc:  # noqa: BLE001
         import httpx as _httpx
         if isinstance(exc, _httpx.HTTPStatusError):
@@ -384,10 +383,7 @@ async def voice_call(req: VoiceCallRequest):
             ) from exc
         raise
 
-    return VoiceCallResponse(
-        conversation_id=result.get("conversation_id"),
-        call_sid=result.get("call_sid", ""),
-    )
+    return SignedUrlResponse(signed_url=signed_url)
 
 
 @app.get("/voice/transcript/{conversation_id}", response_model=TranscriptResponse)

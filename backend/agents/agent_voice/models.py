@@ -7,21 +7,19 @@ from typing import Literal
 from pydantic import BaseModel
 
 
-class VoiceCallRequest(BaseModel):
-    """Request body for POST /voice/call."""
+class SignedUrlRequest(BaseModel):
+    """Request body for POST /voice/signed-url."""
 
     run_id: str
-    to_number: str
     segment_name: str
     script_text: str
     first_message: str
 
 
-class VoiceCallResponse(BaseModel):
-    """Response body for POST /voice/call."""
+class SignedUrlResponse(BaseModel):
+    """Response body for POST /voice/signed-url."""
 
-    conversation_id: str | None
-    call_sid: str
+    signed_url: str
 
 
 class TranscriptMessage(BaseModel):

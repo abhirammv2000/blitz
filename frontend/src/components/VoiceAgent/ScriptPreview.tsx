@@ -3,7 +3,7 @@ import { useState } from 'react'
 interface ScriptPreviewProps {
   segmentName: string
   initialScript: string
-  onConfirmCall: (phoneNumber: string, editedScript: string, firstMessage: string) => void
+  onConfirmCall: (editedScript: string, firstMessage: string) => void
   onBack: () => void
 }
 
@@ -12,10 +12,7 @@ export default function ScriptPreview({ segmentName, initialScript, onConfirmCal
   const [firstMessage, setFirstMessage] = useState(
     "Hi, I'm Alex! I'm calling about [company] — we have something that could really help your team."
   )
-  const [phoneNumber, setPhoneNumber] = useState('')
   const [showConfirm, setShowConfirm] = useState(false)
-
-  const canCall = phoneNumber.trim().length > 0
 
   return (
     <div className="flex flex-col gap-5">
@@ -32,7 +29,7 @@ export default function ScriptPreview({ segmentName, initialScript, onConfirmCal
 
       <div className="flex flex-col gap-2">
         <label className="text-xs text-ink-faint uppercase tracking-widest font-medium">
-          Sales Script (edit before calling)
+          Sales Script (edit before starting)
         </label>
         <textarea
           value={script}
@@ -54,19 +51,6 @@ export default function ScriptPreview({ segmentName, initialScript, onConfirmCal
         />
       </div>
 
-      <div className="flex flex-col gap-2">
-        <label className="text-xs text-ink-faint uppercase tracking-widest font-medium">
-          Phone Number (E.164 format)
-        </label>
-        <input
-          type="tel"
-          value={phoneNumber}
-          onChange={(e) => setPhoneNumber(e.target.value)}
-          placeholder="+1 555 123 4567"
-          className="w-full rounded-xl border border-ink/10 bg-cream px-4 py-3 text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:border-teal-600/40 focus:ring-2 focus:ring-teal-600/10 transition-all"
-        />
-      </div>
-
       <div className="flex items-center gap-3">
         <button
           onClick={onBack}
@@ -76,25 +60,19 @@ export default function ScriptPreview({ segmentName, initialScript, onConfirmCal
         </button>
         <button
           onClick={() => setShowConfirm(true)}
-          disabled={!canCall}
-          className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-            canCall
-              ? 'bg-teal-600 hover:bg-teal-700 text-white shadow-sm'
-              : 'bg-cream-dark text-ink-faint cursor-not-allowed border border-ink/10'
-          }`}
+          className="px-6 py-2.5 rounded-xl text-sm font-semibold transition-all bg-teal-600 hover:bg-teal-700 text-white shadow-sm"
         >
-          Call Now
+          Start Conversation
         </button>
       </div>
 
       {showConfirm && (
         <div className="rounded-xl border border-gold-400/25 bg-gold-100/50 p-5 flex flex-col gap-4">
-          <p className="text-sm text-gold-600 font-medium">Ready to dial</p>
+          <p className="text-sm text-gold-600 font-medium">Ready to start</p>
           <p className="text-sm text-ink leading-relaxed">
-            You're about to call{' '}
-            <span className="font-semibold text-ink">{phoneNumber}</span> as{' '}
+            You're about to start a voice conversation as{' '}
             <span className="font-semibold text-ink">{segmentName}</span>. The agent will use the
-            script above. Confirm?
+            script above and your microphone. Confirm?
           </p>
           <div className="flex items-center gap-3">
             <button
@@ -106,11 +84,11 @@ export default function ScriptPreview({ segmentName, initialScript, onConfirmCal
             <button
               onClick={() => {
                 setShowConfirm(false)
-                onConfirmCall(phoneNumber, script, firstMessage)
+                onConfirmCall(script, firstMessage)
               }}
               className="px-6 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-sm font-semibold text-white shadow-sm transition-all"
             >
-              Confirm & Dial
+              Confirm & Start
             </button>
           </div>
         </div>

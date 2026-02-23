@@ -327,7 +327,7 @@ export default function AgentStep({ stepIndex, agentName, readOnly = false }: Ag
             />
           )}
 
-          {!readOnly && runId && (
+          {runId && (
             <div className="mt-8 border-t border-ink/10 pt-8">
               <div className="flex flex-col gap-2 mb-6">
                 <h3 className="font-display text-lg font-bold text-ink">Launch Voice Sales Agent</h3>
