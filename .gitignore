@@ -26,3 +26,13 @@ dist/
 # OS
 .DS_Store
 Thumbs.db
+
+# Tool artifacts
+.planning/
+.claude/
+.playwright-mcp/
+
+# Scratch
+notes.txt
+docs/
+imp/
