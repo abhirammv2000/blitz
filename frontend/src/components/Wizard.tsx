@@ -40,7 +40,7 @@ function StepStatus({ index, currentStep }: { index: number; currentStep: number
 }
 
 export default function Wizard() {
-  const { currentStep, runId } = useBlitzStore()
+  const { currentStep, viewStep, setViewStep, runId } = useBlitzStore()
 
   return (
     <div className="min-h-screen bg-cream flex">
@@ -63,15 +63,20 @@ export default function Wizard() {
           {AGENTS.map((agent, index) => {
             const isActive = index === currentStep
             const isComplete = index < currentStep
+            const isClickable = index <= currentStep
+            const isViewing = index === viewStep
 
             return (
               <div
                 key={index}
+                onClick={isClickable ? () => setViewStep(index) : undefined}
                 className={`flex items-start gap-3 p-3 rounded-xl transition-all duration-200 ${
-                  isActive
+                  isViewing
                     ? 'bg-teal-100 border border-teal-600/20'
-                    : 'border border-transparent hover:bg-white/60'
-                }`}
+                    : isActive
+                      ? 'bg-teal-50 border border-teal-600/10'
+                      : 'border border-transparent hover:bg-white/60'
+                } ${isClickable ? 'cursor-pointer' : ''}`}
               >
                 <div className="mt-0.5">
                   <StepStatus index={index} currentStep={currentStep} />
@@ -79,7 +84,7 @@ export default function Wizard() {
                 <div className="flex flex-col gap-0.5 min-w-0">
                   <span
                     className={`text-sm font-semibold truncate ${
-                      isActive ? 'text-teal-700' : isComplete ? 'text-ink-muted' : 'text-ink-faint'
+                      isViewing ? 'text-teal-700' : isActive ? 'text-teal-600' : isComplete ? 'text-ink-muted' : 'text-ink-faint'
                     }`}
                   >
                     {agent.name}
@@ -107,12 +112,34 @@ export default function Wizard() {
       {/* Main content area */}
       <main className="flex-1 overflow-y-auto bg-cream">
         <div className="max-w-3xl mx-auto py-12 px-8">
-          {currentStep >= 6 ? (
+          {/* "Back to current step" banner */}
+          {viewStep !== currentStep && viewStep < 6 && (
+            <button
+              onClick={() => setViewStep(currentStep)}
+              className="mb-6 w-full flex items-center justify-between px-4 py-3 rounded-xl bg-teal-50 border border-teal-200 text-teal-700 text-sm font-medium hover:bg-teal-100 transition-colors"
+            >
+              <span>Viewing: {AGENTS[viewStep]?.name} (completed)</span>
+              <span className="flex items-center gap-1">
+                Back to {AGENTS[currentStep]?.name ?? 'current step'}
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </span>
+            </button>
+          )}
+
+          {viewStep >= 6 ? (
             <SummaryPage />
+          ) : viewStep < currentStep ? (
+            <AgentStep
+              stepIndex={viewStep}
+              agentName={AGENTS[viewStep]?.name ?? 'Agent'}
+              readOnly
+            />
           ) : (
             <AgentStep
-              stepIndex={currentStep}
-              agentName={AGENTS[currentStep]?.name ?? 'Agent'}
+              stepIndex={viewStep}
+              agentName={AGENTS[viewStep]?.name ?? 'Agent'}
             />
           )}
         </div>

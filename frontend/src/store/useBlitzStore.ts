@@ -18,12 +18,14 @@ export interface ResearchProgressStep {
 interface BlitzStore {
   runId: string | null
   currentStep: number
+  viewStep: number
   agentOutputs: Record<number, unknown>
   isRunning: boolean
   researchProgress: ResearchProgressStep[]
   error: string | null
   setRunId: (id: string) => void
   setStep: (step: number) => void
+  setViewStep: (step: number) => void
   setAgentOutput: (step: number, output: unknown) => void
   setIsRunning: (running: boolean) => void
   addResearchProgress: (evt: { step: string; status: string }) => void
@@ -36,12 +38,14 @@ interface BlitzStore {
 export const useBlitzStore = create<BlitzStore>()((set) => ({
   runId: null,
   currentStep: 0,
+  viewStep: 0,
   agentOutputs: {},
   isRunning: false,
   researchProgress: [],
   error: null,
   setRunId: (id) => set({ runId: id }),
-  setStep: (step) => set({ currentStep: step }),
+  setStep: (step) => set({ currentStep: step, viewStep: step }),
+  setViewStep: (step) => set({ viewStep: step }),
   setAgentOutput: (step, output) =>
     set((state) => ({ agentOutputs: { ...state.agentOutputs, [step]: output } })),
   setIsRunning: (running) => set({ isRunning: running }),
@@ -177,5 +181,5 @@ export const useBlitzStore = create<BlitzStore>()((set) => ({
     }
   },
   reset: () =>
-    set({ runId: null, currentStep: 0, agentOutputs: {}, isRunning: false, researchProgress: [], error: null }),
+    set({ runId: null, currentStep: 0, viewStep: 0, agentOutputs: {}, isRunning: false, researchProgress: [], error: null }),
 }))

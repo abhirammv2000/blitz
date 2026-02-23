@@ -18,6 +18,7 @@ import type { AdsOutput } from './AdsView'
 interface AgentStepProps {
   stepIndex: number
   agentName: string
+  readOnly?: boolean
 }
 
 function StepBadge({ number }: { number: number | string }) {
@@ -28,7 +29,7 @@ function StepBadge({ number }: { number: number | string }) {
   )
 }
 
-export default function AgentStep({ stepIndex, agentName }: AgentStepProps) {
+export default function AgentStep({ stepIndex, agentName, readOnly = false }: AgentStepProps) {
   const { agentOutputs, researchProgress, isRunning, setStep, runId } = useBlitzStore()
   const output = agentOutputs[stepIndex]
 
@@ -70,7 +71,7 @@ export default function AgentStep({ stepIndex, agentName }: AgentStepProps) {
 
           <DossierView output={output as ResearchOutput} />
 
-          {runId && (
+          {!readOnly && runId && (
             <ApprovalGate
               output={output}
               runId={runId}
@@ -142,7 +143,7 @@ export default function AgentStep({ stepIndex, agentName }: AgentStepProps) {
 
           <ProfileView profile={profile} />
 
-          {runId && (
+          {!readOnly && runId && (
             <ApprovalGate
               output={output}
               runId={runId}
@@ -195,7 +196,7 @@ export default function AgentStep({ stepIndex, agentName }: AgentStepProps) {
 
           <AudienceView output={audienceOutput} runId={runId ?? ''} />
 
-          {runId && (
+          {!readOnly && runId && (
             <ApprovalGate
               output={output}
               runId={runId}
@@ -248,7 +249,7 @@ export default function AgentStep({ stepIndex, agentName }: AgentStepProps) {
 
           <ContentView output={contentOutput} />
 
-          {runId && (
+          {!readOnly && runId && (
             <ApprovalGate
               output={output}
               runId={runId}
@@ -315,7 +316,7 @@ export default function AgentStep({ stepIndex, agentName }: AgentStepProps) {
 
           <SalesView output={salesOutput} />
 
-          {runId && (
+          {!readOnly && runId && (
             <ApprovalGate
               output={output}
               runId={runId}
@@ -326,7 +327,7 @@ export default function AgentStep({ stepIndex, agentName }: AgentStepProps) {
             />
           )}
 
-          {runId && (
+          {!readOnly && runId && (
             <div className="mt-8 border-t border-ink/10 pt-8">
               <div className="flex flex-col gap-2 mb-6">
                 <h3 className="font-display text-lg font-bold text-ink">Launch Voice Sales Agent</h3>
@@ -385,7 +386,7 @@ export default function AgentStep({ stepIndex, agentName }: AgentStepProps) {
 
           <AdsView output={adsOutput} />
 
-          {runId && (
+          {!readOnly && runId && (
             <ApprovalGate
               output={output}
               runId={runId}
