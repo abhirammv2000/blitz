@@ -32,6 +32,9 @@ Thumbs.db
 .claude/
 .playwright-mcp/
 
+# Test output (generated per-run, not versioned)
+*_output.json
+
 # Scratch
 notes.txt
 notes.md
