@@ -40,7 +40,8 @@ function StepStatus({ index, currentStep }: { index: number; currentStep: number
 }
 
 export default function Wizard() {
-  const { currentStep, viewStep, setViewStep, runId } = useBlitzStore()
+  const { currentStep, viewStep, setViewStep, runId, agentOutputs } = useBlitzStore()
+  const canGoNext = viewStep < currentStep || (agentOutputs[viewStep] !== undefined && viewStep < AGENTS.length - 1)
 
   return (
     <div className="min-h-screen bg-cream flex">
@@ -141,6 +142,32 @@ export default function Wizard() {
               stepIndex={viewStep}
               agentName={AGENTS[viewStep]?.name ?? 'Agent'}
             />
+          )}
+
+          {/* Next / Previous navigation */}
+          {viewStep < 6 && (
+            <div className="flex items-center justify-between mt-8 pt-6 border-t border-ink/10">
+              <button
+                onClick={() => setViewStep(viewStep - 1)}
+                disabled={viewStep === 0}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors disabled:opacity-0 disabled:pointer-events-none text-ink-muted hover:text-ink hover:bg-white/80"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+                Previous
+              </button>
+              <button
+                onClick={() => setViewStep(viewStep + 1)}
+                disabled={!canGoNext}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-40 disabled:pointer-events-none bg-teal-600 text-white hover:bg-teal-700 shadow-sm"
+              >
+                {viewStep === AGENTS.length - 2 ? 'View Summary' : `Next: ${AGENTS[viewStep + 1]?.name ?? ''}`}
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
           )}
         </div>
       </main>

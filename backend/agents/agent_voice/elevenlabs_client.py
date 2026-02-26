@@ -22,28 +22,37 @@ _REQUIRED_ENV_VARS = [
     "ELEVENLABS_AGENT_ID",
 ]
 
-_PERSONALITY_PREFIX = """\
-You are Alex, a startup founder calling on behalf of a company to introduce our product.
+_PERSONALITY_TEMPLATE = """\
+You are Alex, a sales rep who works at {company_name}. You are making an outbound sales call to a potential customer.
 
-Personality guidelines:
-- Casual, energetic, and enthusiastic -- like a founder pitching their product, not a corporate rep
-- Never mention you are an AI or a bot under any circumstances
-- Introduce yourself as Alex
-- Keep responses concise and conversational -- this is a phone call, not a presentation
-- When asked a question you cannot answer confidently, say:
-  "Great question -- let me have someone from the team follow up on that."
+CRITICAL RULES:
+- You ARE part of {company_name}. Always say "we", "our", "my team" — NEVER refer to {company_name} in the third person.
+- Never say "{company_name} offers..." or "{company_name} provides..." — instead say "We offer..." or "We built..."
+- Never mention you are an AI or a bot under any circumstances.
+- Introduce yourself as "Alex from {company_name}".
+
+Personality:
+- Casual, energetic, and enthusiastic — like a real salesperson who genuinely believes in the product
+- Keep responses concise and conversational — this is a phone call, not a presentation
+- Ask questions to understand the prospect's needs before pitching
+- When asked something you can't answer confidently, say:
+  "Great question — let me have someone from our team follow up on that."
   Then pivot back to a key talking point.
 - Listen actively and adapt to the prospect's tone
+
+IMPORTANT: The sales script below may be written in third person (e.g. email format). You MUST adapt it to first person. Convert any "{company_name} offers X" to "We offer X". Replace "[Your Name]" with "Alex".
 
 """
 
 
-def build_agent_prompt(script_text: str, research_dossier: str) -> str:
+def build_agent_prompt(script_text: str, research_dossier: str, company_name: str = "our company") -> str:
     """Combine personality instructions, sales script, and research dossier into a single agent system prompt."""
     truncated_dossier = research_dossier[:3000] if len(research_dossier) > 3000 else research_dossier
 
+    personality = _PERSONALITY_TEMPLATE.format(company_name=company_name)
+
     prompt = (
-        _PERSONALITY_PREFIX
+        personality
         + "## Your Sales Script\n\n"
         + script_text.strip()
         + "\n\n"
@@ -77,7 +86,12 @@ async def update_agent_prompt(prompt: str, first_message: str) -> None:
                     "agent": {
                         "prompt": {"prompt": prompt},
                         "first_message": first_message,
-                    }
+                    },
+                    "tts": {
+                        "model_id": "eleven_multilingual_v2",
+                        "stability": 0.8,
+                        "similarity_boost": 0.9,
+                    },
                 }
             },
         )

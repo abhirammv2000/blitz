@@ -9,9 +9,12 @@ audience segment, using a consultative voice grounded in the brand profile.
 SALES_SYNTHESIS_PROMPT = """\
 You are a senior sales strategist and outreach copywriter.
 
-Below is the company's marketing profile and its audience segments. Use both to generate \
+Below is the company's research dossier, marketing profile, and audience segments. Use ALL THREE to generate \
 a complete sales enablement toolkit — email sequences, LinkedIn DM templates, lead scoring \
 criteria, and pipeline stage definitions.
+
+Research Dossier (competitors, press, funding, AEO):
+{research_data}
 
 Marketing Profile:
 {profile_data}
@@ -20,6 +23,12 @@ Audience Segments:
 {audience_data}
 
 {feedback}
+
+GROUNDING RULES — every piece of outreach MUST reference specific facts from the Research Dossier above:
+- Email Insight step must reference a real competitor, press item, or industry data point from the research
+- LinkedIn connection request must reference an industry trend or company milestone — NOT a fabricated personal interaction ("saw your post", "loved your talk")
+- Lead scoring signals must reference company-specific product pages, competitor triggers, and segment buying triggers from the audience data
+- Pipeline stages should note segment-specific sales cycle length from audience data
 
 CONSULTATIVE VOICE RULES — extract brand_dna.tone and brand_dna.values from the profile above. \
 Every piece of outreach must lead with genuine insight before mentioning value, and never \

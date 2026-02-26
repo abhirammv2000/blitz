@@ -129,22 +129,17 @@ export const useBlitzStore = create<BlitzStore>()((set) => ({
                   }))
                 }
               }
+              // Track pipeline progress (don't auto-advance viewStep)
+              if (event.data.current_step !== undefined) {
+                const step = event.data.current_step as number
+                const s = useBlitzStore.getState()
+                if (step >= s.currentStep) {
+                  set({ currentStep: step })
+                }
+              }
             }
 
-            if (event.type === 'interrupted') {
-              // Extract output from interrupt payload using dynamic step from backend
-              const interruptData = event.data
-              if (interruptData?.output !== undefined && interruptData?.step !== undefined) {
-                const step = interruptData.step as number
-                set((state) => ({
-                  agentOutputs: { ...state.agentOutputs, [step]: interruptData.output },
-                }))
-              } else if (interruptData?.output !== undefined) {
-                // Fallback: step 0 for backward compatibility
-                set((state) => ({
-                  agentOutputs: { ...state.agentOutputs, 0: interruptData.output },
-                }))
-              }
+            if (event.type === 'done') {
               set({ isRunning: false })
               return
             }
@@ -158,22 +153,9 @@ export const useBlitzStore = create<BlitzStore>()((set) => ({
           }
         }
       }
-      // Process remaining buffer
-      if (buffer.trim() && buffer.trim().startsWith('data: ')) {
-        try {
-          const event = JSON.parse(buffer.trim().slice(6))
-          if (event.type === 'interrupted') {
-            const interruptData = event.data
-            if (interruptData?.output !== undefined && interruptData?.step !== undefined) {
-              set((state) => ({
-                agentOutputs: { ...state.agentOutputs, [interruptData.step as number]: interruptData.output },
-              }))
-            }
-            set({ isRunning: false })
-            return
-          }
-        } catch { /* ignore */ }
-      }
+
+      // Stream ended — mark pipeline as complete
+      set({ isRunning: false })
     } catch (err) {
       set({
         error: err instanceof Error ? err.message : 'Failed to connect to backend',

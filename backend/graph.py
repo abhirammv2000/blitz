@@ -1,30 +1,13 @@
-"""LangGraph StateGraph wiring — 6 agent nodes with interrupt() gates.
+"""LangGraph StateGraph wiring — 6 agent nodes in a straight-through pipeline.
 
 Exports:
-  build_builder() — returns the uncompiled StateGraph builder
-  build_graph()   — async; compiles the graph with AsyncSqliteSaver checkpointer
+  build_graph() — returns a compiled graph with MemorySaver checkpointer
 
-Agent implementation status:
-- agent_0_research: real async implementation (Phase 2)
-- agent_1_profile: real async implementation (Phase 3)
-- agent_2_audience: real async implementation (Phase 3)
-- agent_3_content: real async implementation (Phase 4)
-- agent_4_sales: real async implementation (Phase 4)
-- agent_5_ads: real async implementation with user-triggered DALL-E 3 image gen (Phase 4)
-
-Why AsyncSqliteSaver (not SqliteSaver):
-- graph.astream() inside async FastAPI endpoints requires an async checkpointer
-- Sync SqliteSaver raises NotImplementedError in async context
-- AsyncSqliteSaver + aiosqlite is the correct pair for async LangGraph
-
-Why SQLite (not MemorySaver):
-- State must survive process restarts for the demo
-- interrupt() requires a checkpointer at compile time
+Agent nodes run sequentially: research → profile → audience → content → sales → ads.
+No HITL interrupts — each node runs to completion and passes data via ChromaDB.
 """
 
-from contextlib import asynccontextmanager
-
-from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 
 from agents.agent_0_research.node import agent_0_research_node
@@ -36,7 +19,7 @@ from agents.agent_5_ads.node import agent_5_ads_node
 from state import BlitzState
 
 # ---------------------------------------------------------------------------
-# Graph builder (uncompiled — needs checkpointer attached at startup)
+# Graph builder
 # ---------------------------------------------------------------------------
 
 builder = StateGraph(BlitzState)
@@ -57,18 +40,12 @@ builder.add_edge("agent_4_sales", "agent_5_ads")
 builder.add_edge("agent_5_ads", END)
 
 
-@asynccontextmanager
-async def build_graph():
-    """Async context manager: open AsyncSqliteSaver and yield a compiled graph.
+def build_graph():
+    """Compile the graph with a MemorySaver checkpointer and return it.
 
-    Usage in FastAPI lifespan:
-        async with build_graph() as graph:
-            ...  # graph is live here
-
-    The context manager keeps the AsyncSqliteSaver connection open for the
-    entire scope, which is required for interrupt() / resume to work across
-    multiple HTTP requests.
+    MemorySaver is used instead of AsyncSqliteSaver since we no longer need
+    persistent checkpoints for HITL resume. This avoids SQLite file locking
+    issues on Windows/OneDrive.
     """
-    async with AsyncSqliteSaver.from_conn_string("blitz.db") as checkpointer:
-        graph = builder.compile(checkpointer=checkpointer)
-        yield graph
+    checkpointer = MemorySaver()
+    return builder.compile(checkpointer=checkpointer)

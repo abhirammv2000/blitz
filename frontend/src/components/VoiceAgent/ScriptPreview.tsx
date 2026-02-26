@@ -3,14 +3,16 @@ import { useState } from 'react'
 interface ScriptPreviewProps {
   segmentName: string
   initialScript: string
+  companyName?: string
   onConfirmCall: (editedScript: string, firstMessage: string) => void
   onBack: () => void
 }
 
-export default function ScriptPreview({ segmentName, initialScript, onConfirmCall, onBack }: ScriptPreviewProps) {
+export default function ScriptPreview({ segmentName, initialScript, companyName, onConfirmCall, onBack }: ScriptPreviewProps) {
   const [script, setScript] = useState(initialScript)
+  const name = companyName || 'our company'
   const [firstMessage, setFirstMessage] = useState(
-    "Hi, I'm Alex! I'm calling about [company] — we have something that could really help your team."
+    `Hi, I'm Alex from ${name}! I wanted to quickly chat about how we can help your team — do you have a minute?`
   )
   const [showConfirm, setShowConfirm] = useState(false)
 

@@ -16,9 +16,10 @@ interface VoiceAgentPanelProps {
   runId: string
   segments: Segment[]
   salesScripts: Record<string, string>
+  companyName?: string
 }
 
-export default function VoiceAgentPanel({ runId, segments, salesScripts }: VoiceAgentPanelProps) {
+export default function VoiceAgentPanel({ runId, segments, salesScripts, companyName }: VoiceAgentPanelProps) {
   const [stage, setStage] = useState<Stage>('select')
   const [selectedSegment, setSelectedSegment] = useState<Segment | null>(null)
   const [finalTranscript, setFinalTranscript] = useState<{ role: string; content: string }[]>([])
@@ -123,6 +124,7 @@ export default function VoiceAgentPanel({ runId, segments, salesScripts }: Voice
         <ScriptPreview
           segmentName={selectedSegment.name}
           initialScript={currentScript}
+          companyName={companyName}
           onConfirmCall={handleConfirmCall}
           onBack={() => setStage('select')}
         />

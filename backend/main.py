@@ -2,38 +2,26 @@
 
 Endpoints:
   POST /pipeline/start           — Start a pipeline run; returns SSE stream
-  POST /pipeline/{run_id}/resume — Resume from interrupt with a human decision; returns SSE stream
   GET  /health                   — Health check
 
-CORS is configured for the Vite dev server (localhost:5173). Without this,
-the browser EventSource will be blocked by CORS policy.
+CORS is configured for the Vite dev server (localhost:5173+).
 
-graph.astream() is used (async) inside async FastAPI endpoints to avoid blocking
-the event loop.
-
-The AsyncSqliteSaver context manager is opened via build_graph() in FastAPI's
-lifespan event and kept alive for the app's entire lifetime so the checkpointer
-connection is never dropped between requests.
-
-SSE event types emitted by both /pipeline/start and /pipeline/{run_id}/resume:
-  {"type": "init", "run_id": "..."}          — immediately on start (start only)
+SSE event types emitted by /pipeline/start:
+  {"type": "init", "run_id": "..."}          — immediately on start
   {"type": "progress", "step": "...", ...}   — sub-step progress from research queue
   {"type": "state", "data": {...}}           — after each node updates state
-  {"type": "interrupted", "step": N}        — when interrupt() pauses the graph
+  {"type": "done"}                           — pipeline completed successfully
   {"type": "error", "message": "..."}       — on unexpected exceptions
 """
 
 import asyncio
 import json
 import uuid
-from contextlib import asynccontextmanager
-from typing import Any
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
-from langgraph.types import Command
 from pydantic import BaseModel
 
 from agents.agent_0_research.progress import cleanup_queue, get_queue
@@ -61,23 +49,20 @@ load_dotenv(_backend_dir / ".env", override=True)
 load_dotenv(_backend_dir.parent / ".env", override=True)
 
 # ---------------------------------------------------------------------------
-# App-level graph instance (set during lifespan startup)
+# App-level graph instance (set during startup)
 # ---------------------------------------------------------------------------
 
 graph = None  # type: ignore[assignment]
 
 
-@asynccontextmanager
-async def lifespan(application: FastAPI):
-    """Open AsyncSqliteSaver + compile graph for the app's lifetime."""
+app = FastAPI(title="Blitz Pipeline API")
+
+
+@app.on_event("startup")
+async def startup():
     global graph  # noqa: PLW0603
-    async with build_graph() as compiled_graph:
-        graph = compiled_graph
-        yield
-    # build_graph() context manager closes SQLite connection on exit
+    graph = build_graph()
 
-
-app = FastAPI(title="Blitz Pipeline API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -97,10 +82,6 @@ class PipelineStartRequest(BaseModel):
     url: str
 
 
-class ResumeRequest(BaseModel):
-    decision: dict[str, Any]
-
-
 # ---------------------------------------------------------------------------
 # SSE helpers
 # ---------------------------------------------------------------------------
@@ -116,39 +97,15 @@ def sse_event(data: dict) -> str:
 # ---------------------------------------------------------------------------
 
 
-async def stream_graph_with_progress(run_id: str, graph_input: Any, config: dict):
+async def stream_graph_with_progress(run_id: str, graph_input: dict, config: dict):
     """Async generator that multiplexes progress queue events with graph state events.
 
-    Runs graph.astream() as a background asyncio task while concurrently draining
-    the run's progress queue. This lets sub-step events from the research node
-    (tavily, firecrawl, aeo) reach the client in real time, interleaved with
-    node-boundary state events.
-
     Yields SSE-formatted strings for:
-      - progress events from asyncio.Queue ({"type": "progress", "step": ..., ...})
-      - state events from graph chunks   ({"type": "state", "data": {...}})
-      - interrupted event when graph pauses ({"type": "interrupted", "step": N})
-      - error event on unexpected exception  ({"type": "error", "message": "..."})
-
-    Cleans up the progress queue for this run_id after the stream ends.
-
-    Args:
-        run_id: The pipeline run identifier (used to look up the progress queue).
-        graph_input: Initial state dict or Command(resume=...) passed to graph.astream().
-        config: LangGraph config dict with configurable thread_id.
+      - progress events from asyncio.Queue
+      - state events from graph chunks
+      - done event when graph completes
+      - error event on unexpected exception
     """
-    def _extract_interrupt(chunk: dict) -> dict | None:
-        """If chunk contains an __interrupt__, return the SSE payload; else None."""
-        interrupts = chunk.get("__interrupt__")
-        if interrupts is None:
-            return None
-        step = chunk.get("current_step", 0)
-        interrupt_data = None
-        if interrupts and len(interrupts) > 0:
-            iv = interrupts[0]
-            interrupt_data = iv.value if hasattr(iv, 'value') else iv
-        return {"type": "interrupted", "step": step, "data": interrupt_data}
-
     queue = get_queue(run_id)
     results: list[dict] = []
     graph_error: Exception | None = None
@@ -170,7 +127,6 @@ async def stream_graph_with_progress(run_id: str, graph_input: Any, config: dict
 
     try:
         while not task.done():
-            # Drain progress events from research node's asyncio.Queue
             while True:
                 try:
                     evt = queue.get_nowait()
@@ -178,24 +134,18 @@ async def stream_graph_with_progress(run_id: str, graph_input: Any, config: dict
                 except asyncio.QueueEmpty:
                     break
 
-            # Drain graph state results accumulated by graph_runner
             while results:
                 chunk = results.pop(0)
-                interrupt_evt = _extract_interrupt(chunk)
-                if interrupt_evt is not None:
-                    yield sse_event(interrupt_evt)
-                    return
                 safe = {k: v for k, v in chunk.items() if not k.startswith("__")}
                 yield sse_event({"type": "state", "data": safe})
 
             await asyncio.sleep(0.05)
 
-        # Task finished — surface any exception
         if graph_error is not None:
             yield sse_event({"type": "error", "message": str(graph_error)})
             return
 
-        # Drain remaining progress events after graph completes
+        # Drain remaining progress events
         while True:
             try:
                 evt = queue.get_nowait()
@@ -204,20 +154,12 @@ async def stream_graph_with_progress(run_id: str, graph_input: Any, config: dict
                 break
 
         # Drain remaining state results
-        interrupted_step = 0
         while results:
             chunk = results.pop(0)
-            interrupt_evt = _extract_interrupt(chunk)
-            if interrupt_evt is not None:
-                yield sse_event(interrupt_evt)
-                return
-            interrupted_step = chunk.get("current_step", 0)
             safe = {k: v for k, v in chunk.items() if not k.startswith("__")}
             yield sse_event({"type": "state", "data": safe})
 
-        # If stream ended without an explicit interrupt event, emit it now
-        # (graph completed normally or all chunks were drained)
-        yield sse_event({"type": "interrupted", "step": interrupted_step})
+        yield sse_event({"type": "done"})
 
     finally:
         cleanup_queue(run_id)
@@ -235,22 +177,13 @@ async def health():
 
 @app.post("/pipeline/start")
 async def pipeline_start(payload: PipelineStartRequest):
-    """Start a new pipeline run and stream state + progress updates as SSE.
-
-    The SSE stream yields events in order:
-      {"type": "init", "run_id": "..."}          — immediately, before graph starts
-      {"type": "progress", "step": "...", ...}   — sub-step progress from research node
-      {"type": "state", "data": {...}}           — after each node updates state
-      {"type": "interrupted", "step": N}        — when interrupt() pauses the graph
-      {"type": "error", "message": "..."}       — on unexpected exceptions
-    """
+    """Start a new pipeline run and stream state + progress updates as SSE."""
     run_id = str(uuid.uuid4())
 
     async def event_stream():
-        # Emit init immediately so frontend can store run_id before graph starts
         yield sse_event({"type": "init", "run_id": run_id})
 
-        initial_state: dict[str, Any] = {
+        initial_state = {
             "run_id": run_id,
             "company_url": payload.url,
             "current_step": 0,
@@ -267,7 +200,6 @@ async def pipeline_start(payload: PipelineStartRequest):
 # Ad image generation (user-triggered, capped at 3 per run)
 # ---------------------------------------------------------------------------
 
-# Track image generation count per run to enforce server-side cap
 _image_counts: dict[str, int] = {}
 IMAGE_CAP = 3
 
@@ -296,31 +228,6 @@ async def generate_ad_image_endpoint(run_id: str, body: ImageGenRequest):
     return {"image_url": image_url, "remaining": remaining}
 
 
-@app.post("/pipeline/{run_id}/resume")
-async def pipeline_resume(run_id: str, body: ResumeRequest):
-    """Resume a paused pipeline run and stream progress as SSE.
-
-    Uses Command(resume=...) to inject the human decision back into the graph.
-    AsyncSqliteSaver restores the checkpoint for the given thread_id (run_id),
-    allowing execution to continue from the interrupted node.
-
-    On reject, the research node re-runs and publishes new progress events to
-    the run's asyncio.Queue. The SSE stream drains these alongside graph state
-    events so the frontend can track re-generation progress in real time.
-
-    The SSE stream yields the same event types as /pipeline/start (no init event).
-    """
-    config = {"configurable": {"thread_id": run_id}}
-
-    async def event_stream():
-        async for event in stream_graph_with_progress(
-            run_id, Command(resume=body.decision), config
-        ):
-            yield event
-
-    return StreamingResponse(event_stream(), media_type="text/event-stream")
-
-
 # ---------------------------------------------------------------------------
 # Voice agent endpoints (ElevenLabs Conversational AI — browser WebSocket)
 # ---------------------------------------------------------------------------
@@ -328,27 +235,11 @@ async def pipeline_resume(run_id: str, body: ResumeRequest):
 
 @app.get("/voice/setup-check", response_model=SetupCheckResponse)
 async def voice_setup_check():
-    """Check whether all required ElevenLabs environment variables are configured.
-
-    Returns configured=True when ELEVENLABS_API_KEY and ELEVENLABS_AGENT_ID
-    are set. No auth required — safe to call from the UI on load.
-    """
     return check_setup()
 
 
 @app.post("/voice/session", response_model=VoiceSessionResponse)
 async def voice_session(req: VoiceSessionRequest):
-    """Update the agent prompt server-side and return a conversation token.
-
-    Fetches the research dossier from ChromaDB for the given run_id, builds a
-    per-session system prompt (personality + sales script + product knowledge),
-    PATCHes the ElevenLabs agent config, then returns a token for the frontend.
-
-    The frontend connects with just the token — no client-side overrides needed.
-
-    Returns 503 if ElevenLabs env vars are not configured.
-    Returns 502 if the ElevenLabs API returns an error.
-    """
     setup = check_setup()
     if not setup.configured:
         raise HTTPException(
@@ -356,12 +247,13 @@ async def voice_session(req: VoiceSessionRequest):
             detail={"detail": "ElevenLabs not configured", "missing": setup.missing},
         )
 
-    # Fetch research dossier from ChromaDB
-    raw_research = get_agent_output(req.run_id, "research")
+    raw_research = get_agent_output(req.run_id, "research_decision")
+    company_name = "our company"
     if raw_research:
         import json as _json
         try:
             research_data = _json.loads(raw_research)
+            company_name = research_data.get("company_name") or research_data.get("name") or "our company"
             research_dossier_text = (
                 research_data.get("executive_summary")
                 or research_data.get("summary")
@@ -372,10 +264,9 @@ async def voice_session(req: VoiceSessionRequest):
     else:
         research_dossier_text = ""
 
-    agent_prompt = build_agent_prompt(req.script_text, research_dossier_text)
+    agent_prompt = build_agent_prompt(req.script_text, research_dossier_text, company_name)
 
     try:
-        # Update agent config server-side (client overrides are rejected)
         await update_agent_prompt(agent_prompt, req.first_message)
         token = await get_conversation_token()
     except Exception as exc:  # noqa: BLE001
@@ -396,12 +287,6 @@ async def voice_session(req: VoiceSessionRequest):
 
 @app.get("/voice/transcript/{conversation_id}", response_model=TranscriptResponse)
 async def voice_transcript(conversation_id: str):
-    """Poll for the transcript of a completed ElevenLabs conversation.
-
-    Returns status="completed" when messages are available, "in_progress" while
-    the call is still active or the transcript hasn't been indexed yet.
-    The frontend polls this endpoint after the call is initiated.
-    """
     raw = await get_transcript(conversation_id)
 
     raw_messages = raw.get("messages") or []

@@ -6,7 +6,6 @@ import AudienceView from './AudienceView'
 import ContentView from './ContentView'
 import SalesView from './SalesView'
 import AdsView from './AdsView'
-import ApprovalGate from './ApprovalGate'
 import ProgressTimeline from './ProgressTimeline'
 import VoiceAgentPanel from './VoiceAgent/VoiceAgentPanel'
 import type { ResearchOutput } from './DossierView'
@@ -86,8 +85,8 @@ function StepLayout({ displayNumber, agentName, subtitle, children }: StepLayout
   )
 }
 
-export default function AgentStep({ stepIndex, agentName, readOnly = false }: AgentStepProps) {
-  const { agentOutputs, researchProgress, isRunning, setStep, runId } = useBlitzStore()
+export default function AgentStep({ stepIndex, agentName }: AgentStepProps) {
+  const { agentOutputs, researchProgress, isRunning, runId } = useBlitzStore()
   const output = agentOutputs[stepIndex]
   const displayNumber = stepIndex + 1
 
@@ -130,81 +129,33 @@ export default function AgentStep({ stepIndex, agentName, readOnly = false }: Ag
     return (
       <StepLayout displayNumber={1} agentName={agentName} subtitle="Company Intelligence Dossier ready">
         <DossierView output={output as ResearchOutput} />
-        {!readOnly && runId && (
-          <ApprovalGate output={output} runId={runId} onDecisionComplete={() => setStep(1)} />
-        )}
       </StepLayout>
     )
   }
 
   // Step 1: Marketing Profile
   if (stepIndex === 1) {
-    const profile = output as MarketingProfile
-    const uspCount = profile.usps?.length ?? 0
-    const gapCount = profile.marketing_gaps?.length ?? 0
-    const summaryStats = `Brand DNA synthesized — ${uspCount} USP${uspCount !== 1 ? 's' : ''} identified, ${gapCount} gap${gapCount !== 1 ? 's' : ''} found`
-
     return (
       <StepLayout displayNumber={2} agentName={agentName} subtitle="Marketing Profile ready">
-        <ProfileView profile={profile} />
-        {!readOnly && runId && (
-          <ApprovalGate
-            output={output}
-            runId={runId}
-            onDecisionComplete={() => setStep(2)}
-            agentStep={1}
-            agentOutputKey="profile_output"
-            summaryStats={summaryStats}
-          />
-        )}
+        <ProfileView profile={output as MarketingProfile} />
       </StepLayout>
     )
   }
 
   // Step 2: Audience Segments
   if (stepIndex === 2) {
-    const audienceOutput = output as AudienceOutput
-    const segCount = audienceOutput.segments?.length ?? 0
-    const highFitCount = audienceOutput.segments?.filter((s) => s.fit_label === 'High').length ?? 0
-    const summaryStats = `${segCount} segment${segCount !== 1 ? 's' : ''} generated, ${highFitCount} high-fit`
-
     return (
       <StepLayout displayNumber={3} agentName={agentName} subtitle="Audience Segments ready">
-        <AudienceView output={audienceOutput} runId={runId ?? ''} />
-        {!readOnly && runId && (
-          <ApprovalGate
-            output={output}
-            runId={runId}
-            onDecisionComplete={() => setStep(3)}
-            agentStep={2}
-            agentOutputKey="audience_output"
-            summaryStats={summaryStats}
-          />
-        )}
+        <AudienceView output={output as AudienceOutput} runId={runId ?? ''} />
       </StepLayout>
     )
   }
 
   // Step 3: Content Strategist
   if (stepIndex === 3) {
-    const contentOutput = output as ContentOutput
-    const postCount = contentOutput.social_posts?.length ?? 0
-    const emailCount = contentOutput.email_campaigns?.length ?? 0
-    const summaryStats = `${postCount} social post${postCount !== 1 ? 's' : ''} generated, ${emailCount} email campaign${emailCount !== 1 ? 's' : ''}`
-
     return (
       <StepLayout displayNumber={4} agentName={agentName} subtitle="Content Strategy ready">
-        <ContentView output={contentOutput} />
-        {!readOnly && runId && (
-          <ApprovalGate
-            output={output}
-            runId={runId}
-            onDecisionComplete={() => setStep(4)}
-            agentStep={3}
-            agentOutputKey="content_output"
-            summaryStats={summaryStats}
-          />
-        )}
+        <ContentView output={output as ContentOutput} />
       </StepLayout>
     )
   }
@@ -212,10 +163,6 @@ export default function AgentStep({ stepIndex, agentName, readOnly = false }: Ag
   // Step 4: Sales Agent
   if (stepIndex === 4) {
     const salesOutput = output as SalesOutput
-    const seqCount = salesOutput.email_sequences?.length ?? 0
-    const linkedInCount = salesOutput.linkedin_templates?.length ?? 0
-    const summaryStats = `${seqCount} email sequence${seqCount !== 1 ? 's' : ''}, ${linkedInCount} LinkedIn template${linkedInCount !== 1 ? 's' : ''}`
-
     const audienceOutput = agentOutputs[2] as AudienceOutput | undefined
     const voiceSegments = (audienceOutput?.segments ?? []).map((seg) => ({
       name: seg.name,
@@ -228,19 +175,12 @@ export default function AgentStep({ stepIndex, agentName, readOnly = false }: Ag
       salesScripts[seq.segment] = bodies
     }
 
+    const researchOutput = agentOutputs[0] as ResearchOutput | undefined
+    const companyName = researchOutput?.company_name ?? ''
+
     return (
       <StepLayout displayNumber={5} agentName={agentName} subtitle="Sales Outreach ready">
         <SalesView output={salesOutput} />
-        {!readOnly && runId && (
-          <ApprovalGate
-            output={output}
-            runId={runId}
-            onDecisionComplete={() => setStep(5)}
-            agentStep={4}
-            agentOutputKey="sales_output"
-            summaryStats={summaryStats}
-          />
-        )}
         {runId && (
           <div className="mt-8 border-t border-ink/10 pt-8">
             <div className="flex flex-col gap-2 mb-6">
@@ -249,7 +189,7 @@ export default function AgentStep({ stepIndex, agentName, readOnly = false }: Ag
                 Pick a segment, review the script, and place a live outbound call — powered by ElevenLabs Conversational AI.
               </p>
             </div>
-            <VoiceAgentPanel runId={runId} segments={voiceSegments} salesScripts={salesScripts} />
+            <VoiceAgentPanel runId={runId} segments={voiceSegments} salesScripts={salesScripts} companyName={companyName} />
           </div>
         )}
       </StepLayout>
@@ -258,30 +198,13 @@ export default function AgentStep({ stepIndex, agentName, readOnly = false }: Ag
 
   // Step 5: Ads Agent
   if (stepIndex === 5) {
-    const adsOutput = output as AdsOutput
-    const adCopyCount = adsOutput.ad_copies?.length ?? 0
-    const abCount = adsOutput.ab_variations?.length ?? 0
-    const imageCount = adsOutput.ad_visuals?.filter((v) => v.image_url).length ?? 0
-    const summaryStats = `${adCopyCount} ad cop${adCopyCount !== 1 ? 'ies' : 'y'}, ${abCount} A/B variation${abCount !== 1 ? 's' : ''}, ${imageCount} image${imageCount !== 1 ? 's' : ''} generated`
-
     return (
       <StepLayout displayNumber={6} agentName={agentName} subtitle="Ad Creative ready">
-        <AdsView output={adsOutput} />
-        {!readOnly && runId && (
-          <ApprovalGate
-            output={output}
-            runId={runId}
-            onDecisionComplete={() => setStep(6)}
-            agentStep={5}
-            agentOutputKey="ads_output"
-            summaryStats={summaryStats}
-          />
-        )}
+        <AdsView output={output as AdsOutput} />
       </StepLayout>
     )
   }
 
-  // Note: step >= 6 is handled by Wizard.tsx (renders SummaryPage instead)
   return (
     <WaitingState
       displayNumber={displayNumber}

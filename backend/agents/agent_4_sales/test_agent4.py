@@ -36,6 +36,9 @@ def print_section(title: str):
 
 
 async def test_sales():
+    a0_output_path = os.path.join(
+        os.path.dirname(__file__), "..", "agent_0_research", "test_agent0_output.json"
+    )
     a1_output_path = os.path.join(
         os.path.dirname(__file__), "..", "agent_1_profile", "test_agent1_output.json"
     )
@@ -43,6 +46,10 @@ async def test_sales():
         os.path.dirname(__file__), "..", "agent_2_audience", "test_agent2_output.json"
     )
 
+    if not os.path.exists(a0_output_path):
+        print(f"ERROR: No Agent 0 output found at {a0_output_path}")
+        print("Run Agent 0 test first: python -m agents.agent_0_research.test_agent0")
+        return
     if not os.path.exists(a1_output_path):
         print(f"ERROR: No Agent 1 output found at {a1_output_path}")
         print("Run Agent 1 test first: python -m agents.agent_1_profile.test_agent1")
@@ -52,6 +59,8 @@ async def test_sales():
         print("Run Agent 2 test first: python -m agents.agent_2_audience.test_agent2")
         return
 
+    with open(a0_output_path, "r", encoding="utf-8") as f:
+        research_data = json.load(f)
     with open(a1_output_path, "r", encoding="utf-8") as f:
         profile_data = json.load(f)
     with open(a2_output_path, "r", encoding="utf-8") as f:
@@ -60,10 +69,12 @@ async def test_sales():
     company = profile_data.get("brand_dna", {}).get("mission", "Unknown")
     print_section(f"AGENT 4 TEST: Sales for {company[:60]}")
 
+    research_json = json.dumps(research_data, indent=2)
     profile_json = json.dumps(profile_data, indent=2)
     audience_json = json.dumps(audience_data, indent=2)
 
     prompt = SALES_SYNTHESIS_PROMPT.format(
+        research_data=research_json,
         profile_data=profile_json,
         audience_data=audience_json,
         feedback="",
