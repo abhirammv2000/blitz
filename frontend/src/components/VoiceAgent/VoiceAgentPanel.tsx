@@ -3,6 +3,7 @@ import SegmentCards from './SegmentCards'
 import ScriptPreview from './ScriptPreview'
 import TranscriptCard from './TranscriptCard'
 import { useVoiceSession } from '../../hooks/useVoiceSession'
+import { API_BASE } from '../../config'
 
 interface Segment {
   name: string
@@ -31,7 +32,7 @@ export default function VoiceAgentPanel({ runId, segments, salesScripts }: Voice
     setSetupError(false)
 
     try {
-      const res = await fetch('/voice/signed-url', {
+      const res = await fetch(`${API_BASE}/voice/session`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -55,7 +56,7 @@ export default function VoiceAgentPanel({ runId, segments, salesScripts }: Voice
 
       const data = await res.json()
       setStage('live')
-      await voiceSession.start(data.signed_url)
+      await voiceSession.start(data.token)
     } catch {
       setError('Network error — could not reach the backend. Please try again.')
     }

@@ -44,13 +44,17 @@ async def run_audience(run_id: str, feedback: str | None = None) -> AudienceOutp
     Returns:
         AudienceOutput with 3-5 AudienceSegment instances.
     """
-    # Read Agent 1's profile from ChromaDB — cross-agent context query
+    # Read both Agent 0's research and Agent 1's profile from ChromaDB
+    research_raw = get_agent_output(run_id, "research_decision")
     profile_raw = get_agent_output(run_id, "profile")
+
     if profile_raw is None:
         logger.warning("Agent 2: no profile found in ChromaDB for run_id=%s", run_id)
-        profile_data = "{}"
-    else:
-        profile_data = profile_raw
+    if research_raw is None:
+        logger.warning("Agent 2: no research_decision found in ChromaDB for run_id=%s", run_id)
+
+    profile_data = profile_raw or "{}"
+    research_data = research_raw or "{}"
 
     # Build feedback instruction
     feedback_instruction = (
@@ -61,6 +65,7 @@ async def run_audience(run_id: str, feedback: str | None = None) -> AudienceOutp
 
     prompt = AUDIENCE_SYNTHESIS_PROMPT.format(
         profile_data=profile_data,
+        research_data=research_data,
         feedback=feedback_instruction,
     )
 

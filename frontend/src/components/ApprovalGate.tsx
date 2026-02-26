@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { useBlitzStore, OUTPUT_KEYS } from '../store/useBlitzStore'
 import { IS_DEMO_MODE } from '../demo/demoConfig'
+import { API_BASE } from '../config'
 
 type Mode = 'idle' | 'edit' | 'reject' | 'override'
 
@@ -112,7 +113,7 @@ export default function ApprovalGate({
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch(`http://localhost:8000/pipeline/${runId}/resume`, {
+      const res = await fetch(`${API_BASE}/pipeline/${runId}/resume`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ decision }),

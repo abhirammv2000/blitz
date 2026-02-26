@@ -39,16 +39,18 @@ from pydantic import BaseModel
 from agents.agent_0_research.progress import cleanup_queue, get_queue
 from agents.agent_voice.models import (
     SetupCheckResponse,
-    SignedUrlRequest,
-    SignedUrlResponse,
+    VoiceSessionRequest,
+    VoiceSessionResponse,
     TranscriptMessage,
     TranscriptResponse,
 )
 from agents.agent_voice.elevenlabs_client import (
     build_agent_prompt,
     check_setup,
-    get_signed_url,
+    get_agent_id,
+    get_conversation_token,
     get_transcript,
+    update_agent_prompt,
 )
 from db import get_agent_output
 from graph import build_graph
@@ -334,15 +336,16 @@ async def voice_setup_check():
     return check_setup()
 
 
-@app.post("/voice/signed-url", response_model=SignedUrlResponse)
-async def voice_signed_url(req: SignedUrlRequest):
-    """Get a signed WebSocket URL for browser-based voice conversation.
+@app.post("/voice/session", response_model=VoiceSessionResponse)
+async def voice_session(req: VoiceSessionRequest):
+    """Update the agent prompt server-side and return a conversation token.
 
     Fetches the research dossier from ChromaDB for the given run_id, builds a
     per-session system prompt (personality + sales script + product knowledge),
-    and requests a signed URL from ElevenLabs.
+    PATCHes the ElevenLabs agent config, then returns a token for the frontend.
 
-    Returns signed_url for the browser to connect via WebSocket.
+    The frontend connects with just the token — no client-side overrides needed.
+
     Returns 503 if ElevenLabs env vars are not configured.
     Returns 502 if the ElevenLabs API returns an error.
     """
@@ -372,18 +375,23 @@ async def voice_signed_url(req: SignedUrlRequest):
     agent_prompt = build_agent_prompt(req.script_text, research_dossier_text)
 
     try:
-        signed_url = await get_signed_url(agent_prompt, req.first_message)
+        # Update agent config server-side (client overrides are rejected)
+        await update_agent_prompt(agent_prompt, req.first_message)
+        token = await get_conversation_token()
     except Exception as exc:  # noqa: BLE001
         import httpx as _httpx
         if isinstance(exc, _httpx.HTTPStatusError):
-            from fastapi import HTTPException
             raise HTTPException(
                 status_code=502,
                 detail=f"ElevenLabs API error: {exc.response.status_code} {exc.response.text}",
             ) from exc
         raise
 
-    return SignedUrlResponse(signed_url=signed_url)
+    return VoiceSessionResponse(
+        agent_id=get_agent_id(),
+        token=token,
+        overrides={},
+    )
 
 
 @app.get("/voice/transcript/{conversation_id}", response_model=TranscriptResponse)

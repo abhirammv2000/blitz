@@ -7,8 +7,8 @@ from typing import Literal
 from pydantic import BaseModel
 
 
-class SignedUrlRequest(BaseModel):
-    """Request body for POST /voice/signed-url."""
+class VoiceSessionRequest(BaseModel):
+    """Request body for POST /voice/session."""
 
     run_id: str
     segment_name: str
@@ -16,10 +16,12 @@ class SignedUrlRequest(BaseModel):
     first_message: str
 
 
-class SignedUrlResponse(BaseModel):
-    """Response body for POST /voice/signed-url."""
+class VoiceSessionResponse(BaseModel):
+    """Response body for POST /voice/session."""
 
-    signed_url: str
+    agent_id: str
+    token: str
+    overrides: dict
 
 
 class TranscriptMessage(BaseModel):

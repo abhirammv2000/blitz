@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from '@headlessui/react'
 import { useBlitzStore } from '../store/useBlitzStore'
+import { API_BASE } from '../config'
 
 // TypeScript interfaces matching backend Pydantic schemas
 export interface AdCopy {
@@ -79,7 +80,7 @@ function ImageGenerator({
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch(`http://localhost:8000/ads/${runId}/generate-image`, {
+      const res = await fetch(`${API_BASE}/ads/${runId}/generate-image`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt }),

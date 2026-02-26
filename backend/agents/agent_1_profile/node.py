@@ -24,7 +24,7 @@ import litellm
 from langgraph.types import interrupt
 
 from agents.agent_1_profile.prompts import PROFILE_SYNTHESIS_PROMPT
-from agents.agent_1_profile.schemas import BrandDNA, MarketingGap, MarketingProfile
+from agents.agent_1_profile.schemas import MarketingProfile
 from db import get_agent_output, store_agent_output
 from state import BlitzState
 

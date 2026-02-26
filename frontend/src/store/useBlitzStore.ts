@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { IS_DEMO_MODE } from '../demo/demoConfig'
+import { API_BASE } from '../config'
 
 export const OUTPUT_KEYS: Record<string, number> = {
   research_output: 0,
@@ -73,7 +74,7 @@ export const useBlitzStore = create<BlitzStore>()((set) => ({
     }
     set({ error: null, isRunning: true, researchProgress: [] })
     try {
-      const res = await fetch('http://localhost:8000/pipeline/start', {
+      const res = await fetch(`${API_BASE}/pipeline/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url }),

@@ -46,6 +46,14 @@ async def run_content(run_id: str, feedback: str | None = None) -> ContentOutput
         ContentOutput with social posts, email campaigns, blog outlines,
         and a 30-day content calendar.
     """
+    # Read Agent 0's research from ChromaDB — competitor names, press, AEO data
+    research_raw = get_agent_output(run_id, "research_decision")
+    if research_raw is None:
+        logger.warning("Agent 3: no research found in ChromaDB for run_id=%s", run_id)
+        research_data = "{}"
+    else:
+        research_data = research_raw
+
     # Read Agent 1's profile from ChromaDB — cross-agent context
     profile_raw = get_agent_output(run_id, "profile")
     if profile_raw is None:
@@ -70,6 +78,7 @@ async def run_content(run_id: str, feedback: str | None = None) -> ContentOutput
     )
 
     prompt = CONTENT_SYNTHESIS_PROMPT.format(
+        research_data=research_data,
         profile_data=profile_data,
         audience_data=audience_data,
         feedback=feedback_instruction,

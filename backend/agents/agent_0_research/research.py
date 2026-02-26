@@ -22,7 +22,7 @@ import re
 import litellm
 
 from agents.agent_0_research.progress import get_queue
-from agents.agent_0_research.prompts import AEO_CHECK_PROMPT, COMPETITOR_EXTRACTION_PROMPT, RESEARCH_SYNTHESIS_PROMPT
+from agents.agent_0_research.prompts import AEO_BLIND_PROMPTS, AEO_CATEGORY_PROMPT, COMPETITOR_EXTRACTION_PROMPT, RESEARCH_SYNTHESIS_PROMPT
 from agents.agent_0_research.schemas import ResearchOutput
 
 
@@ -59,13 +59,12 @@ async def tavily_search(
     """Search for press coverage and competitor information using Tavily.
 
     Runs three concurrent searches:
-    1. Company's own press/blog content (include_domains=[company domain])
-    2. Third-party press coverage (exclude_domains=[company domain])
+    1. Major tech/business outlet coverage (include_domains for top publications)
+    2. General third-party coverage (exclude company's own domain)
     3. Competitor discovery search (max_results=8)
 
-    Uses general search mode (not topic="news") so results are ranked by
-    relevance instead of recency — prevents trending news from drowning out
-    actual company coverage.
+    All searches exclude the company's own site — we already get site content
+    from Firecrawl. Press search targets real journalism, not product pages.
 
     Args:
         company_name: Clean company name for search queries.
@@ -86,22 +85,34 @@ async def tavily_search(
 
     bare_domain = _extract_bare_domain(company_url)
 
+    # Major tech/business publications for high-quality press coverage
+    _NEWS_DOMAINS = [
+        "techcrunch.com", "wired.com", "theverge.com", "arstechnica.com",
+        "forbes.com", "bloomberg.com", "reuters.com", "wsj.com",
+        "venturebeat.com", "thenextweb.com", "zdnet.com", "cnet.com",
+        "businessinsider.com", "cnbc.com", "nytimes.com", "ft.com",
+        "producthunt.com", "crunchbase.com", "sifted.eu", "protocol.com",
+    ]
+
     competitor_query = f"\"{bare_domain}\" OR \"{company_name}\" competitors alternatives comparison{feedback_suffix}"
 
     try:
-        # Search 1: Company's own press/blog content
-        press_own_task = asyncio.wait_for(
+        # Include the domain in queries to disambiguate generic names
+        # (e.g. "Linear linear.app" ensures results are about Linear the product,
+        # not "Linear Technology" the semiconductor company)
+        # Search 1: Coverage from major publications
+        press_major_task = asyncio.wait_for(
             client.search(
-                f"{company_name} press news blog",
-                include_domains=[bare_domain],
-                max_results=3,
+                f"\"{company_name}\" {bare_domain} funding launch product announcement",
+                include_domains=_NEWS_DOMAINS,
+                max_results=5,
             ),
             timeout=25.0,
         )
-        # Search 2: Third-party coverage (exclude company's own site)
-        press_external_task = asyncio.wait_for(
+        # Search 2: General third-party coverage (broader net)
+        press_general_task = asyncio.wait_for(
             client.search(
-                f"\"{company_name}\" press coverage news announcement{feedback_suffix}",
+                f"\"{company_name}\" {bare_domain} review analysis funding OR launch OR raised{feedback_suffix}",
                 exclude_domains=[bare_domain],
                 max_results=5,
             ),
@@ -111,18 +122,18 @@ async def tavily_search(
             client.search(competitor_query, max_results=8),
             timeout=25.0,
         )
-        press_own_resp, press_ext_resp, competitor_resp = await asyncio.gather(
-            press_own_task, press_external_task, competitor_task, return_exceptions=True,
+        press_major_resp, press_general_resp, competitor_resp = await asyncio.gather(
+            press_major_task, press_general_task, competitor_task, return_exceptions=True,
         )
 
         press_results: list[dict] = []
-        for resp in (press_own_resp, press_ext_resp):
+        for resp in (press_major_resp, press_general_resp):
             if isinstance(resp, Exception):
                 continue
             press_results.extend(resp.get("results", []) if isinstance(resp, dict) else [])
 
-        if not press_results and isinstance(press_own_resp, Exception) and isinstance(press_ext_resp, Exception):
-            press_results = [{"title": f"Tavily press search failed: {press_own_resp}", "url": "", "content": ""}]
+        if not press_results and isinstance(press_major_resp, Exception) and isinstance(press_general_resp, Exception):
+            press_results = [{"title": f"Tavily press search failed: {press_major_resp}", "url": "", "content": ""}]
 
         if isinstance(competitor_resp, Exception):
             competitor_results: list[dict] = []
@@ -203,27 +214,93 @@ async def aeo_check(
 ) -> tuple[float, list[dict]]:
     """Check AI Engine Optimization (AEO) score for a company.
 
-    Queries GPT-4o and Gemini-2.5-pro concurrently to see if they mention the
-    company in a natural customer-style question. Computes a 0-10 composite score.
+    Uses blind prompts — the company name is NOT in the question. Instead we
+    describe the product category and ask each model to recommend tools. Then
+    we check whether the company appears organically in the response and where
+    it ranks (position scoring).
 
-    Note: Uses litellm.acompletion() directly, NOT the Router — AEO needs both
-    models explicitly to compare their responses, not fallback behavior.
+    Two phases:
+    1. Fast category extraction from company name + domain (~1-2s)
+    2. 3 prompt angles x 2 models = 6 blind queries (concurrent)
+
+    Score: 0-10 based on mention rate and average position across all queries.
 
     Args:
         company_name: Clean company name.
-        domain: Company domain (e.g. "acme.com") for the prompt.
+        domain: Company domain (e.g. "acme.com") for detection.
         queue: Progress event queue for SSE streaming.
 
     Returns:
         Tuple of (composite_score, details_list).
-        composite_score: 0-10 (sum of confidence * 5 per model where mentioned=True, max 10)
-        details_list: [{model, mentioned, confidence, quote}]
+        details_list: per-model summaries with mention_rate, avg_position, quote.
     """
-    await queue.put({"step": "aeo", "status": "running", "detail": "Querying GPT-4o and Gemini concurrently"})
+    await queue.put({"step": "aeo", "status": "running", "detail": "Extracting category, then querying 2 models x 3 angles"})
 
-    prompt = AEO_CHECK_PROMPT.format(company_name=company_name, domain=domain)
+    # Step 1: Extract category from company name + domain (fast, uses mini model)
+    category = "software tools"  # fallback
+    try:
+        cat_response = await asyncio.wait_for(
+            litellm.acompletion(
+                model="openai/gpt-4o-mini",
+                messages=[{"role": "user", "content": AEO_CATEGORY_PROMPT.format(
+                    company_name=company_name, domain=domain,
+                )}],
+                api_key=os.environ.get("OPENAI_API_KEY", ""),
+                temperature=0.0,
+                max_tokens=30,
+            ),
+            timeout=10.0,
+        )
+        category = (cat_response.choices[0].message.content or category).strip().strip('".')
+    except Exception:
+        pass  # use fallback
 
-    async def _query_model(model: str, api_key_env: str) -> dict:
+    await queue.put({"step": "aeo", "status": "running", "detail": f"Category: {category}. Querying models..."})
+
+    # Step 2: Run 3 blind prompts x 2 models concurrently
+    # Using gemini-2.5-flash instead of pro (21s -> 12s) — AEO needs recall, not deep reasoning
+    models = [
+        ("openai/gpt-4o", "OPENAI_API_KEY"),
+        ("gemini/gemini-2.5-flash", "GEMINI_API_KEY"),
+    ]
+
+    name_lower = company_name.lower()
+    name_stem = re.sub(_COMMON_TLDS_RE, "", domain, flags=re.IGNORECASE).lower()
+    domain_lower = domain.lower()
+
+    def _find_mention(text: str) -> tuple[bool, int, str]:
+        """Check if company is mentioned. Returns (mentioned, position, quote).
+
+        Position = which numbered recommendation (1-based). 0 if not in a list.
+        -1 if not mentioned at all.
+        """
+        text_lower = text.lower()
+        # Check for company name or domain mention
+        mentioned = (name_lower in text_lower or name_stem in text_lower or domain_lower in text_lower)
+        if not mentioned:
+            return False, -1, ""
+
+        # Find the position in numbered list (look for "1.", "2.", etc. before first mention)
+        # Split into lines, find which numbered item first mentions the company
+        lines = text.splitlines()
+        position = 0
+        current_num = 0
+        quote = ""
+        for line in lines:
+            # Match numbered items: "1.", "1)", "**1.", "### 1."
+            num_match = re.match(r'^[\s#*]*(\d+)[.):\s]', line)
+            if num_match:
+                current_num = int(num_match.group(1))
+            line_lower = line.lower()
+            if name_lower in line_lower or name_stem in line_lower or domain_lower in line_lower:
+                position = current_num if current_num > 0 else 1
+                quote = line.strip()[:200]
+                break
+
+        return True, position, quote
+
+    async def _query(model: str, api_key_env: str, angle_idx: int) -> dict:
+        prompt = AEO_BLIND_PROMPTS[angle_idx].format(category=category)
         try:
             api_key = os.environ.get(api_key_env, "")
             response = await asyncio.wait_for(
@@ -236,51 +313,81 @@ async def aeo_check(
                 timeout=60.0,
             )
             content = response.choices[0].message.content or ""
-            # Parse the last line as JSON
-            lines = [line.strip() for line in content.strip().splitlines() if line.strip()]
-            last_line = lines[-1] if lines else "{}"
-            try:
-                parsed = json.loads(last_line)
-            except json.JSONDecodeError:
-                # Try to find JSON in the content
-                json_match = re.search(r'\{[^}]+\}', content)
-                parsed = json.loads(json_match.group()) if json_match else {}
-
+            mentioned, position, quote = _find_mention(content)
             return {
                 "model": model,
-                "mentioned": bool(parsed.get("mentioned", False)),
-                "confidence": float(parsed.get("confidence", 0.0)),
-                "quote": str(parsed.get("quote", "")),
-                "reasoning": content,  # Full LLM response for manual verification
+                "angle": angle_idx + 1,
+                "mentioned": mentioned,
+                "position": position,
+                "quote": quote,
+                "reasoning": content,
             }
         except asyncio.TimeoutError:
-            return {"model": model, "mentioned": False, "confidence": 0.0, "quote": "[timeout]", "reasoning": "[timeout]"}
+            return {"model": model, "angle": angle_idx + 1, "mentioned": False, "position": -1, "quote": "[timeout]", "reasoning": "[timeout]"}
         except Exception as exc:
-            return {"model": model, "mentioned": False, "confidence": 0.0, "quote": f"[error: {exc}]"}
+            return {"model": model, "angle": angle_idx + 1, "mentioned": False, "position": -1, "quote": f"[error: {exc}]", "reasoning": str(exc)}
 
-    gpt4o_task = _query_model("openai/gpt-4o", "OPENAI_API_KEY")
-    gemini_task = _query_model("gemini/gemini-2.5-pro", "GEMINI_API_KEY")
-
-    results = await asyncio.gather(gpt4o_task, gemini_task, return_exceptions=True)
+    # Fire all 6 queries concurrently
+    tasks = [
+        _query(model, key_env, angle)
+        for model, key_env in models
+        for angle in range(len(AEO_BLIND_PROMPTS))
+    ]
+    results = await asyncio.gather(*tasks, return_exceptions=True)
 
     details: list[dict] = []
     for r in results:
         if isinstance(r, Exception):
-            details.append({"model": "unknown", "mentioned": False, "confidence": 0.0, "quote": f"[error: {r}]"})
+            details.append({"model": "unknown", "angle": 0, "mentioned": False, "position": -1, "quote": f"[error: {r}]"})
         else:
             details.append(r)
 
-    # Composite score: sum of (confidence * 5) for each model where mentioned=True, capped at 10
-    score = sum(d["confidence"] * 5 for d in details if d.get("mentioned"))
-    score = min(score, 10.0)
+    # Step 3: Compute score from mention rate + position
+    valid = [d for d in details if d.get("position", -1) != -1 or d.get("mentioned") is not None]
+    if not valid:
+        score = 0.0
+    else:
+        # Mention rate: what fraction of queries mentioned the company (0-1)
+        mention_rate = sum(1 for d in valid if d["mentioned"]) / len(valid)
+
+        # Position score: average position score across queries where mentioned.
+        # Position 1 = 1.0, position 2 = 0.75, position 3 = 0.5, position 4 = 0.3, 5+ = 0.15
+        _pos_scores = {1: 1.0, 2: 0.75, 3: 0.5, 4: 0.3}
+        position_scores = []
+        for d in valid:
+            if d["mentioned"]:
+                pos = d.get("position", 0)
+                position_scores.append(_pos_scores.get(pos, 0.15) if pos > 0 else 0.5)
+
+        avg_position = sum(position_scores) / len(position_scores) if position_scores else 0.0
+
+        # Final score: 60% mention rate + 40% position quality, scaled to 10
+        score = round((mention_rate * 0.6 + avg_position * 0.4) * 10, 1)
+
+    # Build per-model summary for backward compatibility with the UI
+    model_summaries = []
+    for model, _ in models:
+        model_results = [d for d in details if d.get("model") == model]
+        mentions = sum(1 for d in model_results if d["mentioned"])
+        positions = [d["position"] for d in model_results if d["mentioned"] and d["position"] > 0]
+        avg_pos = sum(positions) / len(positions) if positions else 0
+        best_quote = next((d["quote"] for d in model_results if d.get("quote") and not d["quote"].startswith("[")), "")
+        model_summaries.append({
+            "model": model,
+            "mentioned": mentions > 0,
+            "mention_rate": f"{mentions}/{len(model_results)}",
+            "avg_position": round(avg_pos, 1) if avg_pos else None,
+            "confidence": round(mentions / len(model_results), 2) if model_results else 0.0,
+            "quote": best_quote,
+        })
 
     await queue.put({
         "step": "aeo",
         "status": "done",
-        "detail": f"AEO score: {score:.1f}/10",
+        "detail": f"AEO score: {score:.1f}/10 (category: {category})",
     })
 
-    return score, details
+    return score, model_summaries
 
 
 async def extract_competitors(raw_results: list[dict], company_name: str) -> list[dict]:
@@ -364,6 +471,7 @@ async def run_research(
     await queue.put({"step": "research", "status": "starting", "company": company_name})
 
     # Run Tavily, Firecrawl, and AEO concurrently
+    # AEO extracts category from company name + domain (no site content needed)
     tavily_task = tavily_search(company_name, company_url, queue, feedback)
     firecrawl_task = firecrawl_scrape(company_url, queue)
     aeo_task = aeo_check(company_name, domain, queue)
@@ -379,29 +487,61 @@ async def run_research(
     await queue.put({"step": "assembly", "status": "running", "detail": "Extracting competitor profiles"})
     competitors = await extract_competitors(competitor_raw, company_name)
 
-    # Build press coverage list — filter out irrelevant results
+    # Build press coverage list — score, filter, and deduplicate.
+    # Scoring prevents false positives for generic company names (e.g. "Linear"
+    # matching "Linear Technology" or "Linear (LINA) crypto token").
     bare_domain = _extract_bare_domain(company_url)
     name_lower = company_name.lower()
     domain_lower = bare_domain.lower()
     name_stem = re.sub(_COMMON_TLDS_RE, "", bare_domain, flags=re.IGNORECASE).lower()
 
-    press_coverage = []
+    scored_results: list[tuple[int, dict]] = []
+    seen_paths: set[str] = set()  # deduplicate by URL path
     for r in press_results:
         title = r.get("title", "")
         content = r.get("content", "")
         url = r.get("url", "")
         title_lower = title.lower()
         url_lower = url.lower()
-        # Strict relevance: domain must appear in the article URL,
-        # OR the company name must appear in the article TITLE (not body — too many false positives)
-        is_from_company_site = domain_lower in url_lower
-        is_named_in_title = name_lower in title_lower or name_stem in title_lower
-        if is_from_company_site or is_named_in_title:
-            press_coverage.append({
+        content_lower = content.lower()
+
+        # Skip the company's own site — we already have site content from Firecrawl
+        if domain_lower in url_lower:
+            continue
+
+        # Deduplicate: strip locale prefixes and query params, compare path
+        path = re.sub(r"^https?://[^/]+", "", url_lower).split("?")[0].rstrip("/")
+        path = re.sub(r"^/[a-z]{2}(-[a-z]{2})?/", "/", path)
+        if path in seen_paths:
+            continue
+        seen_paths.add(path)
+
+        # Score relevance — higher is better.
+        # Domain mentions are the strongest disambiguation signal (e.g. "linear.app"
+        # distinguishes Linear the product from "linear algebra" or "Linear Technology").
+        score = 0
+        # Score relevance — higher is better
+        score = 0
+        # Full domain in content or URL (strongest disambiguation signal)
+        if domain_lower in content_lower or domain_lower in url_lower:
+            score += 3
+        # Company name in title
+        if name_lower in title_lower or name_stem in title_lower:
+            score += 2
+        # Company name in content body
+        if name_lower in content_lower or name_stem in content_lower:
+            score += 1
+
+        if score >= 2:
+            scored_results.append((score, {
                 "title": title,
                 "url": url,
                 "snippet": content[:300],
-            })
+            }))
+
+    # Sort by relevance score descending, take top 10
+    scored_results.sort(key=lambda x: x[0], reverse=True)
+    press_coverage = [item for _, item in scored_results[:10]]
 
     # If nothing relevant found, say so instead of showing garbage
     if not press_coverage and press_results:

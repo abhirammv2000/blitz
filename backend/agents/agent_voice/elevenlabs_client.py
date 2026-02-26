@@ -1,11 +1,10 @@
-"""ElevenLabs Conversational AI client for browser-based WebSocket voice.
+"""ElevenLabs Conversational AI client for browser-based voice.
 
-Uses raw httpx (already a project dependency) — no ElevenLabs SDK needed.
+Uses raw httpx (already a project dependency) -- no ElevenLabs SDK needed.
 
 Environment variables required:
-  ELEVENLABS_API_KEY         — ElevenLabs API key
-  ELEVENLABS_AGENT_ID        — ElevenLabs Conversational AI agent ID
-  ELEVENLABS_VOICE_ID        — (optional) ElevenLabs voice ID; defaults to Sarah
+  ELEVENLABS_API_KEY         -- ElevenLabs API key
+  ELEVENLABS_AGENT_ID        -- ElevenLabs Conversational AI agent ID
 """
 
 from __future__ import annotations
@@ -17,7 +16,6 @@ import httpx
 from agents.agent_voice.models import SetupCheckResponse
 
 _ELEVENLABS_BASE = "https://api.elevenlabs.io/v1"
-_DEFAULT_VOICE_ID = "EXAVITQu4vr4xnSDxMaL"  # Sarah
 
 _REQUIRED_ENV_VARS = [
     "ELEVENLABS_API_KEY",
@@ -28,12 +26,12 @@ _PERSONALITY_PREFIX = """\
 You are Alex, a startup founder calling on behalf of a company to introduce our product.
 
 Personality guidelines:
-- Casual, energetic, and enthusiastic — like a founder pitching their product, not a corporate rep
+- Casual, energetic, and enthusiastic -- like a founder pitching their product, not a corporate rep
 - Never mention you are an AI or a bot under any circumstances
 - Introduce yourself as Alex
-- Keep responses concise and conversational — this is a phone call, not a presentation
+- Keep responses concise and conversational -- this is a phone call, not a presentation
 - When asked a question you cannot answer confidently, say:
-  "Great question — let me have someone from the team follow up on that."
+  "Great question -- let me have someone from the team follow up on that."
   Then pivot back to a key talking point.
 - Listen actively and adapt to the prospect's tone
 
@@ -56,49 +54,60 @@ def build_agent_prompt(script_text: str, research_dossier: str) -> str:
     return prompt
 
 
-async def get_signed_url(agent_prompt: str, first_message: str) -> str:
-    """Get a signed WebSocket URL for browser-based conversation.
+def get_agent_id() -> str:
+    """Return the configured ElevenLabs agent ID."""
+    return os.environ["ELEVENLABS_AGENT_ID"]
 
-    POSTs to the ElevenLabs signed-url endpoint with conversation_config_override
-    to inject the per-session agent prompt and first message.
+
+async def update_agent_prompt(prompt: str, first_message: str) -> None:
+    """PATCH the agent's system prompt and first message before starting a call.
+
+    Client-side overrides are rejected by the ElevenLabs platform, so we
+    update the agent config server-side instead.
+    """
+    api_key = os.environ["ELEVENLABS_API_KEY"]
+    agent_id = os.environ["ELEVENLABS_AGENT_ID"]
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        response = await client.patch(
+            f"{_ELEVENLABS_BASE}/convai/agents/{agent_id}",
+            headers={"xi-api-key": api_key, "Content-Type": "application/json"},
+            json={
+                "conversation_config": {
+                    "agent": {
+                        "prompt": {"prompt": prompt},
+                        "first_message": first_message,
+                    }
+                }
+            },
+        )
+        response.raise_for_status()
+
+
+async def get_conversation_token() -> str:
+    """Get a short-lived conversation token for browser WebRTC connection.
+
+    The frontend uses this token with the @11labs/react SDK:
+      conversation.startSession({ conversationToken: token, connectionType: "webrtc" })
 
     Returns:
-        A signed WebSocket URL the browser can connect to directly.
+        A conversation token string.
 
     Raises:
         httpx.HTTPStatusError: If ElevenLabs returns a non-2xx status.
     """
     api_key = os.environ["ELEVENLABS_API_KEY"]
     agent_id = os.environ["ELEVENLABS_AGENT_ID"]
-    voice_id = os.environ.get("ELEVENLABS_VOICE_ID", _DEFAULT_VOICE_ID)
-
-    payload = {
-        "agent_id": agent_id,
-        "conversation_config_override": {
-            "agent": {
-                "prompt": {
-                    "prompt": agent_prompt,
-                },
-                "first_message": first_message,
-            },
-            "tts": {
-                "voice_id": voice_id,
-            },
-        },
-    }
 
     async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.post(
-            f"{_ELEVENLABS_BASE}/convai/conversation/get-signed-url",
-            json=payload,
-            headers={
-                "xi-api-key": api_key,
-                "Content-Type": "application/json",
-            },
+        response = await client.get(
+            f"{_ELEVENLABS_BASE}/convai/conversation/token",
+            params={"agent_id": agent_id},
+            headers={"xi-api-key": api_key},
         )
         response.raise_for_status()
         data = response.json()
-        return data["signed_url"]
+        return data["token"]
 
 
 async def get_transcript(conversation_id: str) -> dict:

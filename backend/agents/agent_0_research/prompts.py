@@ -66,20 +66,45 @@ Return ONLY valid JSON with no markdown, no code fences:
 {{"summary": "...", "executive_summary": "..."}}
 """
 
-AEO_CHECK_PROMPT = """\
-You are a knowledgeable business advisor helping someone find the best solutions in a specific market.
+# ---------- AEO (Answer Engine Optimization) ----------
+# Three blind prompt angles — the company name is NOT in the question.
+# We feed the category description (extracted from the site) so the LLM
+# answers a realistic customer query. After receiving the response we
+# check whether the company was organically mentioned and at what position.
 
-A potential buyer asks: "I'm looking for the best alternatives and competitors to {company_name} ({domain}). \
-What are the top tools or platforms in {company_name}'s space? Is {company_name} itself a good choice?"
+AEO_BLIND_PROMPTS = [
+    # Angle 1: "Best tools" discovery query
+    """\
+You are a knowledgeable business advisor. A potential buyer asks:
 
-Answer naturally and thoroughly. Recommend the best solutions in this company's market category. \
-Mention {company_name} if you genuinely know about it — do NOT make up information.
+"What are the best {category} tools or platforms available right now? \
+Give me a ranked list of the top 5-8 options with a short explanation for each."
 
-Then, on the very last line of your response, output ONLY a JSON object (no markdown, no code fences):
-{{"mentioned": true_or_false, "confidence": 0.0_to_1.0, "quote": "exact quote if mentioned, else empty string"}}
+Answer naturally and thoroughly. Only recommend solutions you genuinely know about — \
+do NOT make up products. Number your recommendations (1, 2, 3, …).""",
 
-Where:
-- mentioned: true if you recommended or positively referenced {company_name} or {domain} in your answer
-- confidence: how well-known {company_name} is in its space (0.0 = never heard of it, 1.0 = market leader everyone knows)
-- quote: the exact sentence from your answer where you discussed them, or "" if not mentioned
-"""
+    # Angle 2: Recommendation for a specific use case
+    """\
+You are a tech consultant helping a mid-size company. They ask:
+
+"We need a {category} solution. What would you recommend and why? \
+List the top options with pros and cons for each."
+
+Answer naturally. Only recommend real products you know about.""",
+
+    # Angle 3: Comparison / "which should I pick" query
+    """\
+You are helping a startup founder evaluate tools. They ask:
+
+"I'm comparing {category} solutions for my team. What are the leading \
+options in this space and how do they differ? Which one would you pick?"
+
+Answer with a practical comparison. Only mention real products.""",
+]
+
+# Prompt to extract the company's category (fast, no site content needed)
+AEO_CATEGORY_PROMPT = """\
+What category of product or service does {company_name} ({domain}) offer? \
+Describe it in 3-8 words. Be specific (e.g. "frontend deployment and hosting platform", \
+"corporate expense management software", "AI meeting notes tool"). \
+Return ONLY the category, nothing else."""
