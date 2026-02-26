@@ -28,6 +28,9 @@ from agents.agent_0_research.schemas import ResearchOutput
 
 _COMMON_TLDS_RE = r"\.(com|io|ai|co|net|org|app|dev|tech|so|me|us|xyz|gg|ly|to)$"
 
+# Common vanity prefixes in domains (e.g. joinblossomhealth.com, getnotion.com)
+_VANITY_PREFIXES_RE = r"^(join|get|try|use|go|meet|hello|hey|my|the|visit|app)"
+
 
 def _extract_bare_domain(url: str) -> str:
     """Extract bare domain from a URL, stripping protocol, www, and path.
@@ -48,6 +51,44 @@ def _extract_company_name(url: str) -> str:
     domain = _extract_bare_domain(url)
     name = re.sub(_COMMON_TLDS_RE, "", domain, flags=re.IGNORECASE)
     return name.capitalize()
+
+
+async def _extract_company_name_from_content(site_content: str, url: str, fallback_name: str) -> str:
+    """Extract the real company name from scraped page content using a fast LLM call.
+
+    Handles cases where the domain doesn't match the company name
+    (e.g. joinblossomhealth.com -> "Blossom Health").
+
+    Falls back to the regex-based name on any failure.
+    """
+    if not site_content or site_content.startswith("[Firecrawl"):
+        return fallback_name
+
+    # Use first 1500 chars — company name is almost always near the top
+    excerpt = site_content[:1500]
+    try:
+        response = await asyncio.wait_for(
+            litellm.acompletion(
+                model="openai/gpt-4o-mini",
+                messages=[{"role": "user", "content": (
+                    f"What is the official company or product name for the website {url}?\n\n"
+                    f"Page content:\n{excerpt}\n\n"
+                    "Reply with ONLY the company/product name, nothing else. "
+                    "Use proper capitalization (e.g. 'Blossom Health', not 'blossom health')."
+                )}],
+                api_key=os.environ.get("OPENAI_API_KEY", ""),
+                temperature=0,
+                max_tokens=30,
+            ),
+            timeout=8.0,
+        )
+        name = (response.choices[0].message.content or "").strip().strip('"').strip("'")
+        # Sanity check: reject empty, too long, or multi-sentence responses
+        if name and len(name) <= 60 and "\n" not in name:
+            return name
+    except Exception:
+        pass
+    return fallback_name
 
 
 async def tavily_search(
@@ -482,6 +523,9 @@ async def run_research(
         aeo_task,
         return_exceptions=False,
     )
+
+    # Refine company name from actual page content (handles vanity domains like joinblossomhealth.com)
+    company_name = await _extract_company_name_from_content(site_content, company_url, company_name)
 
     # Sequential: extract competitors from Tavily results
     await queue.put({"step": "assembly", "status": "running", "detail": "Extracting competitor profiles"})
