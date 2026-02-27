@@ -89,6 +89,8 @@ IMAGE_STYLES: dict[str, str] = {
         "Rough hand-drawn conceptual sketch on cream sketch paper. "
         "Pencil and ink lines, crosshatching for shading, greyscale tones with subtle warm undertones. "
         "Loose annotations and arrows as if from a designer's notebook. "
+        "Directional side-lighting casting soft graphite shadows across the page. "
+        "Visible paper texture and slight smudges for authenticity. "
         "Raw, experimental, idea-driven aesthetic — like a brainstorming sketch, NOT a polished render. "
         "No photographic elements, no color fills. Square 1:1 composition."
     ),
@@ -96,6 +98,7 @@ IMAGE_STYLES: dict[str, str] = {
         "Bauhaus-inspired poster design: functional, geometric, and minimal. "
         "Primary color palette (red, blue, yellow) on white or black backgrounds. "
         "Grid systems, bold sans-serif typography placeholders, circles/triangles/squares as compositional elements. "
+        "Flat even lighting, hard edges, matte surface finish with no reflections. "
         "Clean lines, flat shapes, no gradients, no photographic elements. "
         "Rational and structured — form follows function. Square 1:1 composition."
     ),
@@ -103,16 +106,33 @@ IMAGE_STYLES: dict[str, str] = {
         "Japandi minimalist aesthetic fusing Japanese wabi-sabi with Scandinavian functionality. "
         "Neutral palette: warm beige, soft grey, cream, muted earth tones. "
         "Clean sans-serif typography placeholders, generous whitespace, organic soft curves. "
-        "Natural material textures (light wood grain, linen, ceramic). "
+        "Natural material textures (light wood grain, linen, ceramic) with subtle tactile depth. "
+        "Soft diffused overhead lighting, gentle ambient shadows, no harsh contrasts. "
         "Calm, peaceful, intentional — no clutter, no bright colors, no photographic people. Square 1:1 composition."
+    ),
+    "editorial_3d": (
+        "Soft 3D render with matte clay-like materials and smooth rounded forms. "
+        "Pastel gradient backgrounds (lavender to peach, mint to sky blue). "
+        "Subtle ambient occlusion shadows, soft studio lighting from upper-left. "
+        "Isometric or slightly elevated camera angle. "
+        "Modern SaaS/startup aesthetic — friendly, approachable, polished but not hyper-realistic. "
+        "No photographic textures, no harsh specular highlights. Square 1:1 composition."
+    ),
+    "risograph": (
+        "Risograph print aesthetic: limited color overlaps creating unexpected secondary hues. "
+        "Visible halftone dot patterns, slight ink misregistration between layers. "
+        "Grain and paper texture throughout — kraft or off-white stock. "
+        "Flat shapes with imperfect edges, retro print-shop warmth. "
+        "Bold, graphic, lo-fi charm — like a hand-pulled zine poster. "
+        "No photographic elements, no smooth gradients, no digital perfection. Square 1:1 composition."
     ),
 }
 
 DEFAULT_IMAGE_STYLE = "conceptual_sketch"
 
 IMAGE_PROMPT_SYNTHESIS = """\
-You are an expert visual director for digital advertising. Your job is to write unique, \
-specific image generation prompts for each ad — grounded in the company's real identity.
+You are an expert visual director for digital advertising. Your job is to write rich, \
+detailed image generation prompts for DALL-E 3 — each grounded in the company's real identity.
 
 ## Company Research
 {research_data}
@@ -123,12 +143,27 @@ specific image generation prompts for each ad — grounded in the company's real
 ## Visual Style
 {style_directive}
 
-## Rules
-- Each prompt must be a COMPLETE, standalone image generation instruction (1-2 sentences).
-- Incorporate the ad's visual_concept into every prompt.
-- Reference the company's actual brand identity, product category, or industry from the research.
-- ALWAYS apply the Visual Style above — every prompt must match that aesthetic.
-- Every prompt MUST be unique — different composition, different metaphor, different focal element.
+## Prompt Formula
+Each prompt MUST follow this structure in 3-5 sentences:
+1. **Subject & focal metaphor** — the central visual element representing the ad's concept
+2. **Environment & setting** — where the subject exists (abstract space, textured background, scene)
+3. **Style & materials** — match the Visual Style above precisely (medium, texture, finish)
+4. **Lighting & mood** — specify direction (e.g. "soft top-left key light"), quality (diffused, dramatic), and emotional tone
+5. **Composition & camera** — angle (bird's-eye, eye-level, isometric), depth of field, foreground/background relationship
+
+## Color Integration
+- Each ad entry includes a `color_palette` array of hex colors. Weave these brand colors naturally into the prompt (e.g. "dominant #3B82F6 blue gradient background", "accents of #F59E0B amber on the focal element").
+- If the palette is empty, derive colors from the company's brand identity in the research.
+
+## Uniqueness Rules
+- Every prompt MUST use a DIFFERENT focal metaphor AND a DIFFERENT composition/camera angle.
+- No two prompts should share the same primary visual element or spatial arrangement.
+
+## What to AVOID (include as negative guidance in each prompt)
+- Do NOT include any text, words, letters, numbers, logos, or watermarks in the image.
+- Do NOT render realistic human hands, fingers, or faces.
+- Do NOT create cluttered compositions — keep a clear focal hierarchy.
+- Do NOT use photographic realism unless the style explicitly calls for it.
 
 Return ONLY a JSON array of objects, one per ad, in the same order as the input:
 [

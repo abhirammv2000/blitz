@@ -120,11 +120,23 @@ async def run_ads(run_id: str, feedback: str | None = None) -> AdsOutput:
             "visual_concept": v.visual_concept,
             "color_palette": v.color_palette,
         })
+    # Build a lookup from (segment, platform) -> visual_concept from ad_visuals
+    visual_concept_lookup: dict[str, str] = {}
+    for v in output.ad_visuals:
+        visual_concept_lookup[f"{v.segment} + {v.platform}"] = v.visual_concept
+
     for ab in output.ab_variations:
+        # Use the matching ad_visual's visual_concept; fall back to test_hypothesis
+        matched_concept = visual_concept_lookup.get(ab.ad_copy_ref, ab.test_hypothesis)
+        # Carry forward color_palette from the matching ad_visual too
+        matched_palette = next(
+            (v.color_palette for v in output.ad_visuals if f"{v.segment} + {v.platform}" == ab.ad_copy_ref),
+            [],
+        )
         ads_for_prompts.append({
             "ref": f"{ab.ad_copy_ref} + {ab.variant_label}",
-            "visual_concept": ab.test_hypothesis,
-            "color_palette": [],
+            "visual_concept": matched_concept,
+            "color_palette": matched_palette,
         })
 
     style_directive = IMAGE_STYLES.get(DEFAULT_IMAGE_STYLE, IMAGE_STYLES["conceptual_sketch"])
@@ -140,7 +152,7 @@ async def run_ads(run_id: str, feedback: str | None = None) -> AdsOutput:
             model="openai/gpt-4o-mini",
             messages=[{"role": "user", "content": img_prompt}],
             api_key=os.environ.get("OPENAI_API_KEY", ""),
-            temperature=0.7,
+            temperature=0.8,
         ),
         timeout=60.0,
     )
