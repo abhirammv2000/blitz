@@ -2,25 +2,39 @@
 @import "tailwindcss";
 
 @theme {
-  --color-cream:       oklch(0.975 0.008 70);
-  --color-cream-dark:  oklch(0.935 0.012 65);
-  --color-ink:         oklch(0.15 0.01 250);
-  --color-ink-muted:   oklch(0.40 0.01 250);
-  --color-ink-faint:   oklch(0.62 0.008 250);
-  --color-teal-100:    oklch(0.94 0.03 160);
-  --color-teal-600:    oklch(0.45 0.14 160);
-  --color-teal-700:    oklch(0.38 0.13 160);
-  --color-teal-800:    oklch(0.32 0.08 160);
-  --color-gold-100:    oklch(0.96 0.03 55);
-  --color-gold-400:    oklch(0.78 0.12 55);
-  --color-gold-500:    oklch(0.70 0.18 55);
-  --color-gold-600:    oklch(0.60 0.17 55);
-  --color-success:     oklch(0.50 0.12 155);
+  /* Ground — warm cream, not clinical white */
+  --color-cream:       oklch(0.975 0.012 65);
+  --color-cream-dark:  oklch(0.932 0.018 60);
+
+  /* Ink — warm brown-gray (h:55) instead of cool blue-gray (h:250) */
+  --color-ink:         oklch(0.15 0.015 55);
+  --color-ink-muted:   oklch(0.40 0.012 55);
+  --color-ink-faint:   oklch(0.60 0.010 55);
+
+  /* Teal — shifted to true blue-teal (h:175) for better warm/cool complement */
+  --color-teal-100:    oklch(0.94 0.035 175);
+  --color-teal-600:    oklch(0.44 0.12 175);
+  --color-teal-700:    oklch(0.37 0.11 175);
+  --color-teal-800:    oklch(0.30 0.08 175);
+
+  /* Gold — richer amber (h:50), higher chroma */
+  --color-gold-100:    oklch(0.96 0.04 50);
+  --color-gold-400:    oklch(0.78 0.14 50);
+  --color-gold-500:    oklch(0.72 0.18 50);
+  --color-gold-600:    oklch(0.62 0.17 50);
+
+  /* Semantic */
+  --color-success:     oklch(0.50 0.12 150);
   --color-error:       oklch(0.52 0.18 25);
-  --color-rust:        oklch(0.58 0.20 38);
-  --color-rust-light:  oklch(0.92 0.06 38);
+
+  /* Warm accents — rust shifted slightly toward red-orange (h:32) for more emotion */
+  --color-rust:        oklch(0.58 0.20 32);
+  --color-rust-light:  oklch(0.93 0.05 32);
+
+  /* Sage — kept as cool muted accent, slightly separated from teal */
   --color-sage:        oklch(0.42 0.10 165);
   --color-sage-light:  oklch(0.93 0.05 165);
+
   --font-display: "Syne", system-ui, sans-serif;
   --font-body:    "DM Sans", system-ui, sans-serif;
 }
