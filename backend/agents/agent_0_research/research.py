@@ -22,7 +22,7 @@ import re
 import litellm
 
 from agents.agent_0_research.progress import get_queue
-from agents.agent_0_research.prompts import AEO_BLIND_PROMPTS, AEO_CATEGORY_PROMPT, COMPETITOR_EXTRACTION_PROMPT, RESEARCH_SYNTHESIS_PROMPT
+from agents.agent_0_research.prompts import AEO_BLIND_PROMPTS, AEO_CATEGORY_PROMPT, CATEGORY_FROM_CONTENT_PROMPT, COMPETITOR_EXTRACTION_PROMPT, RESEARCH_SYNTHESIS_PROMPT
 from agents.agent_0_research.schemas import ResearchOutput
 
 
@@ -96,6 +96,7 @@ async def tavily_search(
     company_url: str,
     queue: asyncio.Queue,
     feedback: str | None = None,
+    category: str | None = None,
 ) -> tuple[list[dict], list[dict]]:
     """Search for press coverage and competitor information using Tavily.
 
@@ -135,7 +136,9 @@ async def tavily_search(
         "producthunt.com", "crunchbase.com", "sifted.eu", "protocol.com",
     ]
 
-    competitor_query = f"\"{bare_domain}\" OR \"{company_name}\" competitors alternatives comparison{feedback_suffix}"
+    # Two competitor searches: company-specific + category-specific (for generic names)
+    competitor_query_company = f"\"{company_name}\" {bare_domain} competitors alternatives{feedback_suffix}"
+    competitor_query_category = f"best {category} apps platforms competitors comparison{feedback_suffix}" if category else None
 
     try:
         # Include the domain in queries to disambiguate generic names
@@ -159,13 +162,27 @@ async def tavily_search(
             ),
             timeout=25.0,
         )
-        competitor_task = asyncio.wait_for(
-            client.search(competitor_query, max_results=8),
+        competitor_company_task = asyncio.wait_for(
+            client.search(competitor_query_company, max_results=8),
             timeout=25.0,
         )
-        press_major_resp, press_general_resp, competitor_resp = await asyncio.gather(
-            press_major_task, press_general_task, competitor_task, return_exceptions=True,
-        )
+
+        tasks = [press_major_task, press_general_task, competitor_company_task]
+
+        # Category-based competitor search for better disambiguation
+        if competitor_query_category:
+            competitor_category_task = asyncio.wait_for(
+                client.search(competitor_query_category, max_results=8),
+                timeout=25.0,
+            )
+            tasks.append(competitor_category_task)
+
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        press_major_resp = results[0]
+        press_general_resp = results[1]
+        competitor_company_resp = results[2]
+        competitor_category_resp = results[3] if len(results) > 3 else None
 
         press_results: list[dict] = []
         for resp in (press_major_resp, press_general_resp):
@@ -176,10 +193,17 @@ async def tavily_search(
         if not press_results and isinstance(press_major_resp, Exception) and isinstance(press_general_resp, Exception):
             press_results = [{"title": f"Tavily press search failed: {press_major_resp}", "url": "", "content": ""}]
 
-        if isinstance(competitor_resp, Exception):
-            competitor_results: list[dict] = []
-        else:
-            competitor_results = competitor_resp.get("results", []) if isinstance(competitor_resp, dict) else []
+        # Merge both competitor searches, deduplicating by URL
+        competitor_results: list[dict] = []
+        seen_urls: set[str] = set()
+        for resp in (competitor_company_resp, competitor_category_resp):
+            if resp is None or isinstance(resp, Exception):
+                continue
+            for r in (resp.get("results", []) if isinstance(resp, dict) else []):
+                url = r.get("url", "")
+                if url not in seen_urls:
+                    seen_urls.add(url)
+                    competitor_results.append(r)
 
     except asyncio.TimeoutError:
         press_results = [{"title": "Tavily search timed out", "url": "", "content": ""}]
@@ -252,6 +276,7 @@ async def aeo_check(
     company_name: str,
     domain: str,
     queue: asyncio.Queue,
+    category: str | None = None,
 ) -> tuple[float, list[dict]]:
     """Check AI Engine Optimization (AEO) score for a company.
 
@@ -275,26 +300,27 @@ async def aeo_check(
         Tuple of (composite_score, details_list).
         details_list: per-model summaries with mention_rate, avg_position, quote.
     """
-    await queue.put({"step": "aeo", "status": "running", "detail": "Extracting category, then querying 2 models x 3 angles"})
+    await queue.put({"step": "aeo", "status": "running", "detail": "Querying 2 models x 3 angles"})
 
-    # Step 1: Extract category from company name + domain (fast, uses mini model)
-    category = "software tools"  # fallback
-    try:
-        cat_response = await asyncio.wait_for(
-            litellm.acompletion(
-                model="openai/gpt-4o-mini",
-                messages=[{"role": "user", "content": AEO_CATEGORY_PROMPT.format(
-                    company_name=company_name, domain=domain,
-                )}],
-                api_key=os.environ.get("OPENAI_API_KEY", ""),
-                temperature=0.0,
-                max_tokens=30,
-            ),
-            timeout=10.0,
-        )
-        category = (cat_response.choices[0].message.content or category).strip().strip('".')
-    except Exception:
-        pass  # use fallback
+    # Use pre-computed category if provided, otherwise extract it
+    if not category:
+        category = "software tools"  # fallback
+        try:
+            cat_response = await asyncio.wait_for(
+                litellm.acompletion(
+                    model="openai/gpt-4o-mini",
+                    messages=[{"role": "user", "content": AEO_CATEGORY_PROMPT.format(
+                        company_name=company_name, domain=domain,
+                    )}],
+                    api_key=os.environ.get("OPENAI_API_KEY", ""),
+                    temperature=0.0,
+                    max_tokens=30,
+                ),
+                timeout=10.0,
+            )
+            category = (cat_response.choices[0].message.content or category).strip().strip('".')
+        except Exception:
+            pass  # use fallback
 
     await queue.put({"step": "aeo", "status": "running", "detail": f"Category: {category}. Querying models..."})
 
@@ -431,7 +457,12 @@ async def aeo_check(
     return score, model_summaries
 
 
-async def extract_competitors(raw_results: list[dict], company_name: str) -> list[dict]:
+async def extract_competitors(
+    raw_results: list[dict],
+    company_name: str,
+    category: str = "software tools",
+    site_excerpt: str = "",
+) -> list[dict]:
     """Extract structured competitor information from raw Tavily search results.
 
     Uses LiteLLM structured output via the primary model (GPT-4o) to identify
@@ -440,6 +471,8 @@ async def extract_competitors(raw_results: list[dict], company_name: str) -> lis
     Args:
         raw_results: Raw Tavily search result dicts with title, url, content fields.
         company_name: The company being analyzed (to exclude from competitor list).
+        category: Product category (e.g. "cashback rewards app") for filtering relevance.
+        site_excerpt: Brief description of what the company does (from scraped content).
 
     Returns:
         List of competitor dicts: [{name, positioning, strengths, weaknesses}]
@@ -453,9 +486,13 @@ async def extract_competitors(raw_results: list[dict], company_name: str) -> lis
         for r in raw_results[:8]
     )
 
+    company_description = site_excerpt[:800] if site_excerpt else f"A {category} company."
+
     prompt = COMPETITOR_EXTRACTION_PROMPT.format(
         raw_results=formatted,
         company_name=company_name,
+        category=category,
+        company_description=company_description,
     )
 
     try:
@@ -512,7 +549,8 @@ async def run_research(
     await queue.put({"step": "research", "status": "starting", "company": company_name})
 
     # Run Tavily, Firecrawl, and AEO concurrently
-    # AEO extracts category from company name + domain (no site content needed)
+    # AEO extracts its own category from name+domain (good enough for blind prompts)
+    # Tavily competitor search uses category hint if available
     tavily_task = tavily_search(company_name, company_url, queue, feedback)
     firecrawl_task = firecrawl_scrape(company_url, queue)
     aeo_task = aeo_check(company_name, domain, queue)
@@ -527,11 +565,34 @@ async def run_research(
     # Refine company name from actual page content (handles vanity domains like joinblossomhealth.com)
     old_name = company_name
     company_name = await _extract_company_name_from_content(site_content, company_url, company_name)
-    print(f"[DEBUG] Company name: '{old_name}' -> '{company_name}'")
+    print(f"[DEBUG] Company name: '{old_name}' -> '{company_name}'", flush=True)
 
-    # Sequential: extract competitors from Tavily results
+    # Extract accurate category from actual site content (not just domain guessing)
+    category = "software tools"  # fallback
+    if site_content and not site_content.startswith("[Firecrawl"):
+        try:
+            cat_response = await asyncio.wait_for(
+                litellm.acompletion(
+                    model="openai/gpt-4o-mini",
+                    messages=[{"role": "user", "content": CATEGORY_FROM_CONTENT_PROMPT.format(
+                        company_name=company_name,
+                        site_excerpt=site_content[:1500],
+                    )}],
+                    api_key=os.environ.get("OPENAI_API_KEY", ""),
+                    temperature=0.0,
+                    max_tokens=30,
+                ),
+                timeout=10.0,
+            )
+            category = (cat_response.choices[0].message.content or category).strip().strip('".')
+        except Exception:
+            pass
+    print(f"[DEBUG] Category from site content: '{category}'", flush=True)
+
+    # Sequential: extract competitors from Tavily results (with category + site context for relevance filtering)
     await queue.put({"step": "assembly", "status": "running", "detail": "Extracting competitor profiles"})
-    competitors = await extract_competitors(competitor_raw, company_name)
+    site_excerpt_for_competitors = site_content[:800] if site_content else ""
+    competitors = await extract_competitors(competitor_raw, company_name, category=category, site_excerpt=site_excerpt_for_competitors)
 
     # Build press coverage list — score, filter, and deduplicate.
     # Scoring prevents false positives for generic company names (e.g. "Linear"
@@ -634,8 +695,9 @@ async def run_research(
         synth_data = json.loads(synth_content)
         summary = synth_data.get("summary", f"Research gathered for {company_name}.")
         executive_summary = synth_data.get("executive_summary", f"{company_name}: {aeo_score:.1f}/10 AEO score.")
-    except (asyncio.TimeoutError, json.JSONDecodeError, Exception):
+    except (asyncio.TimeoutError, json.JSONDecodeError, Exception) as exc:
         # Fallback to basic assembly if synthesis fails
+        print(f"[DEBUG] Synthesis FAILED: {type(exc).__name__}: {exc!r}", flush=True)
         summary = site_excerpt[:1000] if site_content else f"Research gathered for {company_name} at {company_url}."
         executive_summary = (
             f"{company_name} at {domain}. "

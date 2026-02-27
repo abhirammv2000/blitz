@@ -18,7 +18,7 @@ Company URL  ──→  6 AI Agents (sequential, automated)  ──→  Full Mar
 
 | Step | Agent | Output |
 |------|-------|--------|
-| 0 | **Research Scout** | Company dossier (LLM-extracted company name), press coverage, competitor profiles, AEO score |
+| 0 | **Research Scout** | Company dossier, site-content category extraction, press coverage, competitor profiles (dual search + LLM fallback), AEO score |
 | 1 | **Profile Creator** | Brand DNA, positioning, USPs, marketing gaps |
 | 2 | **Audience Identifier** | 3-5 synthetic audience segments with demographics & psychographics |
 | 3 | **Content Strategist** | Social posts, email campaigns, blog outlines, 30-day calendar |
@@ -36,7 +36,7 @@ flowchart TB
         Wizard["Wizard<br/>2-panel step view"]
         Store["Zustand Store<br/>SSE parser + state"]
         Views["View Components<br/>Dossier / Profile / Audience<br/>Content / Sales / Ads"]
-        Voice["Voice Agent Panel<br/>ElevenLabs WebSocket"]
+        Voice["Voice Agent Panel<br/>ElevenLabs Convai Widget"]
     end
 
     subgraph Server["Backend (Python + FastAPI)"]
@@ -60,7 +60,7 @@ flowchart TB
     Store --> Wizard
     Wizard --> Views
     Views --> Store
-    Voice <-->|"WebSocket (direct)"| ElevenLabs
+    Voice <-->|"Convai Widget (direct)"| ElevenLabs
 
     API --> Graph
     Graph --> LLM
@@ -150,7 +150,9 @@ classDiagram
     class Agent_0_Research {
         +tavily_search()
         +firecrawl_scrape()
+        +extract_category_from_content()
         +aeo_check()
+        +extract_competitors()
         +llm_synthesis()
         → ResearchOutput
     }
@@ -215,8 +217,10 @@ classDiagram
         +number viewStep
         +Record agentOutputs
         +boolean isRunning
+        +string|null activeAgentId
         +ResearchProgressStep[] researchProgress
         +startPipeline(url)
+        +setActiveAgentId(id)
         +reset()
     }
 
@@ -272,7 +276,7 @@ Each agent also has a `test_agent*.py` standalone test script and an `a*_imp.md`
 | Backend | Python, FastAPI, SSE streaming, Pydantic |
 | Frontend | React, TypeScript, Vite, Tailwind CSS v4 (Warm Analog theme — Syne font, burnt orange/sage palette), Zustand, Headless UI |
 | Research | Tavily API, Firecrawl |
-| Voice | ElevenLabs Conversational AI via WebSocket (eleven_multilingual_v2 TTS, server-side prompt injection) |
+| Voice | ElevenLabs Conversational AI via `@elevenlabs/convai-widget-embed` (dynamic agent creation, Ava persona, floating overlay widget) |
 | Image Gen | DALL-E 3 via LiteLLM (user-triggered, 3/run cap) |
 
 ---
@@ -321,7 +325,7 @@ Visit `http://localhost:5173/?voice-test` for a standalone voice agent testing i
 - **Smart entity extraction**: Company names are extracted from page content via a fast `gpt-4o-mini` call (with regex fallback), handling vanity domains like `joinblossomhealth.com` → "Blossom Health".
 - **Sequential pipeline**: Each agent depends on the previous agent's output. ChromaDB provides cross-agent context sharing — any agent can read any upstream agent's output by `run_id`.
 - **SSE streaming**: Real-time progress updates as each agent runs. The backend interleaves two async sources (research sub-step queue + graph state stream) into one SSE event stream. No polling.
-- **Server-side voice injection**: Voice agent personality is PATCHed into the ElevenLabs agent config server-side before each session, using `conversationToken` auth. No client-side overrides.
+- **Dynamic voice agents**: Each voice session creates a new ElevenLabs agent on the fly with the Ava persona + a GPT-4o-mini summary of pipeline knowledge. The `@elevenlabs/convai-widget-embed` web component renders as a floating overlay and handles the full conversation UI.
 - **Checkpoint persistence**: `AsyncSqliteSaver` persists pipeline state to `blitz.db`. The pipeline survives server restarts — resume mid-pipeline without re-running completed agents.
 
 ## Project Structure

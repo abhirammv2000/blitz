@@ -24,6 +24,7 @@ interface BlitzStore {
   isRunning: boolean
   researchProgress: ResearchProgressStep[]
   error: string | null
+  activeAgentId: string | null
   setRunId: (id: string) => void
   setStep: (step: number) => void
   setViewStep: (step: number) => void
@@ -32,6 +33,7 @@ interface BlitzStore {
   addResearchProgress: (evt: { step: string; status: string }) => void
   clearResearchProgress: () => void
   setError: (err: string | null) => void
+  setActiveAgentId: (id: string | null) => void
   startPipeline: (url: string) => Promise<void>
   reset: () => void
 }
@@ -44,6 +46,8 @@ export const useBlitzStore = create<BlitzStore>()((set) => ({
   isRunning: false,
   researchProgress: [],
   error: null,
+  activeAgentId: null,
+  setActiveAgentId: (id) => set({ activeAgentId: id }),
   setRunId: (id) => set({ runId: id }),
   setStep: (step) => set({ currentStep: step, viewStep: step }),
   setViewStep: (step) => set({ viewStep: step }),
@@ -164,5 +168,5 @@ export const useBlitzStore = create<BlitzStore>()((set) => ({
     }
   },
   reset: () =>
-    set({ runId: null, currentStep: 0, viewStep: 0, agentOutputs: {}, isRunning: false, researchProgress: [], error: null }),
+    set({ runId: null, currentStep: 0, viewStep: 0, agentOutputs: {}, isRunning: false, researchProgress: [], error: null, activeAgentId: null }),
 }))

@@ -3,7 +3,7 @@ import SegmentCards from './SegmentCards'
 import ScriptPreview from './ScriptPreview'
 import TranscriptCard from './TranscriptCard'
 import LeadsTable from './LeadsTable'
-import { useVoiceSession } from '../../hooks/useVoiceSession'
+import { useBlitzStore } from '../../store/useBlitzStore'
 import { API_BASE } from '../../config'
 
 interface Segment {
@@ -23,11 +23,11 @@ interface VoiceAgentPanelProps {
 export default function VoiceAgentPanel({ runId, segments, salesScripts, companyName }: VoiceAgentPanelProps) {
   const [stage, setStage] = useState<Stage>('select')
   const [selectedSegment, setSelectedSegment] = useState<Segment | null>(null)
+  const [conversationId, setConversationId] = useState<string | null>(null)
   const [finalTranscript, setFinalTranscript] = useState<{ role: string; content: string }[]>([])
   const [error, setError] = useState<string | null>(null)
   const [setupError, setSetupError] = useState(false)
-
-  const voiceSession = useVoiceSession()
+  const setActiveAgentId = useBlitzStore((s) => s.setActiveAgentId)
 
   async function handleConfirmCall(editedScript: string, firstMessage: string) {
     setError(null)
@@ -57,16 +57,16 @@ export default function VoiceAgentPanel({ runId, segments, salesScripts, company
       }
 
       const data = await res.json()
+      setActiveAgentId(data.agent_id)
+      setConversationId(data.conversation_id ?? null)
       setStage('live')
-      await voiceSession.start(data.token)
     } catch {
       setError('Network error — could not reach the backend. Please try again.')
     }
   }
 
-  async function handleEndConversation() {
-    await voiceSession.stop()
-    setFinalTranscript([...voiceSession.transcript])
+  async function handleWidgetDisconnect() {
+    setActiveAgentId(null)
     setStage('extracting')
 
     try {
@@ -75,7 +75,7 @@ export default function VoiceAgentPanel({ runId, segments, salesScripts, company
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           run_id: runId,
-          conversation_id: voiceSession.conversationId,
+          conversation_id: conversationId,
         }),
       })
     } catch {
@@ -88,6 +88,8 @@ export default function VoiceAgentPanel({ runId, segments, salesScripts, company
   function reset() {
     setStage('select')
     setSelectedSegment(null)
+    setActiveAgentId(null)
+    setConversationId(null)
     setFinalTranscript([])
     setError(null)
     setSetupError(false)
@@ -147,12 +149,16 @@ export default function VoiceAgentPanel({ runId, segments, salesScripts, company
       )}
 
       {stage === 'live' && (
-        <TranscriptCard
-          transcript={voiceSession.transcript}
-          status="live"
-          isSpeaking={voiceSession.isSpeaking}
-          onEndConversation={handleEndConversation}
-        />
+        <div className="flex flex-col items-center gap-3 py-8">
+          <div className="h-3 w-3 rounded-full bg-teal-500 animate-pulse" />
+          <p className="text-sm text-ink-muted">Conversation active — use the floating widget to talk</p>
+          <button
+            onClick={handleWidgetDisconnect}
+            className="px-4 py-2 rounded-xl border border-ink/10 bg-cream-dark text-sm text-ink-muted hover:text-ink hover:border-ink/20 transition-all"
+          >
+            End Conversation
+          </button>
+        </div>
       )}
 
       {stage === 'extracting' && (

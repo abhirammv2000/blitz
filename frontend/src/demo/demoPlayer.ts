@@ -56,10 +56,7 @@ async function replayProgressEvents(events: ProgressEvent[]): Promise<void> {
  * calls advanceDemoPipeline to continue to the next agent output.
  */
 export async function startDemoPipeline(url: string): Promise<void> {
-  const isAirbnb = url.toLowerCase().includes('airbnb')
-  const fixture: DemoFixture = isAirbnb
-    ? ((await import('./airbnb.json')).default as DemoFixture)
-    : ((await import('./resupply.json')).default as DemoFixture)
+  const fixture: DemoFixture = (await import('./blossom.json')).default as DemoFixture
 
   activeFixture = fixture
 

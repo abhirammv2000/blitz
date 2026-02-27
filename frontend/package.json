@@ -12,6 +12,7 @@
   "dependencies": {
     "@11labs/react": "^0.2.0",
     "@elevenlabs/client": "^0.15.0",
+    "@elevenlabs/convai-widget-embed": "^0.10.0",
     "@headlessui/react": "^2.2.9",
     "@tailwindcss/vite": "^4.2.0",
     "react": "^19.2.0",

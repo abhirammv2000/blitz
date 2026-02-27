@@ -6,14 +6,27 @@ Two templates:
 """
 
 COMPETITOR_EXTRACTION_PROMPT = """\
-You are a competitive intelligence analyst. Below are raw search results about competitors in a market.
+You are a competitive intelligence analyst.
 
-Search Results:
+## Company being analyzed
+{company_name} — a {category} company.
+
+## What {company_name} does
+{company_description}
+
+## Raw search results (may contain noise — use your judgment)
 {raw_results}
 
-Company being analyzed: {company_name}
+Task: Identify 3-5 distinct competitors to {company_name}.
 
-Task: Identify 3-5 distinct competitors to {company_name} from the search results.
+IMPORTANT RULES:
+1. A valid competitor MUST be in the same product category ({category}) and serve a similar audience.
+2. Ignore companies from unrelated industries — even if they appear in the search results.
+   For example, a marketing agency is NOT a competitor to a cashback app.
+3. If the search results lack good competitors, USE YOUR OWN KNOWLEDGE of the {category} \
+   space to identify well-known competitors. Real competitors are better than bad search results.
+4. Do NOT include {company_name} itself as a competitor.
+
 For each competitor, provide:
 - name: The company name
 - positioning: 1-2 sentence description of how they position themselves
@@ -108,3 +121,12 @@ What category of product or service does {company_name} ({domain}) offer? \
 Describe it in 3-8 words. Be specific (e.g. "frontend deployment and hosting platform", \
 "corporate expense management software", "AI meeting notes tool"). \
 Return ONLY the category, nothing else."""
+
+CATEGORY_FROM_CONTENT_PROMPT = """\
+Based on this website content, what category of product or service does {company_name} offer? \
+Describe it in 3-8 words. Be specific (e.g. "consumer cashback and rewards app", \
+"frontend deployment and hosting platform", "corporate expense management software"). \
+Return ONLY the category, nothing else.
+
+Website content:
+{site_excerpt}"""
