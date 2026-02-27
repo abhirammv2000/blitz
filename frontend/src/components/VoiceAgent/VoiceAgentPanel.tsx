@@ -2,6 +2,7 @@ import { useState } from 'react'
 import SegmentCards from './SegmentCards'
 import ScriptPreview from './ScriptPreview'
 import TranscriptCard from './TranscriptCard'
+import LeadsTable from './LeadsTable'
 import { useVoiceSession } from '../../hooks/useVoiceSession'
 import { API_BASE } from '../../config'
 
@@ -10,7 +11,7 @@ interface Segment {
   description: string
 }
 
-type Stage = 'select' | 'preview' | 'live' | 'transcript'
+type Stage = 'select' | 'preview' | 'live' | 'extracting' | 'transcript'
 
 interface VoiceAgentPanelProps {
   runId: string
@@ -66,6 +67,21 @@ export default function VoiceAgentPanel({ runId, segments, salesScripts, company
   async function handleEndConversation() {
     await voiceSession.stop()
     setFinalTranscript([...voiceSession.transcript])
+    setStage('extracting')
+
+    try {
+      await fetch(`${API_BASE}/voice/leads/extract`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          run_id: runId,
+          conversation_id: voiceSession.conversationId,
+        }),
+      })
+    } catch {
+      // Lead extraction is best-effort — don't block the transcript view
+    }
+
     setStage('transcript')
   }
 
@@ -88,7 +104,7 @@ export default function VoiceAgentPanel({ runId, segments, salesScripts, company
             Set the following variables in your <code className="text-ink bg-cream-dark px-1.5 py-0.5 rounded text-xs">.env</code> file:
           </p>
           <ul className="flex flex-col gap-1 mt-1">
-            {['ELEVENLABS_API_KEY', 'ELEVENLABS_AGENT_ID'].map((v) => (
+            {['ELEVENLABS_API_KEY'].map((v) => (
               <li key={v} className="text-xs text-ink font-mono bg-cream-dark rounded px-2 py-1">
                 {v}
               </li>
@@ -139,9 +155,17 @@ export default function VoiceAgentPanel({ runId, segments, salesScripts, company
         />
       )}
 
+      {stage === 'extracting' && (
+        <div className="flex flex-col items-center gap-3 py-8">
+          <div className="h-6 w-6 border-2 border-teal-600 border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm text-ink-muted">Extracting lead data...</p>
+        </div>
+      )}
+
       {stage === 'transcript' && (
         <div className="flex flex-col gap-4">
           <TranscriptCard transcript={finalTranscript} status="completed" />
+          <LeadsTable runId={runId} />
           <button
             onClick={reset}
             className="self-start px-4 py-2 rounded-xl border border-ink/10 bg-cream-dark text-sm text-ink-muted hover:text-ink hover:border-ink/20 transition-all"

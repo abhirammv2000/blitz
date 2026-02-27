@@ -26,6 +26,9 @@ from pydantic import BaseModel
 
 from agents.agent_0_research.progress import cleanup_queue, get_queue
 from agents.agent_voice.models import (
+    LeadExtractRequest,
+    LeadExtractResponse,
+    LeadRecord,
     SetupCheckResponse,
     VoiceSessionRequest,
     VoiceSessionResponse,
@@ -35,14 +38,15 @@ from agents.agent_voice.models import (
 from agents.agent_voice.elevenlabs_client import (
     build_agent_prompt,
     check_setup,
-    get_agent_id,
+    create_agent,
+    extract_lead_from_transcript,
     get_conversation_token,
     get_transcript,
     summarize_agent_outputs,
-    update_agent_prompt,
 )
 from db import get_agent_output
 from graph import build_graph
+from leads_db import get_leads_for_run, init_leads_table, insert_lead
 
 from pathlib import Path
 _backend_dir = Path(__file__).resolve().parent
@@ -63,6 +67,7 @@ app = FastAPI(title="Blitz Pipeline API")
 async def startup():
     global graph  # noqa: PLW0603
     graph = build_graph()
+    init_leads_table()
 
 
 app.add_middleware(
@@ -282,8 +287,8 @@ async def voice_session(req: VoiceSessionRequest):
     agent_prompt = build_agent_prompt(req.script_text, knowledge_brief, company_name)
 
     try:
-        await update_agent_prompt(agent_prompt, req.first_message)
-        token = await get_conversation_token()
+        agent_id = await create_agent(agent_prompt, req.first_message)
+        token = await get_conversation_token(agent_id)
     except Exception as exc:  # noqa: BLE001
         import httpx as _httpx
         if isinstance(exc, _httpx.HTTPStatusError):
@@ -294,9 +299,8 @@ async def voice_session(req: VoiceSessionRequest):
         raise
 
     return VoiceSessionResponse(
-        agent_id=get_agent_id(),
+        agent_id=agent_id,
         token=token,
-        overrides={},
     )
 
 
@@ -325,3 +329,63 @@ async def voice_transcript(conversation_id: str):
         status=status,  # type: ignore[arg-type]
         messages=messages,
     )
+
+
+@app.post("/voice/leads/extract", response_model=LeadExtractResponse)
+async def voice_leads_extract(req: LeadExtractRequest):
+    """Extract lead data from a completed conversation and store it."""
+    raw = await get_transcript(req.conversation_id)
+    raw_messages = raw.get("messages") or []
+
+    if not raw_messages:
+        return LeadExtractResponse(success=False, lead=None, message="No transcript available yet")
+
+    # Get company name from research output
+    import json as _json
+    company_name = "our company"
+    research_raw = get_agent_output(req.run_id, "research_decision")
+    if research_raw:
+        try:
+            research_data = _json.loads(research_raw)
+            company_name = research_data.get("company_name") or research_data.get("name") or "our company"
+        except (ValueError, TypeError):
+            pass
+
+    lead_data = await extract_lead_from_transcript(raw_messages, company_name)
+
+    transcript_text = "\n".join(
+        f"{m.get('role', 'unknown')}: {m.get('message') or m.get('content', '')}"
+        for m in raw_messages
+    )
+
+    row_id = insert_lead(
+        run_id=req.run_id,
+        company_name=company_name,
+        conversation_id=req.conversation_id,
+        caller_name=lead_data.get("caller_name"),
+        email=lead_data.get("email"),
+        phone=lead_data.get("phone"),
+        callback_time=lead_data.get("callback_time"),
+        raw_transcript=transcript_text,
+        interested=lead_data.get("interested"),
+    )
+
+    lead = LeadRecord(
+        id=row_id,
+        run_id=req.run_id,
+        company_name=company_name,
+        caller_name=lead_data.get("caller_name"),
+        email=lead_data.get("email"),
+        phone=lead_data.get("phone"),
+        callback_time=lead_data.get("callback_time"),
+        conversation_id=req.conversation_id,
+        interested=lead_data.get("interested"),
+    )
+
+    return LeadExtractResponse(success=True, lead=lead, message="Lead extracted successfully")
+
+
+@app.get("/voice/leads/{run_id}")
+async def voice_leads_list(run_id: str):
+    """Return all leads captured for a given pipeline run."""
+    return get_leads_for_run(run_id)

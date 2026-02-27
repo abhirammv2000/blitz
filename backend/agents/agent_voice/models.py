@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Literal, Optional
 
 from pydantic import BaseModel
 
@@ -21,7 +21,36 @@ class VoiceSessionResponse(BaseModel):
 
     agent_id: str
     token: str
-    overrides: dict
+
+
+class LeadExtractRequest(BaseModel):
+    """Request body for POST /voice/leads/extract."""
+
+    run_id: str
+    conversation_id: str
+
+
+class LeadRecord(BaseModel):
+    """A single lead captured from a voice conversation."""
+
+    id: Optional[int] = None
+    run_id: str
+    company_name: Optional[str] = None
+    caller_name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    callback_time: Optional[str] = None
+    conversation_id: Optional[str] = None
+    interested: Optional[bool] = None
+    extracted_at: Optional[str] = None
+
+
+class LeadExtractResponse(BaseModel):
+    """Response body for POST /voice/leads/extract."""
+
+    success: bool
+    lead: Optional[LeadRecord] = None
+    message: str
 
 
 class TranscriptMessage(BaseModel):
