@@ -17,7 +17,7 @@ It makes a single GPT-4o call with a heavily-constrained prompt (9 quality rules
 
 The output is a `ContentOutput` Pydantic model with nested typed models (no loose dicts).
 
-This output feeds into the frontend wizard for HITL review and is stored in ChromaDB for downstream agents.
+This output is stored in ChromaDB for downstream agents and displayed in the frontend wizard.
 
 ---
 
@@ -33,9 +33,6 @@ The prompt embeds strict rules to prevent common LLM content generation failures
 - Varied hook structures per post (not the same pain→solution→CTA pattern)
 - Platform-specific constraints (LinkedIn 150-200 words, Twitter <280 chars)
 - Human-sounding emails (no "Dear valued customer" energy)
-
-### HITL Reject Loop
-The LangGraph node implements approve/edit/override/reject. On reject, user feedback is injected into the prompt and the LLM re-runs. This is the same pattern used by Agents 1 and 2.
 
 ---
 
@@ -72,7 +69,7 @@ The calendar caps at ~10 entries, so the third segment doesn't get calendar slot
 
 | File | Purpose |
 |------|---------|
-| `node.py` | LangGraph node with HITL reject loop |
+| `node.py` | LangGraph node |
 | `prompts.py` | Single `CONTENT_SYNTHESIS_PROMPT` with 9 quality rules |
 | `schemas.py` | `ContentOutput` + nested models (SocialPost, EmailCampaign, BlogOutline, CalendarEntry) |
 | `test_agent3.py` | Standalone test — reads agent 0-2 outputs, calls GPT-4o directly |

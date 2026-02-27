@@ -64,7 +64,7 @@ Note: 4 segments appeared (vs 3 in upstream agents) — the LLM inferred an addi
 
 | File | Purpose |
 |------|---------|
-| `node.py` | LangGraph node with HITL reject loop + `generate_ad_image()` helper |
+| `node.py` | LangGraph node + `generate_ad_image()` helper |
 | `prompts.py` | `ADS_SYNTHESIS_PROMPT` + `build_image_prompt()` helper |
 | `schemas.py` | `AdsOutput` + nested models (AdCopy, AdVisual, AbVariation) |
 | `test_agent5.py` | Standalone test — reads agent 1-2 outputs, calls GPT-4o directly |

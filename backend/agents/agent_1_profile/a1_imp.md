@@ -2,7 +2,7 @@
 
 ## What This Agent Does
 
-Agent 1 takes the research dossier from Agent 0 and synthesizes it into a structured marketing profile. It reads the approved research output from ChromaDB, sends it to GPT-4o with a brand strategist prompt, and produces:
+Agent 1 takes the research dossier from Agent 0 and synthesizes it into a structured marketing profile. It reads the research output from ChromaDB, sends it to GPT-4o with a brand strategist prompt, and produces:
 
 - **Brand DNA** - Mission, values, tone, voice example, visual style
 - **Positioning Statement** - Follows "For [target] who [need], [company] is the [category] that [differentiator]" format

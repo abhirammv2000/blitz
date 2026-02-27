@@ -1,11 +1,13 @@
 import type { ResearchProgressStep } from '../store/useBlitzStore'
 
 const STEP_LABELS: Record<string, string> = {
-  tavily: 'Tavily Search',
+  research:  'Research',
+  tavily:    'Tavily Search',
   firecrawl: 'Website Crawl',
-  aeo: 'AEO Scoring',
-  dossier: 'Dossier Assembly',
-  // fallback: step ID itself
+  aeo:       'AEO Scoring',
+  assembly:  'Assembly',
+  synthesis: 'Synthesis',
+  dossier:   'Dossier Assembly',
 }
 
 function StatusIcon({ status }: { status: ResearchProgressStep['status'] }) {

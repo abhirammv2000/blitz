@@ -2,7 +2,7 @@
 
 **Enter a company URL. Get a complete marketing pipeline.**
 
-Blitz is a multi-agent AI marketing platform that transforms a single company URL into a full marketing package — research dossier, brand profile, audience segments, content strategy, sales outreach, and ad creatives — with human approval at every step.
+Blitz is a multi-agent AI marketing platform that transforms a single company URL into a full marketing package — research dossier, brand profile, audience segments, content strategy, sales outreach, and ad creatives — fully automated, end to end.
 
 Built as a working demo for the **Kana AI Solutions Builder** role (super{set} portfolio company).
 
@@ -10,10 +10,10 @@ Built as a working demo for the **Kana AI Solutions Builder** role (super{set} p
 
 ## How It Works
 
-A user pastes a company URL into the landing page. The backend spins up a LangGraph pipeline of 6 sequential AI agents, each building on the previous agent's output stored in ChromaDB. After each agent completes, the pipeline pauses (`interrupt()`) and streams the result to the browser via SSE. The user reviews the output and decides: **approve**, **edit**, **reject** (with feedback for re-generation), or **override**. Once approved, the next agent begins. The result is a complete, human-vetted marketing package generated from a single URL.
+A user pastes a company URL into the landing page. The backend spins up a LangGraph pipeline of 6 sequential AI agents, each building on the previous agent's output stored in ChromaDB. As each agent completes, it streams the result to the browser via SSE and the next agent begins automatically. The result is a complete marketing package generated from a single URL.
 
 ```
-Company URL  ──→  6 AI Agents (sequential, human-gated)  ──→  Full Marketing Package
+Company URL  ──→  6 AI Agents (sequential, automated)  ──→  Full Marketing Package
 ```
 
 | Step | Agent | Output |
@@ -41,7 +41,7 @@ flowchart TB
 
     subgraph Server["Backend (Python + FastAPI)"]
         API["FastAPI<br/>SSE endpoints"]
-        Graph["LangGraph StateGraph<br/>6 nodes + interrupt gates"]
+        Graph["LangGraph StateGraph<br/>6 sequential nodes"]
         LLM["LiteLLM Router<br/>GPT-4o + Gemini fallback"]
         DB["ChromaDB<br/>cross-agent context"]
         SQLite["SQLite<br/>checkpoint persistence"]
@@ -59,7 +59,7 @@ flowchart TB
     API -->|"SSE stream"| Store
     Store --> Wizard
     Wizard --> Views
-    Views -->|"POST /pipeline/{id}/resume"| API
+    Views --> Store
     Voice <-->|"WebSocket (direct)"| ElevenLabs
 
     API --> Graph
@@ -92,11 +92,8 @@ sequenceDiagram
         G->>L: prompt with context
         L-->>G: structured response
         G->>C: store output
-        G->>G: interrupt()
         G-->>F: state update
         F-->>U: SSE event (agent output)
-        U->>F: POST /resume {approve|edit|reject}
-        F->>G: resume pipeline
     end
 
     F-->>U: SSE complete
@@ -112,7 +109,6 @@ classDiagram
 
     class FastAPI_App {
         +POST /pipeline/start
-        +POST /pipeline/run_id/resume
         +POST /ads/run_id/generate-image
         +POST /voice/signed-url
         +GET /voice/setup-check
@@ -136,8 +132,6 @@ classDiagram
         +ContentOutput content_output
         +SalesOutput sales_output
         +AdsOutput ads_output
-        +str human_feedback
-        +bool approved
     }
 
     class ChromaDB {
@@ -193,7 +187,7 @@ classDiagram
         +get_transcript()
     }
 
-    FastAPI_App --> LangGraph_Pipeline : starts/resumes
+    FastAPI_App --> LangGraph_Pipeline : starts
     FastAPI_App --> ElevenLabs_Voice : voice endpoints
     LangGraph_Pipeline --> BlitzState : reads/writes
     LangGraph_Pipeline --> Agent_0_Research
@@ -234,12 +228,11 @@ classDiagram
     class AgentStep {
         +routes to view component
         +shows ProgressTimeline
-        +shows ApprovalGate
     }
 
     Zustand_Store --> Wizard : drives UI
     Wizard --> AgentStep : renders per step
-    AgentStep --> FastAPI_App : approve/reject
+    AgentStep --> Zustand_Store : state updates
 ```
 
 ### Agent Module Pattern
@@ -267,13 +260,13 @@ Each agent also has a `test_agent*.py` standalone test script and an `a*_imp.md`
 | Synthetic Data Enrichment | Audience segments with expanded synthetic lookalike profiles |
 | AI-Powered Analytics | Research Scout + competitor analysis + AEO scoring |
 | Answer Engine Optimization | Multi-LLM AEO check — "Is X a good choice in its space?" across GPT-4o and Gemini |
-| Agentic Execution | 6-agent LangGraph pipeline with human-in-the-loop governance |
+| Agentic Execution | 6-agent LangGraph pipeline with autonomous execution |
 
 ## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
-| Orchestration | LangGraph (StateGraph + interrupt gates) |
+| Orchestration | LangGraph (StateGraph, sequential pipeline) |
 | LLM Routing | LiteLLM Router (GPT-4o primary, Gemini 2.5 Pro fallback) |
 | Vector DB | ChromaDB (cross-agent context sharing + audit trail) |
 | Backend | Python, FastAPI, SSE streaming, Pydantic |
@@ -301,7 +294,7 @@ cp .env.example .env
 # Add your API keys to .env
 
 uv sync                # or: pip install -r requirements.txt
-uv run uvicorn main:app --host 0.0.0.0 --port 8000
+uv run uvicorn main:app --host 0.0.0.0 --port 8001
 ```
 
 ### 2. Set up frontend
@@ -320,16 +313,6 @@ Navigate to `http://localhost:5173`, enter a company URL, and watch the pipeline
 
 Visit `http://localhost:5173/?voice-test` for a standalone voice agent testing interface.
 
-### Demo Mode (no API keys needed)
-
-```bash
-# In frontend/
-cp .env.demo .env.local
-npm run dev
-```
-
-Replays the full 6-agent pipeline from cached fixture data. No live API calls.
-
 ---
 
 ## Key Architecture Decisions
@@ -337,11 +320,9 @@ Replays the full 6-agent pipeline from cached fixture data. No live API calls.
 - **AI-agnostic**: LiteLLM Router abstracts LLM providers. Swap models without code changes.
 - **Smart entity extraction**: Company names are extracted from page content via a fast `gpt-4o-mini` call (with regex fallback), handling vanity domains like `joinblossomhealth.com` → "Blossom Health".
 - **Sequential pipeline**: Each agent depends on the previous agent's output. ChromaDB provides cross-agent context sharing — any agent can read any upstream agent's output by `run_id`.
-- **HITL governance**: LangGraph `interrupt()` pauses the pipeline after each agent. Users approve, edit, reject (re-generates with feedback), or override before advancing.
 - **SSE streaming**: Real-time progress updates as each agent runs. The backend interleaves two async sources (research sub-step queue + graph state stream) into one SSE event stream. No polling.
 - **Server-side voice injection**: Voice agent personality is PATCHed into the ElevenLabs agent config server-side before each session, using `conversationToken` auth. No client-side overrides.
 - **Checkpoint persistence**: `AsyncSqliteSaver` persists pipeline state to `blitz.db`. The pipeline survives server restarts — resume mid-pipeline without re-running completed agents.
-- **Demo mode**: `VITE_DEMO_MODE=cached` replays fixture JSON — eliminates API rate limit risk during live demos.
 
 ## Project Structure
 
@@ -374,7 +355,6 @@ superset/
 | Method | Path | Description |
 |--------|------|-------------|
 | `POST` | `/pipeline/start` | Start pipeline (returns SSE stream) |
-| `POST` | `/pipeline/{run_id}/resume` | Resume with human decision (approve/edit/reject/override) |
 | `POST` | `/ads/{run_id}/generate-image` | Generate DALL-E 3 ad visual |
 | `GET` | `/voice/setup-check` | Check ElevenLabs configuration |
 | `POST` | `/voice/session` | PATCH agent prompt and get signed WebSocket URL for browser voice session |
@@ -401,7 +381,7 @@ ELEVENLABS_AGENT_ID=   # Conversational AI agent ID
 - **Feedback loop** — Let downstream agents flag weak upstream outputs and trigger targeted re-generation
 - **Campaign export** — One-click export to CSV/PDF or direct push to platforms (HubSpot, Mailchimp, Meta Ads Manager)
 - **Multi-run comparison** — Side-by-side diffs across pipeline runs to track how edits and feedback shift outputs
-- **Persistent brand memory** — Store approved profiles and audience segments so repeat runs for the same company skip redundant work
+- **Persistent brand memory** — Store generated profiles and audience segments so repeat runs for the same company skip redundant work
 - **Auth + multi-tenant** — User accounts with isolated pipeline histories and API key management
 
 ## License

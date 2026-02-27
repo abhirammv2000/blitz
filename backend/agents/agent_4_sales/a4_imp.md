@@ -62,7 +62,7 @@ Same pattern as Agent 3 — one prompt produces all four asset types to ensure c
 
 | File | Purpose |
 |------|---------|
-| `node.py` | LangGraph node with HITL reject loop |
+| `node.py` | LangGraph node |
 | `prompts.py` | `SALES_SYNTHESIS_PROMPT` with consultative voice rules |
 | `schemas.py` | `SalesOutput` + nested models (EmailSequence, LinkedInTemplate, LeadScoringTier, PipelineStage) |
 | `test_agent4.py` | Standalone test — reads agent 1-2 outputs, calls GPT-4o directly |
