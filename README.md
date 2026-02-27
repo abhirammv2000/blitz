@@ -18,7 +18,7 @@ Company URL  ──→  6 AI Agents (sequential, human-gated)  ──→  Full M
 
 | Step | Agent | Output |
 |------|-------|--------|
-| 0 | **Research Scout** | Company dossier, press coverage, competitor profiles, AEO score |
+| 0 | **Research Scout** | Company dossier (LLM-extracted company name), press coverage, competitor profiles, AEO score |
 | 1 | **Profile Creator** | Brand DNA, positioning, USPs, marketing gaps |
 | 2 | **Audience Identifier** | 3-5 synthetic audience segments with demographics & psychographics |
 | 3 | **Content Strategist** | Social posts, email campaigns, blog outlines, 30-day calendar |
@@ -256,6 +256,8 @@ agent_N_name/
 
 Agent 0 (Research) adds `research.py` (Tavily/Firecrawl/AEO logic) and `progress.py` (sub-step streaming).
 
+Each agent also has a `test_agent*.py` standalone test script and an `a*_imp.md` implementation changelog.
+
 ---
 
 ## Kana Pillar Coverage
@@ -275,9 +277,9 @@ Agent 0 (Research) adds `research.py` (Tavily/Firecrawl/AEO logic) and `progress
 | LLM Routing | LiteLLM Router (GPT-4o primary, Gemini 2.5 Pro fallback) |
 | Vector DB | ChromaDB (cross-agent context sharing + audit trail) |
 | Backend | Python, FastAPI, SSE streaming, Pydantic |
-| Frontend | React, TypeScript, Vite, Tailwind CSS v4, Zustand, Headless UI |
+| Frontend | React, TypeScript, Vite, Tailwind CSS v4 (Warm Analog theme — Syne font, burnt orange/sage palette), Zustand, Headless UI |
 | Research | Tavily API, Firecrawl |
-| Voice | ElevenLabs Conversational AI via WebSocket (optional, browser-based) |
+| Voice | ElevenLabs Conversational AI via WebSocket (eleven_multilingual_v2 TTS, server-side prompt injection) |
 | Image Gen | DALL-E 3 via LiteLLM (user-triggered, 3/run cap) |
 
 ---
@@ -314,6 +316,10 @@ npm run dev
 
 Navigate to `http://localhost:5173`, enter a company URL, and watch the pipeline run.
 
+### Voice Test Page
+
+Visit `http://localhost:5173/?voice-test` for a standalone voice agent testing interface.
+
 ### Demo Mode (no API keys needed)
 
 ```bash
@@ -329,9 +335,11 @@ Replays the full 6-agent pipeline from cached fixture data. No live API calls.
 ## Key Architecture Decisions
 
 - **AI-agnostic**: LiteLLM Router abstracts LLM providers. Swap models without code changes.
+- **Smart entity extraction**: Company names are extracted from page content via a fast `gpt-4o-mini` call (with regex fallback), handling vanity domains like `joinblossomhealth.com` → "Blossom Health".
 - **Sequential pipeline**: Each agent depends on the previous agent's output. ChromaDB provides cross-agent context sharing — any agent can read any upstream agent's output by `run_id`.
 - **HITL governance**: LangGraph `interrupt()` pauses the pipeline after each agent. Users approve, edit, reject (re-generates with feedback), or override before advancing.
 - **SSE streaming**: Real-time progress updates as each agent runs. The backend interleaves two async sources (research sub-step queue + graph state stream) into one SSE event stream. No polling.
+- **Server-side voice injection**: Voice agent personality is PATCHed into the ElevenLabs agent config server-side before each session, using `conversationToken` auth. No client-side overrides.
 - **Checkpoint persistence**: `AsyncSqliteSaver` persists pipeline state to `blitz.db`. The pipeline survives server restarts — resume mid-pipeline without re-running completed agents.
 - **Demo mode**: `VITE_DEMO_MODE=cached` replays fixture JSON — eliminates API rate limit risk during live demos.
 
@@ -369,7 +377,7 @@ superset/
 | `POST` | `/pipeline/{run_id}/resume` | Resume with human decision (approve/edit/reject/override) |
 | `POST` | `/ads/{run_id}/generate-image` | Generate DALL-E 3 ad visual |
 | `GET` | `/voice/setup-check` | Check ElevenLabs configuration |
-| `POST` | `/voice/signed-url` | Get signed WebSocket URL for browser voice session |
+| `POST` | `/voice/session` | PATCH agent prompt and get signed WebSocket URL for browser voice session |
 | `GET` | `/voice/transcript/{id}` | Get conversation transcript |
 | `GET` | `/health` | Health check |
 

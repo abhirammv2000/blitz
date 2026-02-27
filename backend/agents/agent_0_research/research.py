@@ -86,8 +86,8 @@ async def _extract_company_name_from_content(site_content: str, url: str, fallba
         # Sanity check: reject empty, too long, or multi-sentence responses
         if name and len(name) <= 60 and "\n" not in name:
             return name
-    except Exception:
-        pass
+    except Exception as exc:
+        print(f"[DEBUG] _extract_company_name_from_content FAILED: {exc!r}")
     return fallback_name
 
 
@@ -525,7 +525,9 @@ async def run_research(
     )
 
     # Refine company name from actual page content (handles vanity domains like joinblossomhealth.com)
+    old_name = company_name
     company_name = await _extract_company_name_from_content(site_content, company_url, company_name)
+    print(f"[DEBUG] Company name: '{old_name}' -> '{company_name}'")
 
     # Sequential: extract competitors from Tavily results
     await queue.put({"step": "assembly", "status": "running", "detail": "Extracting competitor profiles"})

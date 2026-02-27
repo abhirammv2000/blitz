@@ -34,7 +34,8 @@ CRITICAL RULES:
 Personality:
 - Casual, energetic, and enthusiastic — like a real salesperson who genuinely believes in the product
 - Keep responses concise and conversational — this is a phone call, not a presentation
-- Ask questions to understand the prospect's needs before pitching
+- IMPORTANT: After your opening line, immediately pitch what {company_name} does and why it matters. Lead with the company's core value proposition from the sales script before asking discovery questions.
+- Once you've given the quick pitch, ask one focused question to understand the prospect's situation
 - When asked something you can't answer confidently, say:
   "Great question — let me have someone from our team follow up on that."
   Then pivot back to a key talking point.
@@ -45,10 +46,49 @@ IMPORTANT: The sales script below may be written in third person (e.g. email for
 """
 
 
-def build_agent_prompt(script_text: str, research_dossier: str, company_name: str = "our company") -> str:
-    """Combine personality instructions, sales script, and research dossier into a single agent system prompt."""
-    truncated_dossier = research_dossier[:3000] if len(research_dossier) > 3000 else research_dossier
+_SUMMARIZE_PROMPT = """\
+You are preparing a concise knowledge brief for a sales agent making a cold call.
 
+Below are outputs from multiple research agents about a company. Synthesize ALL of this into a single, focused knowledge brief that a salesperson can use during a live phone call.
+
+Structure your output exactly like this:
+- **Company**: What the company does in 1-2 sentences
+- **Key Value Props**: 3-5 bullet points on why customers choose them
+- **Target Audience**: Who they sell to, key segments
+- **Competitive Edge**: What makes them different from alternatives
+- **Talking Points**: 5-7 specific facts, stats, or features the salesperson can reference
+- **Objection Handlers**: 3-4 common objections and how to respond
+
+Keep it under 800 words. Be specific — use real product names, features, and stats from the data. No filler.
+
+--- AGENT OUTPUTS ---
+
+{agent_outputs}
+"""
+
+
+async def summarize_agent_outputs(agent_outputs: dict[str, str]) -> str:
+    """Summarize all upstream agent outputs into a concise knowledge brief via gpt-4o-mini."""
+    import litellm
+
+    combined = ""
+    for agent_name, output_text in agent_outputs.items():
+        combined += f"\n### {agent_name}\n{output_text}\n"
+
+    response = await litellm.acompletion(
+        model="openai/gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": "You are a concise business analyst."},
+            {"role": "user", "content": _SUMMARIZE_PROMPT.format(agent_outputs=combined)},
+        ],
+        max_tokens=1200,
+        temperature=0.3,
+    )
+    return response.choices[0].message.content
+
+
+def build_agent_prompt(script_text: str, knowledge_brief: str, company_name: str = "our company") -> str:
+    """Combine personality instructions, sales script, and knowledge brief into a single agent system prompt."""
     personality = _PERSONALITY_TEMPLATE.format(company_name=company_name)
 
     prompt = (
@@ -57,8 +97,8 @@ def build_agent_prompt(script_text: str, research_dossier: str, company_name: st
         + script_text.strip()
         + "\n\n"
         + "## Product Knowledge Base\n\n"
-        + "Use the following research to answer deeper product questions:\n\n"
-        + truncated_dossier.strip()
+        + "Use the following knowledge brief to answer any product questions confidently:\n\n"
+        + knowledge_brief.strip()
     )
     return prompt
 
@@ -86,11 +126,6 @@ async def update_agent_prompt(prompt: str, first_message: str) -> None:
                     "agent": {
                         "prompt": {"prompt": prompt},
                         "first_message": first_message,
-                    },
-                    "tts": {
-                        "model_id": "eleven_multilingual_v2",
-                        "stability": 0.8,
-                        "similarity_boost": 0.9,
                     },
                 }
             },

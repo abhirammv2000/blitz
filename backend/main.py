@@ -38,6 +38,7 @@ from agents.agent_voice.elevenlabs_client import (
     get_agent_id,
     get_conversation_token,
     get_transcript,
+    summarize_agent_outputs,
     update_agent_prompt,
 )
 from db import get_agent_output
@@ -247,24 +248,38 @@ async def voice_session(req: VoiceSessionRequest):
             detail={"detail": "ElevenLabs not configured", "missing": setup.missing},
         )
 
-    raw_research = get_agent_output(req.run_id, "research_decision")
-    company_name = "our company"
-    if raw_research:
-        import json as _json
-        try:
-            research_data = _json.loads(raw_research)
-            company_name = research_data.get("company_name") or research_data.get("name") or "our company"
-            research_dossier_text = (
-                research_data.get("executive_summary")
-                or research_data.get("summary")
-                or str(research_data)[:3000]
-            )
-        except (ValueError, TypeError):
-            research_dossier_text = str(raw_research)[:3000]
-    else:
-        research_dossier_text = ""
+    # Pull all upstream agent outputs from ChromaDB
+    import json as _json
 
-    agent_prompt = build_agent_prompt(req.script_text, research_dossier_text, company_name)
+    agent_keys = [
+        ("research_decision", "Research Dossier"),
+        ("profile", "Brand Profile"),
+        ("audience", "Audience Segments"),
+        ("content", "Content Strategy"),
+        ("sales", "Sales Playbook"),
+    ]
+    agent_outputs: dict[str, str] = {}
+    company_name = "our company"
+
+    for db_key, label in agent_keys:
+        raw = get_agent_output(req.run_id, db_key)
+        if raw:
+            agent_outputs[label] = raw
+            # Extract company name from research output
+            if db_key == "research_decision":
+                try:
+                    research_data = _json.loads(raw)
+                    company_name = research_data.get("company_name") or research_data.get("name") or "our company"
+                except (ValueError, TypeError):
+                    pass
+
+    # Summarize all agent knowledge into a concise brief via gpt-4o-mini
+    if agent_outputs:
+        knowledge_brief = await summarize_agent_outputs(agent_outputs)
+    else:
+        knowledge_brief = ""
+
+    agent_prompt = build_agent_prompt(req.script_text, knowledge_brief, company_name)
 
     try:
         await update_agent_prompt(agent_prompt, req.first_message)

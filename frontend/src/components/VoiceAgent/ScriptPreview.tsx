@@ -12,7 +12,7 @@ export default function ScriptPreview({ segmentName, initialScript, companyName,
   const [script, setScript] = useState(initialScript)
   const name = companyName || 'our company'
   const [firstMessage, setFirstMessage] = useState(
-    `Hi, I'm Alex from ${name}! I wanted to quickly chat about how we can help your team — do you have a minute?`
+    `Hey there! This is Alex from ${name}. We've been helping companies like yours with what we do best — I'd love to give you a quick rundown of how ${name} works and see if it's a fit. Got a sec?`
   )
   const [showConfirm, setShowConfirm] = useState(false)
 
