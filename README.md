@@ -396,6 +396,4 @@ ELEVENLABS_AGENT_ID=   # Conversational AI agent ID
 - **Persistent brand memory** — Store approved profiles and audience segments so repeat runs for the same company skip redundant work
 - **Auth + multi-tenant** — User accounts with isolated pipeline histories and API key management
 
-## License
 
-Private project — built for interview demonstration.
