@@ -32,6 +32,7 @@ Thumbs.db
 .claude/
 .playwright-mcp/
 CLAUDE.md
+DEMO_SCRIPT.md
 
 # Test output (generated per-run, not versioned)
 *_output.json
