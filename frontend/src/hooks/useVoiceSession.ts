@@ -6,10 +6,13 @@ export interface TranscriptEntry {
   content: string
 }
 
-export function useVoiceSession() {
+export function useVoiceSession(onDisconnect?: () => void) {
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([])
   const [conversationId, setConversationId] = useState<string | null>(null)
+  const conversationIdRef = useRef<string | null>(null)
   const transcriptRef = useRef<TranscriptEntry[]>([])
+  const onDisconnectRef = useRef(onDisconnect)
+  onDisconnectRef.current = onDisconnect
 
   const conversation = useConversation({
     onConnect: () => {
@@ -17,6 +20,7 @@ export function useVoiceSession() {
     },
     onDisconnect: (details) => {
       console.log('[Voice] Disconnected:', details)
+      onDisconnectRef.current?.()
     },
     onMessage: (message) => {
       console.log('[Voice] Message:', message)
@@ -47,7 +51,10 @@ export function useVoiceSession() {
       conversationToken: token,
     })
     console.log('[Voice] Session started, conversationId:', id)
-    if (id) setConversationId(id)
+    if (id) {
+      conversationIdRef.current = id
+      setConversationId(id)
+    }
   }, [conversation])
 
   const stop = useCallback(async () => {
@@ -59,6 +66,7 @@ export function useVoiceSession() {
     stop,
     transcript,
     conversationId,
+    conversationIdRef,
     status: conversation.status,
     isSpeaking: conversation.isSpeaking,
   }

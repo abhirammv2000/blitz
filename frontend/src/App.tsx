@@ -2,11 +2,10 @@ import { useState } from 'react'
 import Landing from './pages/Landing'
 import Wizard from './components/Wizard'
 import VoiceTest from './pages/VoiceTest'
-import ElevenLabsWidget from './components/VoiceAgent/ElevenLabsWidget'
 import { useBlitzStore } from './store/useBlitzStore'
 
 function App() {
-  const { runId, activeAgentId } = useBlitzStore()
+  const { runId } = useBlitzStore()
   const [launched, setLaunched] = useState(false)
 
   // Quick access: /?voice-test to test voice agent in isolation
@@ -29,12 +28,8 @@ function App() {
     )
   }
 
-  return (
-    <>
-      {page}
-      {activeAgentId && <ElevenLabsWidget agentId={activeAgentId} />}
-    </>
-  )
+  return <>{page}</>
+
 }
 
 export default App
