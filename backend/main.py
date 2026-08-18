@@ -1,17 +1,14 @@
-"""FastAPI app — Blitz pipeline backend.
+"""
+FastAPI Backend — The engine driving the Blitz pipeline.
 
-Endpoints:
-  POST /pipeline/start           — Start a pipeline run; returns SSE stream
-  GET  /health                   — Health check
+This is the main entry point for the backend. It provides endpoints to:
+  - Start a new pipeline run (and stream real-time updates back to the browser)
+  - Perform health checks
+  - Handle voice agent interactions (setting up, getting transcripts, extracting leads)
 
-CORS is configured for the Vite dev server (localhost:5173+).
-
-SSE event types emitted by /pipeline/start:
-  {"type": "init", "run_id": "..."}          — immediately on start
-  {"type": "progress", "step": "...", ...}   — sub-step progress from research queue
-  {"type": "state", "data": {...}}           — after each node updates state
-  {"type": "done"}                           — pipeline completed successfully
-  {"type": "error", "message": "..."}       — on unexpected exceptions
+We use Server-Sent Events (SSE) to stream data back to the frontend. Think of it like a 
+one-way walkie-talkie where the server can continuously push updates (like "agent finished", 
+"new step started") to the browser without the browser having to constantly ask "are you done yet?".
 """
 
 import asyncio
@@ -104,13 +101,15 @@ def sse_event(data: dict) -> str:
 
 
 async def stream_graph_with_progress(run_id: str, graph_input: dict, config: dict):
-    """Async generator that multiplexes progress queue events with graph state events.
+    """
+    The magic behind our real-time updates! 
+    
+    This function listens to two things at once:
+      1. The LangGraph pipeline (which outputs the final result of each agent)
+      2. A progress queue (which outputs granular, sub-step updates while agents are "thinking")
 
-    Yields SSE-formatted strings for:
-      - progress events from asyncio.Queue
-      - state events from graph chunks
-      - done event when graph completes
-      - error event on unexpected exception
+    It takes both of these streams, mixes them together, and sends them back to the frontend
+    as a single, continuous stream of Server-Sent Events (SSE).
     """
     queue = get_queue(run_id)
     results: list[dict] = []
@@ -183,7 +182,11 @@ async def health():
 
 @app.post("/pipeline/start")
 async def pipeline_start(payload: PipelineStartRequest):
-    """Start a new pipeline run and stream state + progress updates as SSE."""
+    """
+    Kick off a new pipeline run! 
+    When the frontend says "go", this endpoint spins up a new LangGraph process
+    and immediately opens up an SSE stream to send live updates back to the browser.
+    """
     run_id = str(uuid.uuid4())
 
     async def event_stream():
