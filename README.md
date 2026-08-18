@@ -4,8 +4,6 @@
 
 Blitz is a multi-agent AI marketing platform that transforms a single company URL into a full marketing package — research dossier, brand profile, audience segments, content strategy, sales outreach, and ad creatives — fully automated, end to end.
 
-Built as a working demo for the **Kana AI Solutions Builder** role (super{set} portfolio company).
-
 ---
 
 ## How It Works
@@ -44,7 +42,7 @@ flowchart TB
         Graph["LangGraph StateGraph<br/>6 sequential nodes"]
         LLM["LiteLLM Router<br/>GPT-4o + Gemini fallback"]
         DB["ChromaDB<br/>cross-agent context"]
-        SQLite["SQLite<br/>checkpoint persistence"]
+        Memory["MemorySaver<br/>in-memory state"]
     end
 
     subgraph External["External Services"]
@@ -65,7 +63,7 @@ flowchart TB
     API --> Graph
     Graph --> LLM
     Graph -->|"store/retrieve outputs"| DB
-    Graph -->|"checkpoint state"| SQLite
+    Graph -->|"checkpoint state"| Memory
     LLM --> OpenAI
     LLM --> Gemini
     Graph --> Tavily
@@ -118,7 +116,7 @@ classDiagram
 
     class LangGraph_Pipeline {
         +StateGraph~BlitzState~
-        +AsyncSqliteSaver checkpointer
+        +MemorySaver checkpointer
         +build_graph() CompiledGraph
     }
 
@@ -255,16 +253,6 @@ Agent 0 (Research) adds `research.py` (Tavily/Firecrawl/AEO logic) and `progress
 
 Each agent also has a `test_agent*.py` standalone test script and an `a*_imp.md` implementation changelog.
 
----
-
-## Kana Pillar Coverage
-
-| Kana Pillar | Blitz Implementation |
-|-------------|---------------------|
-| Synthetic Data Enrichment | Audience segments with expanded synthetic lookalike profiles |
-| AI-Powered Analytics | Research Scout + competitor analysis + AEO scoring |
-| Answer Engine Optimization | Multi-LLM AEO check — "Is X a good choice in its space?" across GPT-4o and Gemini |
-| Agentic Execution | 6-agent LangGraph pipeline with autonomous execution |
 
 ## Tech Stack
 
@@ -326,12 +314,12 @@ Visit `http://localhost:5173/?voice-test` for a standalone voice agent testing i
 - **Sequential pipeline**: Each agent depends on the previous agent's output. ChromaDB provides cross-agent context sharing — any agent can read any upstream agent's output by `run_id`.
 - **SSE streaming**: Real-time progress updates as each agent runs. The backend interleaves two async sources (research sub-step queue + graph state stream) into one SSE event stream. No polling.
 - **Dynamic voice agents**: Each voice session creates a new ElevenLabs agent on the fly with the Ava persona + a GPT-4o-mini summary of pipeline knowledge. The `@elevenlabs/convai-widget-embed` web component renders as a floating overlay and handles the full conversation UI.
-- **Checkpoint persistence**: `AsyncSqliteSaver` persists pipeline state to `blitz.db`. The pipeline survives server restarts — resume mid-pipeline without re-running completed agents.
+- **Checkpoint persistence**: `MemorySaver` persists pipeline state in memory. Since the pipeline runs autonomously end-to-end, in-memory state avoids database locking issues while still tracking state per run.
 
 ## Project Structure
 
 ```
-superset/
+blitz/
 ├── backend/
 │   ├── agents/
 │   │   ├── agent_0_research/      # Tavily + Firecrawl + AEO + LLM synthesis

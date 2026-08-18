@@ -1,10 +1,14 @@
-"""LangGraph StateGraph wiring — 6 agent nodes in a straight-through pipeline.
+"""
+LangGraph Pipeline Configuration
 
-Exports:
-  build_graph() — returns a compiled graph with MemorySaver checkpointer
+This file wires together our 6 AI agents into a single, automated pipeline.
+It exports a `build_graph()` function that gives us the ready-to-run graph.
 
-Agent nodes run sequentially: research → profile → audience → content → sales → ads.
-No HITL interrupts — each node runs to completion and passes data via ChromaDB.
+How it works:
+- The agents run one after another in a straight line: 
+  Research -> Profile -> Audience -> Content -> Sales -> Ads
+- There's no human intervention needed in the middle.
+- They share data with each other using ChromaDB behind the scenes.
 """
 
 from langgraph.checkpoint.memory import MemorySaver
@@ -19,11 +23,13 @@ from agents.agent_5_ads.node import agent_5_ads_node
 from state import BlitzState
 
 # ---------------------------------------------------------------------------
-# Graph builder
+# Graph Builder Setup
 # ---------------------------------------------------------------------------
 
+# We use a StateGraph to pass around our BlitzState object between agents.
 builder = StateGraph(BlitzState)
 
+# 1. First, we add all our agent functions as "nodes" in the graph.
 builder.add_node("agent_0_research", agent_0_research_node)
 builder.add_node("agent_1_profile", agent_1_profile_node)
 builder.add_node("agent_2_audience", agent_2_audience_node)
@@ -31,6 +37,7 @@ builder.add_node("agent_3_content", agent_3_content_node)
 builder.add_node("agent_4_sales", agent_4_sales_node)
 builder.add_node("agent_5_ads", agent_5_ads_node)
 
+# 2. Next, we define the flow by drawing "edges" (connections) between the nodes.
 builder.add_edge(START, "agent_0_research")
 builder.add_edge("agent_0_research", "agent_1_profile")
 builder.add_edge("agent_1_profile", "agent_2_audience")
@@ -41,11 +48,13 @@ builder.add_edge("agent_5_ads", END)
 
 
 def build_graph():
-    """Compile the graph with a MemorySaver checkpointer and return it.
-
-    MemorySaver is used instead of AsyncSqliteSaver since we no longer need
-    persistent checkpoints for HITL resume. This avoids SQLite file locking
-    issues on Windows/OneDrive.
+    """
+    Compile the graph into a runnable application.
+    
+    We use MemorySaver here to keep track of the pipeline's progress in memory. 
+    We previously used a SQLite database for this, but since we no longer need 
+    to pause and resume the pipeline (it just runs straight through), MemorySaver 
+    is much faster and avoids pesky file-locking issues, especially on Windows!
     """
     checkpointer = MemorySaver()
     return builder.compile(checkpointer=checkpointer)

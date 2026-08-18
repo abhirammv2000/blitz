@@ -38,6 +38,12 @@ interface BlitzStore {
   reset: () => void
 }
 
+// ---------------------------------------------------------------------------
+// Main State Store (Zustand)
+// ---------------------------------------------------------------------------
+// This store holds all the data for a pipeline run and handles the real-time
+// connection to the backend. It's the central nervous system of the frontend.
+
 export const useBlitzStore = create<BlitzStore>()((set) => ({
   runId: null,
   currentStep: 0,
@@ -71,13 +77,18 @@ export const useBlitzStore = create<BlitzStore>()((set) => ({
   clearResearchProgress: () => set({ researchProgress: [] }),
   setError: (err) => set({ error: err }),
   startPipeline: async (url: string) => {
+    // If we're in demo mode, skip the real backend and play pre-recorded data
     if (IS_DEMO_MODE) {
       const { startDemoPipeline } = await import('../demo/demoPlayer')
       await startDemoPipeline(url)
       return
     }
+    
+    // Reset state before starting a new run
     set({ error: null, isRunning: true, researchProgress: [] })
+    
     try {
+      // 1. Send the URL to the backend to kick off the pipeline
       const res = await fetch(`${API_BASE}/pipeline/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -85,6 +96,8 @@ export const useBlitzStore = create<BlitzStore>()((set) => ({
       })
       if (!res.ok) throw new Error(`Server error: ${res.status}`)
 
+      // 2. The backend responds with an open stream (Server-Sent Events)
+      // We read this stream chunk-by-chunk as it arrives over the wire.
       const reader = res.body?.getReader()
       if (!reader) throw new Error('No response stream')
 
@@ -93,18 +106,27 @@ export const useBlitzStore = create<BlitzStore>()((set) => ({
 
       while (true) {
         const { done, value } = await reader.read()
-        if (done) break
+        if (done) break // Stream finished
 
+        // Add the new chunk of text to our buffer
         buffer += decoder.decode(value, { stream: true })
+        
+        // SSE messages are separated by newlines. We split the buffer into individual
+        // messages. If the last chunk is incomplete (doesn't end with a newline),
+        // we keep it in the buffer for the next time we read.
         const parts = buffer.split('\n')
         buffer = parts.pop() ?? ''
 
+        // 3. Process each complete message
         for (const part of parts) {
           const line = part.trim()
           if (!line.startsWith('data: ')) continue
+          
           try {
+            // Strip the "data: " prefix and parse the JSON payload
             const event = JSON.parse(line.slice(6))
 
+            // The backend just started our run and gave us a unique ID
             if (event.type === 'init') {
               set({ runId: event.run_id })
             }
@@ -125,6 +147,8 @@ export const useBlitzStore = create<BlitzStore>()((set) => ({
               }
             }
 
+            // The backend finished a major step (an agent completed its work).
+            // This contains the actual data (like the brand profile or ad copy).
             if (event.type === 'state' && event.data) {
               for (const [key, step] of Object.entries(OUTPUT_KEYS)) {
                 if (event.data[key] !== undefined) {

@@ -1,17 +1,15 @@
-"""ChromaDB PersistentClient singleton — run_id-scoped document storage.
+"""
+ChromaDB Database Connection
 
-Design decisions:
-- Single shared ChromaDB client and collection (module-level singletons)
-- ONE collection ("blitz_pipeline") with metadata filtering for run_id isolation,
-  NOT separate collections per run — avoids collection proliferation and ChromaDB
-  limits, and makes cross-run queries easy if needed in the future
-- Document IDs are "{run_id}::{agent}" — deterministic, enables upsert semantics
-  so re-running an agent within the same run safely overwrites instead of crashing
-- PersistentClient path is "./chroma_data" — this directory is gitignored
-- Run isolation is enforced by where={"run_id": run_id} in all queries;
-  a second run_id cannot retrieve the first run's documents
-- chromadb.PersistentClient is a factory function (not a class) in chromadb 1.x,
-  so we annotate the module-level singleton with Any to avoid TypeError on |
+This file handles how our AI agents save and share their work. 
+We use a vector database called ChromaDB.
+
+How it works:
+- All agents store their outputs in a single, shared "blitz_pipeline" bucket (collection).
+- To make sure one user's pipeline doesn't accidentally read another user's data,
+  every piece of data is tagged with a unique `run_id`.
+- If an agent needs to be re-run, it just overwrites its old output using 
+  an ID like `[run_id]::[agent_name]`.
 """
 
 from __future__ import annotations
@@ -26,10 +24,10 @@ _collection: Collection | None = None
 
 
 def get_collection() -> Collection:
-    """Get or create the shared blitz_pipeline collection.
-
-    Initializes the ChromaDB PersistentClient on first call. Subsequent calls
-    return the cached collection without I/O.
+    """
+    Get (or create) the shared database collection.
+    We only initialize the connection the very first time this is called,
+    and then we reuse it to keep things fast!
     """
     global _client, _collection
     if _collection is None:
@@ -44,16 +42,18 @@ def store_agent_output(
     content: str,
     metadata: dict | None = None,
 ) -> None:
-    """Store an agent's output scoped to a run_id.
-
-    Uses upsert so re-running the same agent within the same run safely
-    overwrites the previous output without raising a duplicate ID error.
+    """
+    Save what an agent just generated into the database.
+    
+    We use `upsert`, which means "update if it exists, insert if it doesn't".
+    This is super helpful if an agent fails halfway through and we need to 
+    retry it—it won't crash trying to save the same file twice.
 
     Args:
-        run_id: The pipeline run identifier (UUID4).
-        agent: The agent name/key (e.g. "research", "profile").
-        content: The serialized agent output to store.
-        metadata: Optional additional metadata fields to attach to the document.
+        run_id: The unique ID for this specific user's pipeline run.
+        agent: Which agent is saving this? (e.g., "research", "profile")
+        content: The actual text/JSON the agent generated.
+        metadata: Any extra tags we want to attach to this saved file.
     """
     col = get_collection()
     meta: dict = {"run_id": run_id, "agent": agent}
