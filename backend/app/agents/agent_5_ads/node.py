@@ -24,25 +24,51 @@ from app.agents.agent_5_ads.prompts import (
 )
 from app.agents.agent_5_ads.schemas import AdsOutput
 from app.config import settings
-from app.core.llm import get_router
+from app.core.llm import api_key_for_model, get_router
 from app.db import get_agent_context, store_agent_output
 from app.state import BlitzState
 
 logger = logging.getLogger(__name__)
 
-# OpenAI retired dall-e-3; gpt-image-1 is the current image model and returns base64.
+# OpenAI retired dall-e-3; gpt-image-1 is the current OpenAI image model.
+# Gemini also generates images (e.g. gemini/gemini-3.1-flash-image) and works
+# with this same call signature, so IMAGE_MODEL can point at either provider.
+# Both return base64 rather than a URL.
 IMAGE_MODEL = settings.image_model
 
 
+# Base64 payloads are identified by their leading bytes. Providers differ on
+# format — gpt-image-1 returns PNG, Gemini returns JPEG — and a data URI whose
+# declared type does not match its payload can fail to render in the browser.
+_MAGIC_PREFIXES = (
+    ("iVBORw0KGgo", "image/png"),   # 89 50 4E 47
+    ("/9j/", "image/jpeg"),          # FF D8 FF
+    ("R0lGOD", "image/gif"),         # GIF8
+    ("UklGR", "image/webp"),         # RIFF
+)
+
+
+def _image_mime(b64: str) -> str:
+    """Infer the MIME type of a base64 image from its magic bytes."""
+    for prefix, mime in _MAGIC_PREFIXES:
+        if b64.startswith(prefix):
+            return mime
+    return "image/png"
+
+
 async def generate_ad_image(prompt: str) -> str | None:
-    """Generate a single ad image via the configured OpenAI image model.
+    """Generate a single ad image via the configured image model.
+
+    Works against either provider: IMAGE_MODEL may name an OpenAI model
+    (gpt-image-1) or a Gemini one (gemini/gemini-3.1-flash-image), and the
+    credential is selected to match.
 
     Args:
         prompt: Image generation prompt string.
 
     Returns:
-        An image URL, or a `data:image/png;base64,...` URI for models that
-        return base64 (gpt-image-1). None if generation fails.
+        An image URL, or a `data:<mime>;base64,...` URI for models that return
+        base64. None if generation fails — callers treat images as optional.
     """
     try:
         response = await asyncio.wait_for(
@@ -51,7 +77,7 @@ async def generate_ad_image(prompt: str) -> str | None:
                 prompt=prompt,
                 n=1,
                 size=settings.image_size,
-                api_key=settings.openai_api_key,
+                api_key=api_key_for_model(IMAGE_MODEL),
             ),
             timeout=settings.image_timeout_seconds,
         )
@@ -62,11 +88,11 @@ async def generate_ad_image(prompt: str) -> str | None:
             return url
         b64 = getattr(item, "b64_json", None)
         if b64:
-            return f"data:image/png;base64,{b64}"
+            return f"data:{_image_mime(b64)};base64,{b64}"
         logger.warning("Image gen returned neither url nor b64_json")
         return None
     except asyncio.TimeoutError:
-        logger.warning("Image gen timed out after 120s")
+        logger.warning("Image gen timed out after %ss", settings.image_timeout_seconds)
         return None
     except Exception as e:
         logger.warning("Image gen failed (%s): %s", IMAGE_MODEL, e)
