@@ -14,6 +14,7 @@ import re
 from agents.agent_4_sales.prompts import SALES_SYNTHESIS_PROMPT
 from agents.agent_4_sales.schemas import SalesOutput
 from db import get_agent_context, store_agent_output
+from config import settings
 from llm import get_router
 from state import BlitzState
 
@@ -69,7 +70,7 @@ async def run_sales(run_id: str, feedback: str | None = None) -> SalesOutput:
     response = await get_router().acompletion(
         model="primary",
         messages=[{"role": "user", "content": prompt}],
-        temperature=0.4,
+        temperature=settings.sales_temperature,
     )
 
     content = response.choices[0].message.content or "{}"

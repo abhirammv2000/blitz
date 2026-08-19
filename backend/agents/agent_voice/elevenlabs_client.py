@@ -11,20 +11,20 @@ Optional:
 from __future__ import annotations
 
 import json as _json
-import os
 
 import httpx
 
 from agents.agent_voice.models import SetupCheckResponse
+from config import settings
 
-_ELEVENLABS_BASE = "https://api.elevenlabs.io/v1"
+_ELEVENLABS_BASE = settings.elevenlabs_base_url
 
 _REQUIRED_ENV_VARS = [
     "ELEVENLABS_API_KEY",
 ]
 
 # ElevenLabs "Sarah" voice — warm, professional female
-_DEFAULT_VOICE_ID = "EXAVITQu4vr4xnSDxMaL"
+_DEFAULT_VOICE_ID = settings.elevenlabs_voice_id
 
 _PERSONALITY_TEMPLATE = """\
 You are Ava, a friendly and enthusiastic sales representative who works at {company_name}. You are making an outbound sales call to a potential customer.
@@ -149,10 +149,10 @@ async def create_agent(prompt: str, first_message: str, voice_id: str | None = N
 
     POST /v1/convai/agents creates a disposable agent with the given prompt.
     """
-    api_key = os.environ["ELEVENLABS_API_KEY"]
-    vid = voice_id or os.environ.get("ELEVENLABS_VOICE_ID", _DEFAULT_VOICE_ID)
+    api_key = settings.elevenlabs_api_key
+    vid = voice_id or _DEFAULT_VOICE_ID
 
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with httpx.AsyncClient(timeout=settings.elevenlabs_timeout_seconds) as client:
         response = await client.post(
             f"{_ELEVENLABS_BASE}/convai/agents/create",
             headers={"xi-api-key": api_key, "Content-Type": "application/json"},
@@ -180,9 +180,9 @@ async def get_conversation_token(agent_id: str) -> str:
     The frontend uses this token with the @11labs/react SDK:
       conversation.startSession({ conversationToken: token })
     """
-    api_key = os.environ["ELEVENLABS_API_KEY"]
+    api_key = settings.elevenlabs_api_key
 
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with httpx.AsyncClient(timeout=settings.elevenlabs_timeout_seconds) as client:
         response = await client.get(
             f"{_ELEVENLABS_BASE}/convai/conversation/token",
             params={"agent_id": agent_id},
@@ -195,9 +195,9 @@ async def get_conversation_token(agent_id: str) -> str:
 
 async def get_transcript(conversation_id: str) -> dict:
     """Fetch the transcript for a completed ElevenLabs conversation."""
-    api_key = os.environ["ELEVENLABS_API_KEY"]
+    api_key = settings.elevenlabs_api_key
 
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with httpx.AsyncClient(timeout=settings.elevenlabs_timeout_seconds) as client:
         try:
             response = await client.get(
                 f"{_ELEVENLABS_BASE}/convai/conversations/{conversation_id}",
@@ -255,5 +255,5 @@ async def extract_lead_from_transcript(messages: list[dict], company_name: str) 
 
 def check_setup() -> SetupCheckResponse:
     """Validate that all required ElevenLabs environment variables are configured."""
-    missing = [var for var in _REQUIRED_ENV_VARS if not os.environ.get(var)]
+    missing = [var for var in _REQUIRED_ENV_VARS if not getattr(settings, var.lower(), "")]
     return SetupCheckResponse(configured=len(missing) == 0, missing=missing)

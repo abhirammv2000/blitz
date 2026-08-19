@@ -12,7 +12,6 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import os
 import re
 
 import litellm
@@ -20,13 +19,14 @@ import litellm
 from agents.agent_5_ads.prompts import ADS_SYNTHESIS_PROMPT, IMAGE_PROMPT_SYNTHESIS, IMAGE_STYLES, DEFAULT_IMAGE_STYLE
 from agents.agent_5_ads.schemas import AdsOutput
 from db import get_agent_context, store_agent_output
+from config import settings
 from llm import get_router
 from state import BlitzState
 
 logger = logging.getLogger(__name__)
 
 # OpenAI retired dall-e-3; gpt-image-1 is the current image model and returns base64.
-IMAGE_MODEL = os.environ.get("IMAGE_MODEL", "gpt-image-1")
+IMAGE_MODEL = settings.image_model
 
 
 async def generate_ad_image(prompt: str) -> str | None:
@@ -45,10 +45,10 @@ async def generate_ad_image(prompt: str) -> str | None:
                 model=IMAGE_MODEL,
                 prompt=prompt,
                 n=1,
-                size="1024x1024",
-                api_key=os.environ.get("OPENAI_API_KEY", ""),
+                size=settings.image_size,
+                api_key=settings.openai_api_key,
             ),
-            timeout=120.0,
+            timeout=settings.image_timeout_seconds,
         )
         item = response.data[0]
         # gpt-image-1 returns base64 only; older url-returning models still work.
@@ -117,7 +117,7 @@ async def run_ads(run_id: str, feedback: str | None = None) -> AdsOutput:
     response = await get_router().acompletion(
         model="primary",
         messages=[{"role": "user", "content": prompt}],
-        temperature=0.5,
+        temperature=settings.ads_temperature,
     )
 
     content = response.choices[0].message.content or "{}"
@@ -169,7 +169,7 @@ async def run_ads(run_id: str, feedback: str | None = None) -> AdsOutput:
         img_response = await get_router().acompletion(
             model="mini",
             messages=[{"role": "user", "content": img_prompt}],
-            temperature=0.8,
+            temperature=settings.image_prompt_temperature,
         )
 
         img_content = img_response.choices[0].message.content or "[]"

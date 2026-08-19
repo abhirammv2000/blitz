@@ -26,23 +26,16 @@ Gemini 2.5 models return 404 ("no longer available to new users") — do not
 reintroduce them here without re-verifying against the live API.
 """
 
-import os
-
 from litellm import Router
 from litellm.router import RetryPolicy
 
+from config import settings
+
 _router: Router | None = None
 
-# Per-attempt ceiling. Generous by design: a slow call that succeeds is far
-# cheaper than a fast failure that discards the whole pipeline run.
-REQUEST_TIMEOUT_SECONDS = 90.0
-
-# Every model is overridable by environment variable so the deployment can swap
-# providers — including making Gemini primary — without a code change.
-PRIMARY_MODEL = os.environ.get("PRIMARY_MODEL", "openai/gpt-4o")
-PRIMARY_FALLBACK_MODEL = os.environ.get("FALLBACK_MODEL", "gemini/gemini-3.6-flash")
-MINI_MODEL = os.environ.get("MINI_MODEL", "openai/gpt-4o-mini")
-MINI_FALLBACK_MODEL = os.environ.get("MINI_FALLBACK_MODEL", "gemini/gemini-3.5-flash-lite")
+# Kept as module attributes for readability at the call sites below; the values
+# themselves are owned by config.Settings and sourced from the environment.
+REQUEST_TIMEOUT_SECONDS = settings.request_timeout_seconds
 
 
 def _api_key_for(model: str) -> str:
@@ -54,8 +47,8 @@ def _api_key_for(model: str) -> str:
     primary working while every request is actually served by the fallback.
     """
     if model.startswith("gemini/"):
-        return os.environ.get("GEMINI_API_KEY", "")
-    return os.environ.get("OPENAI_API_KEY", "")
+        return settings.gemini_api_key
+    return settings.openai_api_key
 
 
 def _entry(name: str, model: str) -> dict:
@@ -79,31 +72,31 @@ def get_router() -> Router:
     if _router is None:
         _router = Router(
             model_list=[
-                _entry("primary", PRIMARY_MODEL),
-                _entry("fallback", PRIMARY_FALLBACK_MODEL),
-                _entry("mini", MINI_MODEL),
-                _entry("mini_fallback", MINI_FALLBACK_MODEL),
+                _entry("primary", settings.primary_model),
+                _entry("fallback", settings.fallback_model),
+                _entry("mini", settings.mini_model),
+                _entry("mini_fallback", settings.mini_fallback_model),
             ],
             fallbacks=[
                 {"primary": ["fallback"]},
                 {"mini": ["mini_fallback"]},
             ],
-            timeout=REQUEST_TIMEOUT_SECONDS,
-            num_retries=2,
+            timeout=settings.request_timeout_seconds,
+            num_retries=settings.llm_num_retries,
             # Retry what is worth retrying. Bad requests and auth failures are
             # deterministic — retrying them just burns latency before the same error.
             retry_policy=RetryPolicy(
-                TimeoutErrorRetries=2,
-                RateLimitErrorRetries=3,
-                InternalServerErrorRetries=2,
+                TimeoutErrorRetries=settings.timeout_retries,
+                RateLimitErrorRetries=settings.rate_limit_retries,
+                InternalServerErrorRetries=settings.server_error_retries,
                 BadRequestErrorRetries=0,
                 AuthenticationErrorRetries=0,
                 ContentPolicyViolationErrorRetries=0,
             ),
             # Take a route out of rotation briefly after repeated failures so a
             # provider outage fails over instead of retrying into a wall.
-            allowed_fails=3,
-            cooldown_time=30,
+            allowed_fails=settings.router_allowed_fails,
+            cooldown_time=settings.router_cooldown_seconds,
         )
     return _router
 

@@ -13,8 +13,9 @@ one-way walkie-talkie where the server can continuously push updates (like "agen
 
 import asyncio
 import json
-import os
+import logging
 import uuid
+from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
@@ -43,6 +44,7 @@ from agents.agent_voice.elevenlabs_client import (
     summarize_agent_outputs,
 )
 from db import get_agent_context, get_agent_output
+from config import settings
 from graph import build_graph
 from llm import describe_exception
 from leads_db import get_leads_for_run, init_leads_table, insert_lead
@@ -58,27 +60,38 @@ load_dotenv(_backend_dir.parent / ".env", override=True)
 
 graph = None  # type: ignore[assignment]
 
+logging.basicConfig(
+    level=settings.log_level,
+    format="%(asctime)s %(levelname)-8s %(name)s | %(message)s",
+)
+logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Blitz Pipeline API")
 
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    """Build the pipeline graph and prepare storage once per process.
 
-@app.on_event("startup")
-async def startup():
+    Uses the lifespan protocol rather than @app.on_event, which FastAPI has
+    deprecated.
+    """
     global graph  # noqa: PLW0603
     graph = build_graph()
     init_leads_table()
+    logger.info(
+        "Blitz API ready | primary=%s mini=%s | %d CORS origin(s)",
+        settings.primary_model,
+        settings.mini_model,
+        len(settings.allowed_origins),
+    )
+    yield
 
 
-# Dev defaults cover the Vite dev-server port range. Any real deployment must set
-# CORS_ORIGINS (comma-separated) — the hardcoded localhost list silently blocked
-# every non-localhost origin, including the built frontend on its preview port.
-_DEV_ORIGINS = [f"http://localhost:{port}" for port in range(5173, 5200)]
-_configured_origins = os.environ.get("CORS_ORIGINS", "").strip()
-ALLOWED_ORIGINS = (
-    [o.strip() for o in _configured_origins.split(",") if o.strip()]
-    if _configured_origins
-    else _DEV_ORIGINS
-)
+app = FastAPI(title="Blitz Pipeline API", lifespan=lifespan)
+
+
+# Defaults to the Vite dev-server port range; any real deployment must set
+# CORS_ORIGINS or the browser blocks the frontend. See config.Settings.
+ALLOWED_ORIGINS = settings.allowed_origins
 
 app.add_middleware(
     CORSMiddleware,
@@ -232,7 +245,7 @@ async def pipeline_start(payload: PipelineStartRequest):
 # ---------------------------------------------------------------------------
 
 _image_counts: dict[str, int] = {}
-IMAGE_CAP = 3
+IMAGE_CAP = settings.image_cap_per_run
 
 
 class ImageGenRequest(BaseModel):

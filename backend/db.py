@@ -20,7 +20,38 @@ from typing import Any
 import chromadb
 from chromadb import Collection
 
-_client: Any = None  # chromadb.PersistentClient instance (factory fn, not a class)
+from chromadb.api.types import EmbeddingFunction
+
+from config import settings
+
+
+class _NoopEmbedding(EmbeddingFunction):
+    """Placeholder embedding used when similarity search is switched off.
+
+    Chroma requires an embedding function even when documents are only ever
+    fetched by id. Returning a constant skips the ONNX model entirely.
+    """
+
+    def __init__(self) -> None:  # noqa: D107 - required by chromadb
+        pass
+
+    def __call__(self, input):  # noqa: A002 - name fixed by the chromadb interface
+        return [[0.0] for _ in input]
+
+    @staticmethod
+    def name() -> str:
+        return "noop"
+
+    def get_config(self) -> dict:
+        """Serialised form, persisted with the collection by chromadb."""
+        return {}
+
+    @staticmethod
+    def build_from_config(config: dict) -> "_NoopEmbedding":
+        return _NoopEmbedding()
+
+
+_client: Any = None  # chromadb client instance (factory fn, not a class)
 _collection: Collection | None = None
 
 
@@ -29,12 +60,34 @@ def get_collection() -> Collection:
     Get (or create) the shared database collection.
     We only initialize the connection the very first time this is called,
     and then we reuse it to keep things fast!
+
+    The path is resolved absolutely from settings, so launching the app from a
+    different working directory reuses the same store instead of silently
+    creating a second one. Tests set CHROMA_IN_MEMORY to get an ephemeral client,
+    which needs no files and cannot hit the file-locking races a persistent
+    client suffers on Windows.
     """
     global _client, _collection
     if _collection is None:
-        _client = chromadb.PersistentClient(path="./chroma_data")
-        _collection = _client.get_or_create_collection("blitz_pipeline")
+        if settings.chroma_in_memory:
+            _client = chromadb.EphemeralClient()
+        else:
+            _client = chromadb.PersistentClient(path=str(settings.chroma_dir))
+        kwargs = {}
+        if settings.chroma_disable_embeddings:
+            kwargs["embedding_function"] = _NoopEmbedding()
+        _collection = _client.get_or_create_collection(settings.chroma_collection, **kwargs)
     return _collection
+
+
+def reset_client() -> None:
+    """Drop the cached client and collection.
+
+    Only for tests, which need a clean store between cases.
+    """
+    global _client, _collection
+    _client = None
+    _collection = None
 
 
 def store_agent_output(
@@ -114,7 +167,7 @@ def get_agent_output(run_id: str, agent: str) -> str | None:
 # agents read the distillation, not the raw markdown.
 #
 # It stays stored in full — only the prompt-facing copy is trimmed.
-_PROMPT_TRIMMED_FIELDS: dict[str, int] = {"site_content": 1500}
+_PROMPT_TRIMMED_FIELDS: dict[str, int] = {"site_content": settings.site_content_prompt_chars}
 
 
 def get_agent_context(run_id: str, agent: str) -> str | None:

@@ -7,9 +7,10 @@ from __future__ import annotations
 
 import sqlite3
 from datetime import datetime, timezone
-from pathlib import Path
 
-_DB_PATH = Path(__file__).resolve().parent / "blitz.db"
+from config import settings
+
+_DB_PATH = settings.sqlite_file
 
 
 def _get_conn() -> sqlite3.Connection:

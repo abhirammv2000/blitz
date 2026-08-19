@@ -14,6 +14,7 @@ import re
 from agents.agent_3_content.prompts import CONTENT_SYNTHESIS_PROMPT
 from agents.agent_3_content.schemas import ContentOutput
 from db import get_agent_context, store_agent_output
+from config import settings
 from llm import get_router
 from state import BlitzState
 
@@ -70,14 +71,14 @@ async def run_content(run_id: str, feedback: str | None = None) -> ContentOutput
     response = await get_router().acompletion(
         model="primary",
         messages=[{"role": "user", "content": prompt}],
-        temperature=0.4,
+        temperature=settings.content_temperature,
         # Sized for the FALLBACK, not the primary. gpt-4o spends ~2.1k output
         # tokens here, but gemini-3.6-flash is a thinking model and charges its
         # reasoning against the same budget (measured: 5.9k reasoning + 6.1k
         # output). At 8000 it hit the cap at exactly 7996 and returned JSON
         # truncated mid-string. max_tokens is a ceiling, not a target, so the
         # larger value costs nothing when the primary serves the request.
-        max_tokens=16000,
+        max_tokens=settings.content_max_tokens,
     )
 
     content = response.choices[0].message.content or "{}"

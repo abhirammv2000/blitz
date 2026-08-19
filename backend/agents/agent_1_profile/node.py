@@ -14,6 +14,7 @@ import re
 from agents.agent_1_profile.prompts import PROFILE_SYNTHESIS_PROMPT
 from agents.agent_1_profile.schemas import MarketingProfile
 from db import get_agent_context, store_agent_output
+from config import settings
 from llm import get_router
 from state import BlitzState
 
@@ -53,7 +54,7 @@ async def run_profile(run_id: str, feedback: str | None = None) -> MarketingProf
     response = await get_router().acompletion(
         model="primary",
         messages=[{"role": "user", "content": prompt}],
-        temperature=0.3,
+        temperature=settings.profile_temperature,
     )
 
     content = response.choices[0].message.content or "{}"
