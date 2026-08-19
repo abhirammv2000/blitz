@@ -110,14 +110,14 @@ Return ONLY valid JSON, no markdown formatting or explanation.
 
 async def summarize_agent_outputs(agent_outputs: dict[str, str]) -> str:
     """Summarize all upstream agent outputs into a concise knowledge brief via gpt-4o-mini."""
-    import litellm
+    from llm import get_router
 
     combined = ""
     for agent_name, output_text in agent_outputs.items():
         combined += f"\n### {agent_name}\n{output_text}\n"
 
-    response = await litellm.acompletion(
-        model="openai/gpt-4o-mini",
+    response = await get_router().acompletion(
+        model="mini",
         messages=[
             {"role": "system", "content": "You are a concise business analyst."},
             {"role": "user", "content": _SUMMARIZE_PROMPT.format(agent_outputs=combined)},
@@ -213,15 +213,15 @@ async def get_transcript(conversation_id: str) -> dict:
 
 async def extract_lead_from_transcript(messages: list[dict], company_name: str) -> dict:
     """Use gpt-4o-mini to extract structured lead data from a conversation transcript."""
-    import litellm
+    from llm import get_router
 
     transcript_text = "\n".join(
         f"{m.get('role', 'unknown')}: {m.get('message') or m.get('content', '')}"
         for m in messages
     )
 
-    response = await litellm.acompletion(
-        model="openai/gpt-4o-mini",
+    response = await get_router().acompletion(
+        model="mini",
         messages=[
             {"role": "system", "content": "You extract structured data from sales call transcripts. Return only valid JSON."},
             {"role": "user", "content": _LEAD_EXTRACTION_PROMPT.format(

@@ -161,20 +161,20 @@ async def run_ads(run_id: str, feedback: str | None = None) -> AdsOutput:
         style_directive=style_directive,
     )
 
-    img_response = await asyncio.wait_for(
-        litellm.acompletion(
-            model="openai/gpt-4o-mini",
-            messages=[{"role": "user", "content": img_prompt}],
-            api_key=os.environ.get("OPENAI_API_KEY", ""),
-            temperature=0.8,
-        ),
-        timeout=60.0,
-    )
-
-    img_content = img_response.choices[0].message.content or "[]"
-    img_content = re.sub(r"```(?:json)?\n?", "", img_content).strip().rstrip("```").strip()
-
+    # Image prompts are a refinement on top of an already-complete AdsOutput.
+    # This call used to sit outside the try below, so any failure here — a
+    # provider outage, an empty balance — destroyed the entire run's ad output
+    # instead of just leaving the default prompts in place.
     try:
+        img_response = await get_router().acompletion(
+            model="mini",
+            messages=[{"role": "user", "content": img_prompt}],
+            temperature=0.8,
+        )
+
+        img_content = img_response.choices[0].message.content or "[]"
+        img_content = re.sub(r"```(?:json)?\n?", "", img_content).strip().rstrip("```").strip()
+
         img_prompts = json.loads(img_content)
         visual_map = {f"{v.segment} + {v.platform}": i for i, v in enumerate(output.ad_visuals)}
         ab_map = {f"{ab.ad_copy_ref} + {ab.variant_label}": i for i, ab in enumerate(output.ab_variations)}

@@ -1,11 +1,17 @@
-"""LiteLLM Router singleton — all load-bearing LLM calls go through this.
+"""LiteLLM Router singleton — all LLM calls in the pipeline go through this.
 
-Design decisions:
-- Single shared Router instance (module-level singleton via get_router())
-- Primary model: openai/gpt-4o — best reasoning for agent tasks
-- Fallback model: gemini/gemini-3.6-flash — automatic when the primary fails
-- Reliability is configured on the Router itself (timeout, retries, retry policy)
-  rather than hand-rolled at each of the ~7 agent call sites.
+Two model groups, so cost tier is a routing decision rather than a hardcoded
+model name at each call site:
+
+    "primary"  — the reasoning-heavy agent synthesis calls
+    "mini"     — small utility calls (entity extraction, categorisation,
+                 summarisation) that do not need the expensive model
+
+Each group has an automatic cross-provider fallback, so no single provider
+being down or out of credits is fatal to a run.
+
+Reliability is configured on the Router itself (timeout, retries, retry policy)
+rather than hand-rolled at every call site.
 
 Timeout sizing is based on measured latency, not guesswork. Observed p50 for the
 agent synthesis calls on an idle system: profile 11.5s, audience 12.9s,
@@ -31,39 +37,57 @@ _router: Router | None = None
 # cheaper than a fast failure that discards the whole pipeline run.
 REQUEST_TIMEOUT_SECONDS = 90.0
 
+# Every model is overridable by environment variable so the deployment can swap
+# providers — including making Gemini primary — without a code change.
 PRIMARY_MODEL = os.environ.get("PRIMARY_MODEL", "openai/gpt-4o")
-FALLBACK_MODEL = os.environ.get("FALLBACK_MODEL", "gemini/gemini-3.6-flash")
+PRIMARY_FALLBACK_MODEL = os.environ.get("FALLBACK_MODEL", "gemini/gemini-3.6-flash")
+MINI_MODEL = os.environ.get("MINI_MODEL", "openai/gpt-4o-mini")
+MINI_FALLBACK_MODEL = os.environ.get("MINI_FALLBACK_MODEL", "gemini/gemini-3.5-flash-lite")
+
+
+def _api_key_for(model: str) -> str:
+    """Pick the API key matching the model's provider prefix.
+
+    Necessary because the model names are environment-overridable: hardcoding
+    OPENAI_API_KEY to the "primary" slot silently sends an OpenAI key to Gemini
+    when PRIMARY_MODEL is switched, which fails in a way that looks like the
+    primary working while every request is actually served by the fallback.
+    """
+    if model.startswith("gemini/"):
+        return os.environ.get("GEMINI_API_KEY", "")
+    return os.environ.get("OPENAI_API_KEY", "")
+
+
+def _entry(name: str, model: str) -> dict:
+    return {
+        "model_name": name,
+        "litellm_params": {"model": model, "api_key": _api_key_for(model)},
+    }
 
 
 def get_router() -> Router:
-    """Get or create the LiteLLM Router with primary (OpenAI) and fallback (Gemini).
+    """Get or create the shared LiteLLM Router.
 
     Thread-safe via Python's GIL for the simple singleton assignment.
     Returns the same Router instance on every call after initialization.
 
-    Call it with model="primary"; the Router handles retries, rate-limit backoff,
-    and failover to Gemini transparently.
+    Call it with model="primary" for agent synthesis or model="mini" for cheap
+    utility calls; the Router handles retries, rate-limit backoff, and failover
+    to the other provider transparently.
     """
     global _router
     if _router is None:
         _router = Router(
             model_list=[
-                {
-                    "model_name": "primary",
-                    "litellm_params": {
-                        "model": PRIMARY_MODEL,
-                        "api_key": os.environ.get("OPENAI_API_KEY", ""),
-                    },
-                },
-                {
-                    "model_name": "fallback",
-                    "litellm_params": {
-                        "model": FALLBACK_MODEL,
-                        "api_key": os.environ.get("GEMINI_API_KEY", ""),
-                    },
-                },
+                _entry("primary", PRIMARY_MODEL),
+                _entry("fallback", PRIMARY_FALLBACK_MODEL),
+                _entry("mini", MINI_MODEL),
+                _entry("mini_fallback", MINI_FALLBACK_MODEL),
             ],
-            fallbacks=[{"primary": ["fallback"]}],
+            fallbacks=[
+                {"primary": ["fallback"]},
+                {"mini": ["mini_fallback"]},
+            ],
             timeout=REQUEST_TIMEOUT_SECONDS,
             num_retries=2,
             # Retry what is worth retrying. Bad requests and auth failures are
