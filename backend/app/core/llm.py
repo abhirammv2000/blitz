@@ -38,7 +38,7 @@ _router: Router | None = None
 REQUEST_TIMEOUT_SECONDS = settings.request_timeout_seconds
 
 
-def _api_key_for(model: str) -> str:
+def api_key_for_model(model: str) -> str:
     """Pick the API key matching the model's provider prefix.
 
     Necessary because the model names are environment-overridable: hardcoding
@@ -51,10 +51,14 @@ def _api_key_for(model: str) -> str:
     return settings.openai_api_key
 
 
+# Kept as a private alias so existing callers and tests keep working.
+_api_key_for = api_key_for_model
+
+
 def _entry(name: str, model: str) -> dict:
     return {
         "model_name": name,
-        "litellm_params": {"model": model, "api_key": _api_key_for(model)},
+        "litellm_params": {"model": model, "api_key": api_key_for_model(model)},
     }
 
 
