@@ -1,5 +1,5 @@
 import { type ReactNode } from 'react'
-import { useBlitzStore } from '../store/useBlitzStore'
+import { useBlitzStore, type ResearchProgressStep } from '../store/useBlitzStore'
 import DossierView from './DossierView'
 import ProfileView from './ProfileView'
 import AudienceView from './AudienceView'
@@ -41,7 +41,7 @@ function StepHeader({ displayNumber, agentName, subtitle }: { displayNumber: num
   )
 }
 
-function LoadingState({ displayNumber, agentName, subtitle, progress }: { displayNumber: number; agentName: string; subtitle: string; progress: unknown[] }) {
+function LoadingState({ displayNumber, agentName, subtitle, progress }: { displayNumber: number; agentName: string; subtitle: string; progress: ResearchProgressStep[] }) {
   return (
     <div className="flex flex-col gap-6">
       <StepHeader displayNumber={displayNumber} agentName={agentName} subtitle={subtitle} />

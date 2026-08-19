@@ -24,31 +24,46 @@ from state import BlitzState
 
 logger = logging.getLogger(__name__)
 
+# OpenAI retired dall-e-3; gpt-image-1 is the current image model and returns base64.
+IMAGE_MODEL = os.environ.get("IMAGE_MODEL", "gpt-image-1")
+
 
 async def generate_ad_image(prompt: str) -> str | None:
-    """Generate a single DALL-E 3 image for an ad variation.
+    """Generate a single ad image via the configured OpenAI image model.
 
     Args:
-        prompt: DALL-E 3 ready prompt string.
+        prompt: Image generation prompt string.
 
     Returns:
-        Public image URL string, or None if generation fails.
+        An image URL, or a `data:image/png;base64,...` URI for models that
+        return base64 (gpt-image-1). None if generation fails.
     """
     try:
         response = await asyncio.wait_for(
             litellm.aimage_generation(
-                model="dall-e-3",
+                model=IMAGE_MODEL,
                 prompt=prompt,
                 n=1,
                 size="1024x1024",
-                response_format="url",
                 api_key=os.environ.get("OPENAI_API_KEY", ""),
             ),
-            timeout=60.0,
+            timeout=120.0,
         )
-        return response.data[0].url
-    except (asyncio.TimeoutError, Exception) as e:
-        logger.warning("DALL-E 3 image gen failed: %s", e)
+        item = response.data[0]
+        # gpt-image-1 returns base64 only; older url-returning models still work.
+        url = getattr(item, "url", None)
+        if url:
+            return url
+        b64 = getattr(item, "b64_json", None)
+        if b64:
+            return f"data:image/png;base64,{b64}"
+        logger.warning("Image gen returned neither url nor b64_json")
+        return None
+    except asyncio.TimeoutError:
+        logger.warning("Image gen timed out after 120s")
+        return None
+    except Exception as e:
+        logger.warning("Image gen failed (%s): %s", IMAGE_MODEL, e)
         return None
 
 
@@ -187,8 +202,9 @@ async def agent_5_ads_node(state: BlitzState) -> dict:
         State update dict with current_step and ads_output.
     """
     run_id: str = state.get("run_id", "")
+    feedback = state.get("ads_critic_feedback", None)
 
-    output = await run_ads(run_id)
+    output = await run_ads(run_id, feedback=feedback)
 
     store_agent_output(run_id, "ads", json.dumps(output.model_dump()))
 

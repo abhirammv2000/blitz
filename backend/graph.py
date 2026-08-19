@@ -20,6 +20,7 @@ from agents.agent_2_audience.node import agent_2_audience_node
 from agents.agent_3_content.node import agent_3_content_node
 from agents.agent_4_sales.node import agent_4_sales_node
 from agents.agent_5_ads.node import agent_5_ads_node
+from agents.agent_5_ads.critic import critic_ads_node
 from state import BlitzState
 
 # ---------------------------------------------------------------------------
@@ -36,6 +37,7 @@ builder.add_node("agent_2_audience", agent_2_audience_node)
 builder.add_node("agent_3_content", agent_3_content_node)
 builder.add_node("agent_4_sales", agent_4_sales_node)
 builder.add_node("agent_5_ads", agent_5_ads_node)
+builder.add_node("critic_ads", critic_ads_node)
 
 # 2. Next, we define the flow by drawing "edges" (connections) between the nodes.
 builder.add_edge(START, "agent_0_research")
@@ -44,7 +46,14 @@ builder.add_edge("agent_1_profile", "agent_2_audience")
 builder.add_edge("agent_2_audience", "agent_3_content")
 builder.add_edge("agent_3_content", "agent_4_sales")
 builder.add_edge("agent_4_sales", "agent_5_ads")
-builder.add_edge("agent_5_ads", END)
+builder.add_edge("agent_5_ads", "critic_ads")
+
+def route_after_critic(state: BlitzState):
+    if state.get("ads_approved"):
+        return END
+    return "agent_5_ads"
+
+builder.add_conditional_edges("critic_ads", route_after_critic, {"agent_5_ads": "agent_5_ads", END: END})
 
 
 def build_graph():
