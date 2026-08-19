@@ -13,6 +13,7 @@ one-way walkie-talkie where the server can continuously push updates (like "agen
 
 import asyncio
 import json
+import os
 import uuid
 
 from dotenv import load_dotenv
@@ -43,6 +44,7 @@ from agents.agent_voice.elevenlabs_client import (
 )
 from db import get_agent_output
 from graph import build_graph
+from llm import describe_exception
 from leads_db import get_leads_for_run, init_leads_table, insert_lead
 
 from pathlib import Path
@@ -67,9 +69,20 @@ async def startup():
     init_leads_table()
 
 
+# Dev defaults cover the Vite dev-server port range. Any real deployment must set
+# CORS_ORIGINS (comma-separated) — the hardcoded localhost list silently blocked
+# every non-localhost origin, including the built frontend on its preview port.
+_DEV_ORIGINS = [f"http://localhost:{port}" for port in range(5173, 5200)]
+_configured_origins = os.environ.get("CORS_ORIGINS", "").strip()
+ALLOWED_ORIGINS = (
+    [o.strip() for o in _configured_origins.split(",") if o.strip()]
+    if _configured_origins
+    else _DEV_ORIGINS
+)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[f"http://localhost:{port}" for port in range(5173, 5200)],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -130,43 +143,52 @@ async def stream_graph_with_progress(run_id: str, graph_input: dict, config: dic
 
     task = asyncio.create_task(graph_runner())
 
-    try:
-        while not task.done():
-            while True:
-                try:
-                    evt = queue.get_nowait()
-                    yield sse_event({"type": "progress", **evt})
-                except asyncio.QueueEmpty:
-                    break
-
-            while results:
-                chunk = results.pop(0)
-                safe = {k: v for k, v in chunk.items() if not k.startswith("__")}
-                yield sse_event({"type": "state", "data": safe})
-
-            await asyncio.sleep(0.05)
-
-        if graph_error is not None:
-            yield sse_event({"type": "error", "message": str(graph_error)})
-            return
-
-        # Drain remaining progress events
+    def drain_progress() -> list[str]:
+        events = []
         while True:
             try:
-                evt = queue.get_nowait()
-                yield sse_event({"type": "progress", **evt})
+                events.append(sse_event({"type": "progress", **queue.get_nowait()}))
             except asyncio.QueueEmpty:
-                break
+                return events
 
-        # Drain remaining state results
+    def drain_results() -> list[str]:
+        events = []
         while results:
             chunk = results.pop(0)
             safe = {k: v for k, v in chunk.items() if not k.startswith("__")}
-            yield sse_event({"type": "state", "data": safe})
+            events.append(sse_event({"type": "state", "data": safe}))
+        return events
+
+    try:
+        while not task.done():
+            for evt in drain_progress():
+                yield evt
+            for evt in drain_results():
+                yield evt
+            await asyncio.sleep(0.05)
+
+        # Always flush what did complete before reporting anything. A failure in
+        # agent 5 must not throw away the five agents that already succeeded —
+        # the client has paid for that work and should receive it.
+        for evt in drain_progress():
+            yield evt
+        for evt in drain_results():
+            yield evt
+
+        if graph_error is not None:
+            # str(asyncio.TimeoutError()) is "", which reached users as a blank
+            # error message. describe_exception() always yields something useful.
+            yield sse_event({"type": "error", "message": describe_exception(graph_error)})
+            return
 
         yield sse_event({"type": "done"})
 
     finally:
+        # If the client disconnected, this generator is closed mid-stream and the
+        # graph task would otherwise keep running to completion — burning API
+        # spend on a result nobody will receive. Cancel it.
+        if not task.done():
+            task.cancel()
         cleanup_queue(run_id)
 
 

@@ -6,17 +6,15 @@ materials via GPT-4o, and stores the result for downstream agents.
 
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
-import os
 import re
 
-import litellm
 
 from agents.agent_4_sales.prompts import SALES_SYNTHESIS_PROMPT
 from agents.agent_4_sales.schemas import SalesOutput
 from db import get_agent_output, store_agent_output
+from llm import get_router
 from state import BlitzState
 
 logger = logging.getLogger(__name__)
@@ -66,14 +64,12 @@ async def run_sales(run_id: str, feedback: str | None = None) -> SalesOutput:
         feedback=feedback_instruction,
     )
 
-    response = await asyncio.wait_for(
-        litellm.acompletion(
-            model="openai/gpt-4o",
-            messages=[{"role": "user", "content": prompt}],
-            api_key=os.environ.get("OPENAI_API_KEY", ""),
-            temperature=0.4,
-        ),
-        timeout=30.0,
+    # Routed through the shared Router: retries, rate-limit backoff, and
+    # failover to the fallback model are handled there, not here.
+    response = await get_router().acompletion(
+        model="primary",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.4,
     )
 
     content = response.choices[0].message.content or "{}"
