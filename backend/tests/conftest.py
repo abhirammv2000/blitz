@@ -60,8 +60,8 @@ def isolated_chroma(monkeypatch):
     hits file-locking races on Windows that made the suite intermittently fail
     and swing between 20s and 125s.
     """
-    import db
-    from config import settings
+    import app.db.chroma as db
+    from app.config import settings
 
     monkeypatch.setattr(settings, "chroma_in_memory", True)
     # Blitz never runs a similarity query, so the default ONNX embedding model

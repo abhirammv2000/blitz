@@ -13,12 +13,12 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from agents.agent_0_research.schemas import ResearchOutput
-from agents.agent_1_profile.schemas import MarketingProfile
-from agents.agent_2_audience.schemas import AudienceOutput
-from agents.agent_3_content.schemas import ContentOutput
-from agents.agent_4_sales.schemas import SalesOutput
-from agents.agent_5_ads.schemas import AdsOutput
+from app.agents.agent_0_research.schemas import ResearchOutput
+from app.agents.agent_1_profile.schemas import MarketingProfile
+from app.agents.agent_2_audience.schemas import AudienceOutput
+from app.agents.agent_3_content.schemas import ContentOutput
+from app.agents.agent_4_sales.schemas import SalesOutput
+from app.agents.agent_5_ads.schemas import AdsOutput
 
 RESEARCH = {
     "company_name": "Acme", "company_url": "https://acme.com",

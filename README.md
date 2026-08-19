@@ -21,7 +21,7 @@ Company URL  ──→  6 AI Agents (sequential, automated)  ──→  Full Mar
 | 2 | **Audience Identifier** | 3-5 synthetic audience segments with demographics & psychographics |
 | 3 | **Content Strategist** | Social posts, email campaigns, blog outlines, 30-day calendar |
 | 4 | **Sales Agent** | Cold email sequences, LinkedIn DMs, lead scoring + optional voice agent |
-| 5 | **Ad Creative Generator** | Google/Meta/LinkedIn ad copy, A/B variants + optional DALL-E 3 visuals |
+| 5 | **Ad Creative Generator** | Google/Meta/LinkedIn ad copy, A/B variants + optional AI visuals |
 
 ---
 
@@ -40,14 +40,14 @@ flowchart TB
     subgraph Server["Backend (Python + FastAPI)"]
         API["FastAPI<br/>SSE endpoints"]
         Graph["LangGraph StateGraph<br/>6 sequential nodes"]
-        LLM["LiteLLM Router<br/>GPT-4o + Gemini fallback"]
+        LLM["LiteLLM Router<br/>primary + mini tiers<br/>cross-provider fallback"]
         DB["ChromaDB<br/>cross-agent context"]
         Memory["MemorySaver<br/>in-memory state"]
     end
 
     subgraph External["External Services"]
-        OpenAI["OpenAI API<br/>GPT-4o + DALL-E 3"]
-        Gemini["Google Gemini<br/>2.5 Pro"]
+        OpenAI["OpenAI API<br/>GPT-4o + gpt-image-1"]
+        Gemini["Google Gemini<br/>3.x Flash"]
         Tavily["Tavily<br/>web search"]
         Firecrawl["Firecrawl<br/>site scraping"]
         ElevenLabs["ElevenLabs<br/>Conversational AI"]
@@ -140,8 +140,8 @@ classDiagram
     }
 
     class LiteLLM_Router {
-        +GPT-4o primary
-        +Gemini 2.5 Pro fallback
+        +primary / mini tiers
+        +cross-provider fallback
         +acompletion()
     }
 
@@ -177,7 +177,7 @@ classDiagram
 
     class Agent_5_Ads {
         +generate_ad_copy()
-        +dalle3_image_gen()
+        +generate_ad_image()
         → AdsOutput
     }
 
@@ -259,13 +259,13 @@ Each agent also has a `test_agent*.py` standalone test script and an `a*_imp.md`
 | Layer | Technology |
 |-------|-----------|
 | Orchestration | LangGraph (StateGraph, sequential pipeline) |
-| LLM Routing | LiteLLM Router (GPT-4o primary, Gemini 2.5 Pro fallback) |
+| LLM Routing | LiteLLM Router — `primary` and `mini` tiers, each with automatic cross-provider fallback |
 | Vector DB | ChromaDB (cross-agent context sharing + audit trail) |
 | Backend | Python, FastAPI, SSE streaming, Pydantic |
 | Frontend | React, TypeScript, Vite, Tailwind CSS v4 (Warm Analog theme — Syne font, burnt orange/sage palette), Zustand, Headless UI |
 | Research | Tavily API, Firecrawl |
 | Voice | ElevenLabs Conversational AI via `@elevenlabs/convai-widget-embed` (dynamic agent creation, Ava persona, floating overlay widget) |
-| Image Gen | DALL-E 3 via LiteLLM (user-triggered, 3/run cap) |
+| Image Gen | `gpt-image-1` via LiteLLM (user-triggered, capped per run) |
 
 ---
 
@@ -285,8 +285,8 @@ cd backend
 cp .env.example .env
 # Add your API keys to .env
 
-uv sync                # or: pip install -r requirements.txt
-uv run uvicorn main:app --host 0.0.0.0 --port 8001
+uv sync                # dependencies are declared in pyproject.toml
+uv run uvicorn app.main:app --host 0.0.0.0 --port 8001
 ```
 
 ### 2. Set up frontend
@@ -309,7 +309,7 @@ Visit `http://localhost:5173/?voice-test` for a standalone voice agent testing i
 
 ## Key Architecture Decisions
 
-- **AI-agnostic**: LiteLLM Router abstracts LLM providers. Swap models without code changes.
+- **Provider-agnostic**: every model is set by environment variable and routed through LiteLLM, with a fallback on the other provider. A full run completes on either OpenAI or Gemini alone. Image generation remains OpenAI-only.
 - **Smart entity extraction**: Company names are extracted from page content via a fast `gpt-4o-mini` call (with regex fallback), handling vanity domains like `joinblossomhealth.com` → "Blossom Health".
 - **Sequential pipeline**: Each agent depends on the previous agent's output. ChromaDB provides cross-agent context sharing — any agent can read any upstream agent's output by `run_id`.
 - **SSE streaming**: Real-time progress updates as each agent runs. The backend interleaves two async sources (research sub-step queue + graph state stream) into one SSE event stream. No polling.
@@ -321,19 +321,22 @@ Visit `http://localhost:5173/?voice-test` for a standalone voice agent testing i
 ```
 blitz/
 ├── backend/
-│   ├── agents/
-│   │   ├── agent_0_research/      # Tavily + Firecrawl + AEO + LLM synthesis
-│   │   ├── agent_1_profile/       # Brand DNA + positioning
-│   │   ├── agent_2_audience/      # Segments + synthetic expansion
-│   │   ├── agent_3_content/       # Social, email, blog, calendar
-│   │   ├── agent_4_sales/         # Sequences, DMs, lead scoring
-│   │   ├── agent_5_ads/           # Ad copy + DALL-E 3 visuals
-│   │   └── agent_voice/           # ElevenLabs browser voice agent
-│   ├── main.py                    # FastAPI app + SSE endpoints
-│   ├── graph.py                   # LangGraph pipeline definition
-│   ├── llm.py                     # LiteLLM Router config
-│   ├── state.py                   # BlitzState TypedDict
-│   └── db.py                      # ChromaDB client
+│   ├── app/
+│   │   ├── agents/
+│   │   │   ├── agent_0_research/  # Tavily + Firecrawl + AEO + LLM synthesis
+│   │   │   ├── agent_1_profile/   # Brand DNA + positioning
+│   │   │   ├── agent_2_audience/  # Segments + synthetic expansion
+│   │   │   ├── agent_3_content/   # Social, email, blog, calendar
+│   │   │   ├── agent_4_sales/     # Sequences, DMs, lead scoring
+│   │   │   ├── agent_5_ads/       # Ad copy + generated visuals
+│   │   │   └── agent_voice/       # ElevenLabs browser voice agent
+│   │   ├── core/llm.py            # LiteLLM Router (primary + mini tiers)
+│   │   ├── db/                    # ChromaDB store + SQLite lead capture
+│   │   ├── config.py              # Settings — all env-driven configuration
+│   │   ├── main.py                # FastAPI app + SSE endpoints
+│   │   ├── graph.py               # LangGraph pipeline definition
+│   │   └── state.py               # BlitzState TypedDict
+│   └── tests/                     # pytest suite (no network, no API cost)
 ├── frontend/
 │   └── src/
 │       ├── components/            # React UI components
@@ -347,7 +350,7 @@ blitz/
 | Method | Path | Description |
 |--------|------|-------------|
 | `POST` | `/pipeline/start` | Start pipeline (returns SSE stream) |
-| `POST` | `/ads/{run_id}/generate-image` | Generate DALL-E 3 ad visual |
+| `POST` | `/ads/{run_id}/generate-image` | Generate an AI ad visual |
 | `GET` | `/voice/setup-check` | Check ElevenLabs configuration |
 | `POST` | `/voice/session` | PATCH agent prompt and get signed WebSocket URL for browser voice session |
 | `GET` | `/voice/transcript/{id}` | Get conversation transcript |
@@ -358,7 +361,7 @@ blitz/
 ```env
 # Required
 OPENAI_API_KEY=        # GPT-4o for content, sales, ads
-GEMINI_API_KEY=        # Gemini 2.5 Pro fallback
+GEMINI_API_KEY=        # Gemini fallback (and second AEO probe)
 TAVILY_API_KEY=        # Web search for Research Scout
 FIRECRAWL_API_KEY=     # Website crawling
 
