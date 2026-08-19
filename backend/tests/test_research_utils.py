@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import pytest
 
-from agents.agent_0_research.research import _extract_bare_domain, _extract_company_name
+from app.agents.agent_0_research.research import _extract_bare_domain, _extract_company_name
 
 
 @pytest.mark.parametrize(

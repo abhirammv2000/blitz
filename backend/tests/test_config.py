@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from config import Settings
+from app.config import Settings
 
 
 def _settings(**overrides) -> Settings:

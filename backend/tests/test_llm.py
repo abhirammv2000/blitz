@@ -15,7 +15,7 @@ import asyncio
 
 import pytest
 
-import llm
+import app.core.llm as llm
 
 
 @pytest.fixture(autouse=True)

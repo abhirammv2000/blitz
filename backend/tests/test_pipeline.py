@@ -18,8 +18,8 @@ from types import SimpleNamespace
 
 import pytest
 
-import agents.agent_0_research.research as research_mod
-import db as db_mod
+import app.agents.agent_0_research.research as research_mod
+import app.db.chroma as db_mod
 
 pytestmark = pytest.mark.usefixtures("isolated_chroma")
 
@@ -72,14 +72,14 @@ class _StubRouter:
 def stub_router(monkeypatch):
     router = _StubRouter()
     for module_path in (
-        "llm.get_router",
-        "agents.agent_0_research.research.get_router",
-        "agents.agent_1_profile.node.get_router",
-        "agents.agent_2_audience.node.get_router",
-        "agents.agent_3_content.node.get_router",
-        "agents.agent_4_sales.node.get_router",
-        "agents.agent_5_ads.node.get_router",
-        "agents.agent_5_ads.critic.get_router",
+        "app.core.llm.get_router",
+        "app.agents.agent_0_research.research.get_router",
+        "app.agents.agent_1_profile.node.get_router",
+        "app.agents.agent_2_audience.node.get_router",
+        "app.agents.agent_3_content.node.get_router",
+        "app.agents.agent_4_sales.node.get_router",
+        "app.agents.agent_5_ads.node.get_router",
+        "app.agents.agent_5_ads.critic.get_router",
     ):
         monkeypatch.setattr(module_path, lambda: router, raising=False)
     return router
@@ -111,7 +111,7 @@ def offline_research(monkeypatch):
 
 
 async def _run_graph(run_id="test-run"):
-    from graph import build_graph
+    from app.graph import build_graph
 
     graph = build_graph()
     chunks = []
@@ -174,7 +174,7 @@ async def test_a_failing_agent_does_not_lose_earlier_work(stub_router, offline_r
     readable. This is what lets the API return partial results instead of
     discarding several minutes of completed, paid-for work.
     """
-    import agents.agent_4_sales.node as sales_node
+    import app.agents.agent_4_sales.node as sales_node
 
     async def boom(run_id, feedback=None):
         raise RuntimeError("sales agent exploded")

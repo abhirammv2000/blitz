@@ -16,7 +16,8 @@ import json
 
 import pytest
 
-from db import _PROMPT_TRIMMED_FIELDS, get_agent_context, get_agent_output, store_agent_output
+from app.db import get_agent_context, get_agent_output, store_agent_output
+from app.db.chroma import _PROMPT_TRIMMED_FIELDS
 
 pytestmark = pytest.mark.usefixtures("isolated_chroma")
 

@@ -1,0 +1,1 @@
+"""Blitz backend application package."""

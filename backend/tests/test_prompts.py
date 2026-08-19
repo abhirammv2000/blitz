@@ -16,18 +16,18 @@ import string
 
 import pytest
 
-from agents.agent_0_research.prompts import (
+from app.agents.agent_0_research.prompts import (
     AEO_CATEGORY_PROMPT,
     CATEGORY_FROM_CONTENT_PROMPT,
     COMPETITOR_EXTRACTION_PROMPT,
     RESEARCH_SYNTHESIS_PROMPT,
 )
-from agents.agent_1_profile.prompts import PROFILE_SYNTHESIS_PROMPT
-from agents.agent_2_audience.prompts import AUDIENCE_SYNTHESIS_PROMPT
-from agents.agent_3_content.prompts import CONTENT_SYNTHESIS_PROMPT
-from agents.agent_4_sales.prompts import SALES_SYNTHESIS_PROMPT
-from agents.agent_5_ads.critic import CRITIC_PROMPT
-from agents.agent_5_ads.prompts import ADS_SYNTHESIS_PROMPT, IMAGE_PROMPT_SYNTHESIS
+from app.agents.agent_1_profile.prompts import PROFILE_SYNTHESIS_PROMPT
+from app.agents.agent_2_audience.prompts import AUDIENCE_SYNTHESIS_PROMPT
+from app.agents.agent_3_content.prompts import CONTENT_SYNTHESIS_PROMPT
+from app.agents.agent_4_sales.prompts import SALES_SYNTHESIS_PROMPT
+from app.agents.agent_5_ads.critic import CRITIC_PROMPT
+from app.agents.agent_5_ads.prompts import ADS_SYNTHESIS_PROMPT, IMAGE_PROMPT_SYNTHESIS
 
 # (template, the exact kwargs the production call site passes)
 TEMPLATES = [
