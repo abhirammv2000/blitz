@@ -21,11 +21,16 @@ import re
 import litellm
 
 from app.agents.agent_0_research.progress import get_queue
-from app.agents.agent_0_research.prompts import AEO_BLIND_PROMPTS, AEO_CATEGORY_PROMPT, CATEGORY_FROM_CONTENT_PROMPT, COMPETITOR_EXTRACTION_PROMPT, RESEARCH_SYNTHESIS_PROMPT
+from app.agents.agent_0_research.prompts import (
+    AEO_BLIND_PROMPTS,
+    AEO_CATEGORY_PROMPT,
+    CATEGORY_FROM_CONTENT_PROMPT,
+    COMPETITOR_EXTRACTION_PROMPT,
+    RESEARCH_SYNTHESIS_PROMPT,
+)
 from app.agents.agent_0_research.schemas import ResearchOutput
 from app.config import settings
 from app.core.llm import get_router
-
 
 _COMMON_TLDS_RE = r"\.(com|io|ai|co|net|org|app|dev|tech|so|me|us|xyz|gg|ly|to)$"
 

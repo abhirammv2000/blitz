@@ -307,6 +307,31 @@ Visit `http://localhost:5173/?voice-test` for a standalone voice agent testing i
 
 ---
 
+## Tests
+
+```bash
+cd backend
+pytest tests            # ~5s
+ruff check app tests
+```
+
+The suite makes **no network calls and costs nothing to run**, so it is safe to
+run on every save. It covers the pure logic, each agent's output schema, and a
+full LangGraph run with every external call stubbed.
+
+Two things it deliberately guards, both from bugs that reached production:
+
+- **Prompt templates.** A literal JSON example in the ads critic prompt made
+  `str.format` raise, and every run died at the last node. Every template is now
+  checked against the exact arguments its call site passes.
+- **Blank error messages.** `str(asyncio.TimeoutError())` is `""`, so pipeline
+  failures surfaced in the UI as an empty box.
+
+`backend/test_script.py` and `app/agents/*/test_agent*.py` are manual smoke
+scripts, not part of the suite — they call live APIs and cost real money.
+
+CI runs the backend tests, the linter, and the frontend build on every push.
+
 ## Key Architecture Decisions
 
 - **Provider-agnostic**: every model is set by environment variable and routed through LiteLLM, with a fallback on the other provider. A full run completes on either OpenAI or Gemini alone. Image generation remains OpenAI-only.

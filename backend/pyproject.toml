@@ -42,6 +42,28 @@ target-version = "py311"
 select = ["E", "F", "I"]
 ignore = []
 
+[tool.ruff.lint.per-file-ignores]
+# Prompt templates are prose written for a language model. Hard-wrapping them to
+# satisfy a line limit would hurt the thing that actually matters — how they read
+# to the model and to whoever edits them next.
+"app/agents/*/prompts.py" = ["E501"]
+"app/agents/agent_5_ads/critic.py" = ["E501"]
+"app/agents/agent_voice/elevenlabs_client.py" = ["E501"]
+"app/agents/agent_0_research/research.py" = ["E501"]
+"app/agents/agent_5_ads/node.py" = ["E501"]
+
+# The manual smoke scripts intentionally adjust sys.path before importing, so
+# their imports cannot sit at the top of the file. They are debugging aids that
+# make live API calls, not part of the automated suite.
+"app/agents/*/test_agent*.py" = ["E402", "F401", "E501"]
+
+# conftest must set LITELLM_LOCAL_MODEL_COST_MAP before anything imports litellm,
+# which means one assignment above the imports.
+"tests/conftest.py" = ["E402"]
+# The pipeline test imports fixture payloads from a sibling test module after
+# defining local helpers, which reads better than hoisting it.
+"tests/test_pipeline.py" = ["E402"]
+
 [tool.hatch.build.targets.wheel]
 packages = ["app"]
 

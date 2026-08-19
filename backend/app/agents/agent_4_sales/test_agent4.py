@@ -12,9 +12,9 @@ Usage:
 import asyncio
 import json
 import os
+import re
 import sys
 import time
-import re
 
 if sys.platform == "win32":
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -22,9 +22,11 @@ if sys.platform == "win32":
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from dotenv import load_dotenv
+
 load_dotenv(override=True)
 
 import litellm
+
 from app.agents.agent_4_sales.prompts import SALES_SYNTHESIS_PROMPT
 from app.agents.agent_4_sales.schemas import SalesOutput
 
@@ -148,14 +150,14 @@ async def test_sales():
         print(f"    [{in_e}{in_l}] {s}")
 
     # Email sequence structure
-    print(f"\n  Email steps per sequence:")
+    print("\n  Email steps per sequence:")
     for seq in output.email_sequences:
         steps = [e.step for e in seq.emails]
         delays = [e.delay_days for e in seq.emails]
         print(f"    {seq.segment[:40]}: steps={steps}, delays={delays}")
 
     # Connection request length
-    print(f"\n  LinkedIn connection request lengths:")
+    print("\n  LinkedIn connection request lengths:")
     for tmpl in output.linkedin_templates:
         length = len(tmpl.connection_request)
         status = "OK" if length <= 300 else "OVER 300"

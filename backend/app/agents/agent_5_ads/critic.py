@@ -3,7 +3,6 @@
 import json
 import logging
 
-
 from app.config import settings
 from app.core.llm import get_router
 from app.state import BlitzState
