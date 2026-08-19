@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Disclosure } from '@headlessui/react'
 import AeoGauge from './AeoGauge'
 import type { AeoDetail } from './AeoGauge'
 

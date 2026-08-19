@@ -55,7 +55,7 @@ async function replayProgressEvents(events: ProgressEvent[]): Promise<void> {
  * so the ApprovalGate renders exactly as in a live run. Clicking Approve
  * calls advanceDemoPipeline to continue to the next agent output.
  */
-export async function startDemoPipeline(url: string): Promise<void> {
+export async function startDemoPipeline(_url: string): Promise<void> {
   const fixture: DemoFixture = (await import('./blossom.json')).default as DemoFixture
 
   activeFixture = fixture

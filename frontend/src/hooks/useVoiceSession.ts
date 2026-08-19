@@ -34,7 +34,7 @@ export function useVoiceSession(onDisconnect?: () => void) {
     onError: (error) => {
       console.error('[Voice] Error:', error)
     },
-    onModeChange: (mode) => {
+    onModeChange: (mode: { mode: string }) => {
       console.log('[Voice] Mode changed:', mode)
     },
   })
