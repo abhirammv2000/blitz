@@ -20,7 +20,10 @@ dependencies = [
     "pydantic-settings>=2.0.0",
 ]
 
-[dependency-groups]
+# Declared as an extra rather than a PEP 735 dependency-group: `pip install
+# -e ".[dev]"` works on every pip, while --group needs pip 25.1+. uv reads this
+# too, via `uv sync --extra dev`. One list, so the two cannot drift.
+[project.optional-dependencies]
 dev = [
     "ruff>=0.4.0",
     "pytest>=8.2.0",
