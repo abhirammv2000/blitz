@@ -42,7 +42,7 @@ from agents.agent_voice.elevenlabs_client import (
     get_transcript,
     summarize_agent_outputs,
 )
-from db import get_agent_output
+from db import get_agent_context, get_agent_output
 from graph import build_graph
 from llm import describe_exception
 from leads_db import get_leads_for_run, init_leads_table, insert_lead
@@ -292,7 +292,8 @@ async def voice_session(req: VoiceSessionRequest):
     company_name = "our company"
 
     for db_key, label in agent_keys:
-        raw = get_agent_output(req.run_id, db_key)
+        # Trimmed: this feeds a summarization prompt, not a stored artifact.
+        raw = get_agent_context(req.run_id, db_key)
         if raw:
             agent_outputs[label] = raw
             # Extract company name from research output

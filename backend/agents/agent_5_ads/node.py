@@ -19,7 +19,7 @@ import litellm
 
 from agents.agent_5_ads.prompts import ADS_SYNTHESIS_PROMPT, IMAGE_PROMPT_SYNTHESIS, IMAGE_STYLES, DEFAULT_IMAGE_STYLE
 from agents.agent_5_ads.schemas import AdsOutput
-from db import get_agent_output, store_agent_output
+from db import get_agent_context, store_agent_output
 from llm import get_router
 from state import BlitzState
 
@@ -78,21 +78,21 @@ async def run_ads(run_id: str, feedback: str | None = None) -> AdsOutput:
     Returns:
         AdsOutput with ad copies, visuals, and A/B variations.
     """
-    research_raw = get_agent_output(run_id, "research_decision")
+    research_raw = get_agent_context(run_id, "research_decision")
     if research_raw is None:
         logger.warning("Agent 5: no research found in ChromaDB for run_id=%s", run_id)
         research_data = "{}"
     else:
         research_data = research_raw
 
-    profile_raw = get_agent_output(run_id, "profile")
+    profile_raw = get_agent_context(run_id, "profile")
     if profile_raw is None:
         logger.warning("Agent 5: no profile found in ChromaDB for run_id=%s", run_id)
         profile_data = "{}"
     else:
         profile_data = profile_raw
 
-    audience_raw = get_agent_output(run_id, "audience")
+    audience_raw = get_agent_context(run_id, "audience")
     if audience_raw is None:
         logger.warning("Agent 5: no audience found in ChromaDB for run_id=%s", run_id)
         audience_data = "{}"

@@ -13,7 +13,7 @@ import re
 
 from agents.agent_2_audience.prompts import AUDIENCE_SYNTHESIS_PROMPT
 from agents.agent_2_audience.schemas import AudienceOutput, AudienceSegment
-from db import get_agent_output, store_agent_output
+from db import get_agent_context, store_agent_output
 from llm import get_router
 from state import BlitzState
 
@@ -30,8 +30,8 @@ async def run_audience(run_id: str, feedback: str | None = None) -> AudienceOutp
     Returns:
         AudienceOutput with 3-5 AudienceSegment instances.
     """
-    research_raw = get_agent_output(run_id, "research_decision")
-    profile_raw = get_agent_output(run_id, "profile")
+    research_raw = get_agent_context(run_id, "research_decision")
+    profile_raw = get_agent_context(run_id, "profile")
 
     if profile_raw is None:
         logger.warning("Agent 2: no profile found in ChromaDB for run_id=%s", run_id)

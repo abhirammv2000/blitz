@@ -13,7 +13,7 @@ import re
 
 from agents.agent_1_profile.prompts import PROFILE_SYNTHESIS_PROMPT
 from agents.agent_1_profile.schemas import MarketingProfile
-from db import get_agent_output, store_agent_output
+from db import get_agent_context, store_agent_output
 from llm import get_router
 from state import BlitzState
 
@@ -30,7 +30,7 @@ async def run_profile(run_id: str, feedback: str | None = None) -> MarketingProf
     Returns:
         MarketingProfile with brand_dna, positioning_statement, usps, marketing_gaps.
     """
-    research_raw = get_agent_output(run_id, "research_decision")
+    research_raw = get_agent_context(run_id, "research_decision")
     if research_raw is None:
         logger.warning("Agent 1: no research_decision found in ChromaDB for run_id=%s", run_id)
         research_data = "{}"

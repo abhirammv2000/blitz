@@ -14,6 +14,7 @@ How it works:
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 import chromadb
@@ -98,3 +99,56 @@ def get_agent_output(run_id: str, agent: str) -> str | None:
     if result["documents"]:
         return result["documents"][0]
     return None
+
+
+# ---------------------------------------------------------------------------
+# Prompt-facing reads
+# ---------------------------------------------------------------------------
+
+# site_content is the raw Firecrawl page markdown. Measured at ~32k chars, it is
+# 80% of the research blob and the single largest cost driver in the pipeline:
+# every downstream agent embeds the whole research JSON in its prompt, so the
+# scraped page was being sent to the LLM five times per run for ~37k wasted
+# tokens. Agent 0 already distills it into `summary` and `executive_summary`,
+# and internally never reads more than 3000 chars of it itself. Downstream
+# agents read the distillation, not the raw markdown.
+#
+# It stays stored in full — only the prompt-facing copy is trimmed.
+_PROMPT_TRIMMED_FIELDS: dict[str, int] = {"site_content": 1500}
+
+
+def get_agent_context(run_id: str, agent: str) -> str | None:
+    """Retrieve an agent's output, trimmed for use inside a downstream prompt.
+
+    Identical to get_agent_output() except that oversized raw fields are cut to
+    an excerpt. Use this when building a prompt; use get_agent_output() when the
+    complete stored artifact is what you want.
+
+    Args:
+        run_id: The pipeline run identifier.
+        agent: The agent name/key used when storing.
+
+    Returns:
+        The stored document with large fields truncated, or None if not found.
+        Returns the document unchanged if it is not a JSON object.
+    """
+    raw = get_agent_output(run_id, agent)
+    if raw is None:
+        return None
+
+    try:
+        data = json.loads(raw)
+    except (ValueError, TypeError):
+        return raw
+    if not isinstance(data, dict):
+        return raw
+
+    trimmed = False
+    for field, limit in _PROMPT_TRIMMED_FIELDS.items():
+        value = data.get(field)
+        if isinstance(value, str) and len(value) > limit:
+            note = f"[...truncated for prompt use, {len(value)} chars total]"
+            data[field] = f"{value[:limit]}\n{note}"
+            trimmed = True
+
+    return json.dumps(data) if trimmed else raw

@@ -13,7 +13,7 @@ import re
 
 from agents.agent_4_sales.prompts import SALES_SYNTHESIS_PROMPT
 from agents.agent_4_sales.schemas import SalesOutput
-from db import get_agent_output, store_agent_output
+from db import get_agent_context, store_agent_output
 from llm import get_router
 from state import BlitzState
 
@@ -30,21 +30,21 @@ async def run_sales(run_id: str, feedback: str | None = None) -> SalesOutput:
     Returns:
         SalesOutput with email sequences, LinkedIn templates, lead scoring, and pipeline stages.
     """
-    research_raw = get_agent_output(run_id, "research_decision")
+    research_raw = get_agent_context(run_id, "research_decision")
     if research_raw is None:
         logger.warning("Agent 4: no research found in ChromaDB for run_id=%s", run_id)
         research_data = "{}"
     else:
         research_data = research_raw
 
-    profile_raw = get_agent_output(run_id, "profile")
+    profile_raw = get_agent_context(run_id, "profile")
     if profile_raw is None:
         logger.warning("Agent 4: no profile found in ChromaDB for run_id=%s", run_id)
         profile_data = "{}"
     else:
         profile_data = profile_raw
 
-    audience_raw = get_agent_output(run_id, "audience")
+    audience_raw = get_agent_context(run_id, "audience")
     if audience_raw is None:
         logger.warning("Agent 4: no audience found in ChromaDB for run_id=%s", run_id)
         audience_data = "{}"
