@@ -69,15 +69,14 @@ async def _extract_company_name_from_content(site_content: str, url: str, fallba
     excerpt = site_content[:1500]
     try:
         response = await asyncio.wait_for(
-            litellm.acompletion(
-                model="openai/gpt-4o-mini",
+            get_router().acompletion(
+                model="mini",
                 messages=[{"role": "user", "content": (
                     f"What is the official company or product name for the website {url}?\n\n"
                     f"Page content:\n{excerpt}\n\n"
                     "Reply with ONLY the company/product name, nothing else. "
                     "Use proper capitalization (e.g. 'Blossom Health', not 'blossom health')."
                 )}],
-                api_key=os.environ.get("OPENAI_API_KEY", ""),
                 temperature=0,
                 max_tokens=30,
             ),
@@ -308,12 +307,11 @@ async def aeo_check(
         category = "software tools"  # fallback
         try:
             cat_response = await asyncio.wait_for(
-                litellm.acompletion(
-                    model="openai/gpt-4o-mini",
+                get_router().acompletion(
+                    model="mini",
                     messages=[{"role": "user", "content": AEO_CATEGORY_PROMPT.format(
                         company_name=company_name, domain=domain,
                     )}],
-                    api_key=os.environ.get("OPENAI_API_KEY", ""),
                     temperature=0.0,
                     max_tokens=30,
                 ),
@@ -332,9 +330,15 @@ async def aeo_check(
     # Gemini 2.5 returns 404 ("no longer available to new users"); 3.6-flash is
     # the current live equivalent. A dead model here silently scored every
     # company as "not mentioned" by that engine, halving real AEO scores.
+    # Both probes are env-overridable so a deployment without credits at one
+    # provider can still run AEO. Note this measures recall across whichever two
+    # engines are configured — pointing both at the same provider makes the
+    # score narrower, not wrong.
+    _first = os.environ.get("AEO_FIRST_MODEL", "openai/gpt-4o")
+    _second = os.environ.get("AEO_SECOND_MODEL", "gemini/gemini-3.6-flash")
     models = [
-        ("openai/gpt-4o", "OPENAI_API_KEY"),
-        (os.environ.get("AEO_SECOND_MODEL", "gemini/gemini-3.6-flash"), "GEMINI_API_KEY"),
+        (_first, "GEMINI_API_KEY" if _first.startswith("gemini/") else "OPENAI_API_KEY"),
+        (_second, "GEMINI_API_KEY" if _second.startswith("gemini/") else "OPENAI_API_KEY"),
     ]
 
     name_lower = company_name.lower()
@@ -376,6 +380,10 @@ async def aeo_check(
         prompt = AEO_BLIND_PROMPTS[angle_idx].format(category=category)
         try:
             api_key = os.environ.get(api_key_env, "")
+            # Deliberately NOT routed. These are two distinct engine probes and
+            # the whole measurement depends on each named model answering for
+            # itself — a fallback would silently attribute one engine's answer
+            # to the other and corrupt the score.
             response = await asyncio.wait_for(
                 litellm.acompletion(
                     model=model,
@@ -503,10 +511,9 @@ async def extract_competitors(
 
     try:
         response = await asyncio.wait_for(
-            litellm.acompletion(
-                model="openai/gpt-4o",
+            get_router().acompletion(
+                model="primary",
                 messages=[{"role": "user", "content": prompt}],
-                api_key=os.environ.get("OPENAI_API_KEY", ""),
                 temperature=0.2,
             ),
             timeout=25.0,
@@ -578,13 +585,12 @@ async def run_research(
     if site_content and not site_content.startswith("[Firecrawl"):
         try:
             cat_response = await asyncio.wait_for(
-                litellm.acompletion(
-                    model="openai/gpt-4o-mini",
+                get_router().acompletion(
+                    model="mini",
                     messages=[{"role": "user", "content": CATEGORY_FROM_CONTENT_PROMPT.format(
                         company_name=company_name,
                         site_excerpt=site_content[:1500],
                     )}],
-                    api_key=os.environ.get("OPENAI_API_KEY", ""),
                     temperature=0.0,
                     max_tokens=30,
                 ),
