@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
 import re
 
 import litellm
@@ -24,6 +23,7 @@ import litellm
 from agents.agent_0_research.progress import get_queue
 from agents.agent_0_research.prompts import AEO_BLIND_PROMPTS, AEO_CATEGORY_PROMPT, CATEGORY_FROM_CONTENT_PROMPT, COMPETITOR_EXTRACTION_PROMPT, RESEARCH_SYNTHESIS_PROMPT
 from agents.agent_0_research.schemas import ResearchOutput
+from config import settings
 from llm import get_router
 
 
@@ -80,7 +80,7 @@ async def _extract_company_name_from_content(site_content: str, url: str, fallba
                 temperature=0,
                 max_tokens=30,
             ),
-            timeout=8.0,
+            timeout=settings.quick_extract_timeout_seconds,
         )
         name = (response.choices[0].message.content or "").strip().strip('"').strip("'")
         # Sanity check: reject empty, too long, or multi-sentence responses
@@ -121,7 +121,7 @@ async def tavily_search(
 
     await queue.put({"step": "tavily", "status": "running", "detail": "Searching news and competitors"})
 
-    client = AsyncTavilyClient(api_key=os.environ.get("TAVILY_API_KEY", ""))
+    client = AsyncTavilyClient(api_key=settings.tavily_api_key)
 
     feedback_suffix = f" {feedback}" if feedback else ""
 
@@ -149,22 +149,22 @@ async def tavily_search(
             client.search(
                 f"\"{company_name}\" {bare_domain} funding launch product announcement",
                 include_domains=_NEWS_DOMAINS,
-                max_results=5,
+                max_results=settings.press_results_per_search,
             ),
-            timeout=25.0,
+            timeout=settings.search_timeout_seconds,
         )
         # Search 2: General third-party coverage (broader net)
         press_general_task = asyncio.wait_for(
             client.search(
                 f"\"{company_name}\" {bare_domain} review analysis funding OR launch OR raised{feedback_suffix}",
                 exclude_domains=[bare_domain],
-                max_results=5,
+                max_results=settings.press_results_per_search,
             ),
-            timeout=25.0,
+            timeout=settings.search_timeout_seconds,
         )
         competitor_company_task = asyncio.wait_for(
-            client.search(competitor_query_company, max_results=8),
-            timeout=25.0,
+            client.search(competitor_query_company, max_results=settings.competitor_results_per_search),
+            timeout=settings.search_timeout_seconds,
         )
 
         tasks = [press_major_task, press_general_task, competitor_company_task]
@@ -172,8 +172,8 @@ async def tavily_search(
         # Category-based competitor search for better disambiguation
         if competitor_query_category:
             competitor_category_task = asyncio.wait_for(
-                client.search(competitor_query_category, max_results=8),
-                timeout=25.0,
+                client.search(competitor_query_category, max_results=settings.competitor_results_per_search),
+                timeout=settings.search_timeout_seconds,
             )
             tasks.append(competitor_category_task)
 
@@ -236,23 +236,23 @@ async def firecrawl_scrape(url: str, queue: asyncio.Queue) -> str:
         try:
             from firecrawl import AsyncFirecrawlApp  # type: ignore[import]
 
-            app = AsyncFirecrawlApp(api_key=os.environ.get("FIRECRAWL_API_KEY", ""))
+            app = AsyncFirecrawlApp(api_key=settings.firecrawl_api_key)
             result = await asyncio.wait_for(
                 app.scrape(url, params={"formats": ["markdown"]}),
-                timeout=25.0,
+                timeout=settings.search_timeout_seconds,
             )
         except (ImportError, AttributeError):
             # Fall back to sync FirecrawlApp in thread executor
             from firecrawl import FirecrawlApp  # type: ignore[import]
 
-            sync_app = FirecrawlApp(api_key=os.environ.get("FIRECRAWL_API_KEY", ""))
+            sync_app = FirecrawlApp(api_key=settings.firecrawl_api_key)
 
             def _sync_scrape() -> dict:
                 return sync_app.scrape(url, params={"formats": ["markdown"]})
 
             result = await asyncio.wait_for(
                 asyncio.get_event_loop().run_in_executor(None, _sync_scrape),
-                timeout=25.0,
+                timeout=settings.search_timeout_seconds,
             )
 
         # firecrawl returns dict or ScrapeResponse object
@@ -315,7 +315,7 @@ async def aeo_check(
                     temperature=0.0,
                     max_tokens=30,
                 ),
-                timeout=10.0,
+                timeout=settings.quick_extract_timeout_seconds,
             )
             category = (cat_response.choices[0].message.content or category).strip().strip('".')
         except Exception:
@@ -334,11 +334,12 @@ async def aeo_check(
     # provider can still run AEO. Note this measures recall across whichever two
     # engines are configured — pointing both at the same provider makes the
     # score narrower, not wrong.
-    _first = os.environ.get("AEO_FIRST_MODEL", "openai/gpt-4o")
-    _second = os.environ.get("AEO_SECOND_MODEL", "gemini/gemini-3.6-flash")
+    def _key_for(model: str) -> str:
+        return settings.gemini_api_key if model.startswith("gemini/") else settings.openai_api_key
+
     models = [
-        (_first, "GEMINI_API_KEY" if _first.startswith("gemini/") else "OPENAI_API_KEY"),
-        (_second, "GEMINI_API_KEY" if _second.startswith("gemini/") else "OPENAI_API_KEY"),
+        (settings.aeo_first_model, _key_for(settings.aeo_first_model)),
+        (settings.aeo_second_model, _key_for(settings.aeo_second_model)),
     ]
 
     name_lower = company_name.lower()
@@ -376,10 +377,9 @@ async def aeo_check(
 
         return True, position, quote
 
-    async def _query(model: str, api_key_env: str, angle_idx: int) -> dict:
+    async def _query(model: str, api_key: str, angle_idx: int) -> dict:
         prompt = AEO_BLIND_PROMPTS[angle_idx].format(category=category)
         try:
-            api_key = os.environ.get(api_key_env, "")
             # Deliberately NOT routed. These are two distinct engine probes and
             # the whole measurement depends on each named model answering for
             # itself — a fallback would silently attribute one engine's answer
@@ -391,7 +391,7 @@ async def aeo_check(
                     api_key=api_key,
                     temperature=0.3,
                 ),
-                timeout=60.0,
+                timeout=settings.aeo_query_timeout_seconds,
             )
             content = response.choices[0].message.content or ""
             mentioned, position, quote = _find_mention(content)
@@ -410,8 +410,8 @@ async def aeo_check(
 
     # Fire all 6 queries concurrently
     tasks = [
-        _query(model, key_env, angle)
-        for model, key_env in models
+        _query(model, api_key, angle)
+        for model, api_key in models
         for angle in range(len(AEO_BLIND_PROMPTS))
     ]
     results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -516,7 +516,7 @@ async def extract_competitors(
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.2,
             ),
-            timeout=25.0,
+            timeout=settings.search_timeout_seconds,
         )
         content = response.choices[0].message.content or "[]"
 
@@ -594,7 +594,7 @@ async def run_research(
                     temperature=0.0,
                     max_tokens=30,
                 ),
-                timeout=10.0,
+                timeout=settings.quick_extract_timeout_seconds,
             )
             category = (cat_response.choices[0].message.content or category).strip().strip('".')
         except Exception:
@@ -660,7 +660,7 @@ async def run_research(
 
     # Sort by relevance score descending, take top 10
     scored_results.sort(key=lambda x: x[0], reverse=True)
-    press_coverage = [item for _, item in scored_results[:10]]
+    press_coverage = [item for _, item in scored_results[:settings.max_press_items]]
 
     # If nothing relevant found, say so instead of showing garbage
     if not press_coverage and press_results:
@@ -696,7 +696,7 @@ async def run_research(
         synth_response = await get_router().acompletion(
             model="primary",
             messages=[{"role": "user", "content": synthesis_prompt}],
-            temperature=0.4,
+            temperature=settings.research_temperature,
         )
         synth_content = synth_response.choices[0].message.content or "{}"
         synth_content = re.sub(r"```(?:json)?\n?", "", synth_content).strip().rstrip("```").strip()

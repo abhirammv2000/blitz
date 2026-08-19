@@ -25,6 +25,13 @@ dev = [
     "pytest>=8.2.0",
 ]
 
+[tool.pytest.ini_options]
+# Tests must never call a real LLM API. They run offline, for free, in seconds —
+# a suite that costs money per run is a suite nobody runs.
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-q"
+
 [tool.ruff]
 line-length = 120
 target-version = "py311"

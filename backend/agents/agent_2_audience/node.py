@@ -12,8 +12,9 @@ import re
 
 
 from agents.agent_2_audience.prompts import AUDIENCE_SYNTHESIS_PROMPT
-from agents.agent_2_audience.schemas import AudienceOutput, AudienceSegment
+from agents.agent_2_audience.schemas import AudienceOutput
 from db import get_agent_context, store_agent_output
+from config import settings
 from llm import get_router
 from state import BlitzState
 
@@ -58,7 +59,7 @@ async def run_audience(run_id: str, feedback: str | None = None) -> AudienceOutp
     response = await get_router().acompletion(
         model="primary",
         messages=[{"role": "user", "content": prompt}],
-        temperature=0.4,
+        temperature=settings.audience_temperature,
     )
 
     content = response.choices[0].message.content or "{}"

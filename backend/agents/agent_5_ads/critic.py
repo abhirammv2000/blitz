@@ -4,6 +4,7 @@ import json
 import logging
 
 
+from config import settings
 from llm import get_router
 from state import BlitzState
 
@@ -50,7 +51,7 @@ async def critic_ads_node(state: BlitzState) -> dict:
         response = await get_router().acompletion(
             model="primary",
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.0,
+            temperature=settings.critic_temperature,
             response_format={"type": "json_object"},
         )
         
