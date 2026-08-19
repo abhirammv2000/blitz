@@ -19,7 +19,6 @@ from typing import Any
 
 import chromadb
 from chromadb import Collection
-
 from chromadb.api.types import EmbeddingFunction
 
 from app.config import settings

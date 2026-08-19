@@ -12,9 +12,9 @@ Usage:
 import asyncio
 import json
 import os
+import re
 import sys
 import time
-import re
 
 if sys.platform == "win32":
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -22,9 +22,11 @@ if sys.platform == "win32":
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from dotenv import load_dotenv
+
 load_dotenv(override=True)
 
 import litellm
+
 from app.agents.agent_3_content.prompts import CONTENT_SYNTHESIS_PROMPT
 from app.agents.agent_3_content.schemas import ContentOutput
 
@@ -127,7 +129,7 @@ async def test_content():
         print(f"  {i}. \"{blog.title}\"")
         print(f"     Keyword:  {blog.target_keyword}")
         print(f"     Segment:  {blog.audience_segment}")
-        print(f"     Sections:")
+        print("     Sections:")
         for j, sec in enumerate(blog.sections, 1):
             print(f"       {j}. {sec}")
         print()

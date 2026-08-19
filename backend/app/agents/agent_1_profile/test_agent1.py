@@ -11,9 +11,9 @@ Usage:
 import asyncio
 import json
 import os
+import re
 import sys
 import time
-import re
 
 # Fix Windows console encoding
 if sys.platform == "win32":
@@ -23,9 +23,11 @@ if sys.platform == "win32":
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from dotenv import load_dotenv
+
 load_dotenv(override=True)
 
 import litellm
+
 from app.agents.agent_1_profile.prompts import PROFILE_SYNTHESIS_PROMPT
 from app.agents.agent_1_profile.schemas import MarketingProfile
 

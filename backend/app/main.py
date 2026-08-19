@@ -16,6 +16,7 @@ import json
 import logging
 import uuid
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
@@ -24,16 +25,6 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from app.agents.agent_0_research.progress import cleanup_queue, get_queue
-from app.agents.agent_voice.models import (
-    LeadExtractRequest,
-    LeadExtractResponse,
-    LeadRecord,
-    SetupCheckResponse,
-    VoiceSessionRequest,
-    VoiceSessionResponse,
-    TranscriptMessage,
-    TranscriptResponse,
-)
 from app.agents.agent_voice.elevenlabs_client import (
     build_agent_prompt,
     check_setup,
@@ -43,13 +34,22 @@ from app.agents.agent_voice.elevenlabs_client import (
     get_transcript,
     summarize_agent_outputs,
 )
-from app.db import get_agent_context, get_agent_output
+from app.agents.agent_voice.models import (
+    LeadExtractRequest,
+    LeadExtractResponse,
+    LeadRecord,
+    SetupCheckResponse,
+    TranscriptMessage,
+    TranscriptResponse,
+    VoiceSessionRequest,
+    VoiceSessionResponse,
+)
 from app.config import settings
-from app.graph import build_graph
 from app.core.llm import describe_exception
+from app.db import get_agent_context, get_agent_output
 from app.db.leads import get_leads_for_run, init_leads_table, insert_lead
+from app.graph import build_graph
 
-from pathlib import Path
 _backend_dir = Path(__file__).resolve().parent
 load_dotenv(_backend_dir / ".env", override=True)
 load_dotenv(_backend_dir.parent / ".env", override=True)

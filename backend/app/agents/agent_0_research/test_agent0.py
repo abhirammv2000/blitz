@@ -8,9 +8,9 @@ Usage:
 
 import asyncio
 import json
+import os
 import sys
 import time
-import os
 
 # Fix Windows console encoding
 if sys.platform == "win32":
@@ -20,18 +20,19 @@ if sys.platform == "win32":
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from dotenv import load_dotenv
+
 load_dotenv(override=True)
 
+from app.agents.agent_0_research.progress import get_queue
 from app.agents.agent_0_research.research import (
-    run_research,
-    tavily_search,
-    firecrawl_scrape,
+    _extract_bare_domain,
+    _extract_company_name,
     aeo_check,
     extract_competitors,
-    _extract_company_name,
-    _extract_bare_domain,
+    firecrawl_scrape,
+    run_research,
+    tavily_search,
 )
-from app.agents.agent_0_research.progress import get_queue
 
 
 def print_section(title: str):

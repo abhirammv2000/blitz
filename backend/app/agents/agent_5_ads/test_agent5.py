@@ -12,9 +12,9 @@ Usage:
 import asyncio
 import json
 import os
+import re
 import sys
 import time
-import re
 
 if sys.platform == "win32":
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -22,9 +22,11 @@ if sys.platform == "win32":
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from dotenv import load_dotenv
+
 load_dotenv(override=True)
 
 import litellm
+
 from app.agents.agent_5_ads.prompts import ADS_SYNTHESIS_PROMPT, IMAGE_PROMPT_SYNTHESIS
 from app.agents.agent_5_ads.schemas import AdsOutput
 
@@ -201,7 +203,7 @@ async def test_ads():
     print(f"  A/B variant labels: {sorted(labels)}")
 
     # Headline length checks (Google Ads should be ~30 chars)
-    print(f"\n  Headline lengths:")
+    print("\n  Headline lengths:")
     for ad in output.ad_copies:
         status = ""
         if ad.platform == "Google Ads" and len(ad.headline) > 30:

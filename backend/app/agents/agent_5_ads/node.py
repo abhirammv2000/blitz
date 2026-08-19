@@ -16,11 +16,16 @@ import re
 
 import litellm
 
-from app.agents.agent_5_ads.prompts import ADS_SYNTHESIS_PROMPT, IMAGE_PROMPT_SYNTHESIS, IMAGE_STYLES, DEFAULT_IMAGE_STYLE
+from app.agents.agent_5_ads.prompts import (
+    ADS_SYNTHESIS_PROMPT,
+    DEFAULT_IMAGE_STYLE,
+    IMAGE_PROMPT_SYNTHESIS,
+    IMAGE_STYLES,
+)
 from app.agents.agent_5_ads.schemas import AdsOutput
-from app.db import get_agent_context, store_agent_output
 from app.config import settings
 from app.core.llm import get_router
+from app.db import get_agent_context, store_agent_output
 from app.state import BlitzState
 
 logger = logging.getLogger(__name__)

@@ -11,9 +11,9 @@ Usage:
 import asyncio
 import json
 import os
+import re
 import sys
 import time
-import re
 
 if sys.platform == "win32":
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -21,9 +21,11 @@ if sys.platform == "win32":
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from dotenv import load_dotenv
+
 load_dotenv(override=True)
 
 import litellm
+
 from app.agents.agent_2_audience.prompts import AUDIENCE_SYNTHESIS_PROMPT
 from app.agents.agent_2_audience.schemas import AudienceOutput
 
@@ -89,14 +91,14 @@ async def test_audience():
     for i, seg in enumerate(output.segments, 1):
         print_section(f"SEGMENT {i}: {seg.name} [{seg.fit_label}]")
 
-        print(f"  Demographics:")
+        print("  Demographics:")
         demo = seg.demographics
         print(f"    Age:        {demo.get('age_range', '?')}")
         print(f"    Titles:     {demo.get('job_titles', [])}")
         print(f"    Co. sizes:  {demo.get('company_sizes', [])}")
         print(f"    Industries: {demo.get('industries', [])}")
 
-        print(f"  Psychographics:")
+        print("  Psychographics:")
         psych = seg.psychographics
         print(f"    Values:     {psych.get('values', [])}")
         print(f"    Goals:      {psych.get('goals', [])}")
@@ -106,7 +108,7 @@ async def test_audience():
         print(f"  Buy triggers: {seg.buying_triggers}")
         print(f"  Channels:     {seg.active_channels}")
 
-        print(f"  Synthetic:")
+        print("  Synthetic:")
         syn = seg.synthetic_attributes
         print(f"    Deal size:   {syn.get('avg_deal_size', '?')}")
         print(f"    Sales cycle: {syn.get('sales_cycle_days', '?')} days")

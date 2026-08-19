@@ -19,8 +19,8 @@ from app.agents.agent_1_profile.node import agent_1_profile_node
 from app.agents.agent_2_audience.node import agent_2_audience_node
 from app.agents.agent_3_content.node import agent_3_content_node
 from app.agents.agent_4_sales.node import agent_4_sales_node
-from app.agents.agent_5_ads.node import agent_5_ads_node
 from app.agents.agent_5_ads.critic import critic_ads_node
+from app.agents.agent_5_ads.node import agent_5_ads_node
 from app.state import BlitzState
 
 # ---------------------------------------------------------------------------

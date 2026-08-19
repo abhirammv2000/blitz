@@ -10,12 +10,11 @@ import json
 import logging
 import re
 
-
 from app.agents.agent_4_sales.prompts import SALES_SYNTHESIS_PROMPT
 from app.agents.agent_4_sales.schemas import SalesOutput
-from app.db import get_agent_context, store_agent_output
 from app.config import settings
 from app.core.llm import get_router
+from app.db import get_agent_context, store_agent_output
 from app.state import BlitzState
 
 logger = logging.getLogger(__name__)

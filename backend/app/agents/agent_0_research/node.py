@@ -8,11 +8,11 @@ from __future__ import annotations
 import json
 import logging
 
-logger = logging.getLogger(__name__)
-
 from app.agents.agent_0_research.research import run_research
 from app.db import store_agent_output
 from app.state import BlitzState
+
+logger = logging.getLogger(__name__)
 
 
 async def agent_0_research_node(state: BlitzState) -> dict:
