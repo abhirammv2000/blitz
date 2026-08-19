@@ -24,6 +24,7 @@ import litellm
 from agents.agent_0_research.progress import get_queue
 from agents.agent_0_research.prompts import AEO_BLIND_PROMPTS, AEO_CATEGORY_PROMPT, CATEGORY_FROM_CONTENT_PROMPT, COMPETITOR_EXTRACTION_PROMPT, RESEARCH_SYNTHESIS_PROMPT
 from agents.agent_0_research.schemas import ResearchOutput
+from llm import get_router
 
 
 _COMMON_TLDS_RE = r"\.(com|io|ai|co|net|org|app|dev|tech|so|me|us|xyz|gg|ly|to)$"
@@ -325,10 +326,15 @@ async def aeo_check(
     await queue.put({"step": "aeo", "status": "running", "detail": f"Category: {category}. Querying models..."})
 
     # Step 2: Run 3 blind prompts x 2 models concurrently
-    # Using gemini-2.5-flash instead of pro (21s -> 12s) — AEO needs recall, not deep reasoning
+    # These are deliberately two DISTINCT model probes, not a primary/fallback
+    # pair — the whole point is to measure recall across different engines. They
+    # stay off the Router for that reason.
+    # Gemini 2.5 returns 404 ("no longer available to new users"); 3.6-flash is
+    # the current live equivalent. A dead model here silently scored every
+    # company as "not mentioned" by that engine, halving real AEO scores.
     models = [
         ("openai/gpt-4o", "OPENAI_API_KEY"),
-        ("gemini/gemini-2.5-flash", "GEMINI_API_KEY"),
+        (os.environ.get("AEO_SECOND_MODEL", "gemini/gemini-3.6-flash"), "GEMINI_API_KEY"),
     ]
 
     name_lower = company_name.lower()
@@ -681,14 +687,10 @@ async def run_research(
     )
 
     try:
-        synth_response = await asyncio.wait_for(
-            litellm.acompletion(
-                model="openai/gpt-4o",
-                messages=[{"role": "user", "content": synthesis_prompt}],
-                api_key=os.environ.get("OPENAI_API_KEY", ""),
-                temperature=0.4,
-            ),
-            timeout=30.0,
+        synth_response = await get_router().acompletion(
+            model="primary",
+            messages=[{"role": "user", "content": synthesis_prompt}],
+            temperature=0.4,
         )
         synth_content = synth_response.choices[0].message.content or "{}"
         synth_content = re.sub(r"```(?:json)?\n?", "", synth_content).strip().rstrip("```").strip()

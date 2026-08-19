@@ -20,6 +20,7 @@ import litellm
 from agents.agent_5_ads.prompts import ADS_SYNTHESIS_PROMPT, IMAGE_PROMPT_SYNTHESIS, IMAGE_STYLES, DEFAULT_IMAGE_STYLE
 from agents.agent_5_ads.schemas import AdsOutput
 from db import get_agent_output, store_agent_output
+from llm import get_router
 from state import BlitzState
 
 logger = logging.getLogger(__name__)
@@ -111,14 +112,12 @@ async def run_ads(run_id: str, feedback: str | None = None) -> AdsOutput:
         feedback=feedback_instruction,
     )
 
-    response = await asyncio.wait_for(
-        litellm.acompletion(
-            model="openai/gpt-4o",
-            messages=[{"role": "user", "content": prompt}],
-            api_key=os.environ.get("OPENAI_API_KEY", ""),
-            temperature=0.5,
-        ),
-        timeout=45.0,
+    # Routed through the shared Router: retries, rate-limit backoff, and
+    # failover to the fallback model are handled there, not here.
+    response = await get_router().acompletion(
+        model="primary",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.5,
     )
 
     content = response.choices[0].message.content or "{}"

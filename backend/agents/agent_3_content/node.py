@@ -6,17 +6,15 @@ via GPT-4o, and stores the result for downstream agents.
 
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
-import os
 import re
 
-import litellm
 
 from agents.agent_3_content.prompts import CONTENT_SYNTHESIS_PROMPT
 from agents.agent_3_content.schemas import ContentOutput
 from db import get_agent_output, store_agent_output
+from llm import get_router
 from state import BlitzState
 
 logger = logging.getLogger(__name__)
@@ -67,15 +65,19 @@ async def run_content(run_id: str, feedback: str | None = None) -> ContentOutput
         feedback=feedback_instruction,
     )
 
-    response = await asyncio.wait_for(
-        litellm.acompletion(
-            model="openai/gpt-4o",
-            messages=[{"role": "user", "content": prompt}],
-            api_key=os.environ.get("OPENAI_API_KEY", ""),
-            temperature=0.4,
-            max_tokens=8000,
-        ),
-        timeout=60.0,
+    # Routed through the shared Router: retries, rate-limit backoff, and
+    # failover to the fallback model are handled there, not here.
+    response = await get_router().acompletion(
+        model="primary",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.4,
+        # Sized for the FALLBACK, not the primary. gpt-4o spends ~2.1k output
+        # tokens here, but gemini-3.6-flash is a thinking model and charges its
+        # reasoning against the same budget (measured: 5.9k reasoning + 6.1k
+        # output). At 8000 it hit the cap at exactly 7996 and returned JSON
+        # truncated mid-string. max_tokens is a ceiling, not a target, so the
+        # larger value costs nothing when the primary serves the request.
+        max_tokens=16000,
     )
 
     content = response.choices[0].message.content or "{}"

@@ -2,10 +2,9 @@
 
 import json
 import logging
-import os
 
-import litellm
 
+from llm import get_router
 from state import BlitzState
 
 logger = logging.getLogger(__name__)
@@ -48,12 +47,11 @@ async def critic_ads_node(state: BlitzState) -> dict:
     prompt = CRITIC_PROMPT.format(ads_json=ads_json)
     
     try:
-        response = await litellm.acompletion(
-            model="openai/gpt-4o",
+        response = await get_router().acompletion(
+            model="primary",
             messages=[{"role": "user", "content": prompt}],
-            api_key=os.environ.get("OPENAI_API_KEY", ""),
             temperature=0.0,
-            response_format={"type": "json_object"}
+            response_format={"type": "json_object"},
         )
         
         content = response.choices[0].message.content or "{}"
