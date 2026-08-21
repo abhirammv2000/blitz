@@ -1,17 +1,8 @@
-"""Tests for the FastAPI layer and the SSE streaming helper.
+"""Tests for the API endpoints and the SSE stream.
 
-main.py was the least-covered part of the backend despite holding three fixes
-that are easy to regress silently and expensive when they do:
-
-1. Completed agent output is flushed before any error is reported, so a failure
-   in agent 5 does not throw away the five agents the user already paid for.
-2. Errors always carry a readable message. str(asyncio.TimeoutError()) is "",
-   which reached the UI as a blank box with no cause.
-3. The graph task is cancelled when the client disconnects, instead of running
-   to completion and billing for a result nobody will receive.
-
-The streaming helper is exercised directly rather than through the HTTP client,
-because the partial-result and cancellation paths are invisible from outside.
+The streaming tests call stream_graph_with_progress directly instead of going
+through the HTTP client, because things like "did we cancel the background
+task" can't be seen from the outside.
 """
 
 from __future__ import annotations
@@ -44,11 +35,7 @@ def _parse(events: list[str]) -> list[dict]:
 
 
 class _FakeGraph:
-    """Stands in for the compiled LangGraph.
-
-    Yields the given state chunks, then optionally raises — which is how a
-    mid-pipeline agent failure reaches the streaming helper.
-    """
+    """Stands in for the compiled graph. Yields chunks, then optionally blows up."""
 
     def __init__(self, chunks, error=None, hang=False):
         self._chunks = chunks
@@ -104,7 +91,7 @@ async def test_successful_run_streams_state_then_done(monkeypatch):
 
 
 async def test_internal_langgraph_keys_are_not_leaked(monkeypatch):
-    """Keys beginning with __ are LangGraph bookkeeping, not pipeline output."""
+    """Keys starting with __ are LangGraph's own bookkeeping."""
     events = await _collect(
         monkeypatch, _FakeGraph([{"run_id": "run-1", "__internal__": "x", "current_step": 0}])
     )
@@ -120,11 +107,7 @@ async def test_internal_langgraph_keys_are_not_leaked(monkeypatch):
 
 
 async def test_completed_work_survives_a_later_failure(monkeypatch):
-    """The regression guard for the most expensive bug of the three.
-
-    Agents 0-4 succeed, agent 5 raises. The client must still receive the four
-    completed outputs — several minutes of paid work — not just an error.
-    """
+    """Two agents finish, the next one dies. We should still send what finished."""
     completed = [
         {"run_id": "run-1", "current_step": 0, "research_output": {"a": 1}},
         {"run_id": "run-1", "current_step": 1, "profile_output": {"b": 2}},
@@ -138,11 +121,7 @@ async def test_completed_work_survives_a_later_failure(monkeypatch):
 
 
 async def test_error_message_is_never_blank(monkeypatch):
-    """str(asyncio.TimeoutError()) is "", which surfaced as an empty error box.
-
-    Timeouts were the single most common pipeline failure before the retry work,
-    so this was the message users saw most often.
-    """
+    """Timeouts stringify to nothing, which showed up in the UI as a blank error."""
     events = await _collect(monkeypatch, _FakeGraph([], error=asyncio.TimeoutError()))
 
     error = next(e for e in events if e["type"] == "error")
@@ -158,7 +137,7 @@ async def test_error_message_keeps_the_underlying_detail(monkeypatch):
 
 
 async def test_a_failed_run_does_not_also_report_done(monkeypatch):
-    """A run that errored must not look successful to the frontend store."""
+    """A run that failed shouldn't also look like it succeeded."""
     events = await _collect(monkeypatch, _FakeGraph([], error=RuntimeError("boom")))
 
     assert not any(e["type"] == "done" for e in events)
@@ -170,9 +149,7 @@ async def test_a_failed_run_does_not_also_report_done(monkeypatch):
 
 
 async def test_abandoning_the_stream_cancels_the_running_graph(monkeypatch):
-    """A closed browser tab used to leave the pipeline running to completion,
-    spending on six agents for a result with nobody to receive it.
-    """
+    """Closing the tab used to leave the pipeline running with nobody watching."""
     graph = _FakeGraph([{"run_id": "run-1", "current_step": 0}], hang=True)
     monkeypatch.setattr(main_mod, "graph", graph)
 
@@ -189,9 +166,7 @@ async def test_abandoning_the_stream_cancels_the_running_graph(monkeypatch):
 
 
 async def test_the_progress_queue_is_released_after_a_run(monkeypatch):
-    """Queues are keyed by run_id in a module-level dict; leaving them behind
-    leaks memory for the lifetime of the process.
-    """
+    """Queues live in a module-level dict, so a stale one leaks for good."""
     from app.agents.agent_0_research.progress import _queues
 
     await _collect(monkeypatch, _FakeGraph([{"run_id": "run-1", "current_step": 0}]))
@@ -205,7 +180,7 @@ async def test_the_progress_queue_is_released_after_a_run(monkeypatch):
 
 
 def test_image_generation_is_capped_per_run(client, monkeypatch):
-    """Images are the most expensive thing a user can trigger by clicking."""
+    """Images are the priciest thing a click can trigger, so the cap matters."""
     monkeypatch.setattr(main_mod, "IMAGE_CAP", 2)
     monkeypatch.setattr(main_mod, "_image_counts", {})
 
@@ -225,7 +200,7 @@ def test_image_generation_is_capped_per_run(client, monkeypatch):
 
 
 def test_a_failed_generation_does_not_consume_cap(client, monkeypatch):
-    """Otherwise a provider outage silently burns the user's allowance."""
+    """Otherwise an outage quietly eats someone's allowance."""
     monkeypatch.setattr(main_mod, "IMAGE_CAP", 2)
     monkeypatch.setattr(main_mod, "_image_counts", {})
 

@@ -40,7 +40,7 @@ const usd = (n: number) => `$${n.toFixed(4)}`
 const int = (n: number) => n.toLocaleString()
 const secs = (ms: number) => `${(ms / 1000).toFixed(1)}s`
 
-// Deliberately ordered: the agent that costs most is the one worth reading first.
+// Agents come back sorted by cost, so the first bar is the expensive one.
 const BAR_COLORS = ['#B4552D', '#C97B4E', '#7C8A6B', '#9AA88A', '#C3B59A', '#D6CDBB']
 
 function Tile({ label, value, sub }: { label: string; value: string; sub?: string }) {
@@ -81,7 +81,7 @@ export default function Telemetry() {
       }
     }
     load()
-    // Cheap polling: this is an internal dashboard, not a hot path.
+    // Refresh every 10s. Nobody is watching this closely enough to need more.
     const timer = setInterval(load, 10000)
     return () => {
       cancelled = true
@@ -138,7 +138,7 @@ export default function Telemetry() {
         <p className="mt-6 rounded-xl border border-ink/10 bg-white px-5 py-4 text-sm text-ink">
           <span className="font-semibold">{topAgent.agent}</span> accounts for{' '}
           <span className="font-semibold">{topShare.toFixed(0)}%</span> of spend across{' '}
-          {topAgent.calls} calls — the first place to look when optimising cost.
+          {topAgent.calls} calls. Start there if you want to bring the cost down.
         </p>
       )}
 

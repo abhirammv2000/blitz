@@ -22,11 +22,7 @@ from app.core.llm import api_key_for_model
     ],
 )
 def test_data_uri_type_matches_the_payload(b64, expected):
-    """A data URI whose declared type contradicts its bytes can fail to render.
-
-    The type was hardcoded to image/png, which was right for gpt-image-1 and
-    wrong for Gemini, which returns JPEG.
-    """
+    """We used to always say png. Gemini sends jpeg, and browsers notice."""
     assert _image_mime(b64) == expected
 
 
@@ -35,9 +31,7 @@ def test_unrecognised_payload_falls_back_rather_than_raising():
 
 
 def test_image_credentials_follow_the_configured_provider(monkeypatch):
-    """The key was hardcoded to OpenAI, so pointing IMAGE_MODEL at Gemini sent
-    it an OpenAI key and image generation stayed broken with no credits.
-    """
+    """Point IMAGE_MODEL at Gemini and it should use the Gemini key."""
     import app.core.llm as llm
 
     monkeypatch.setattr(llm.settings, "openai_api_key", "openai-key")

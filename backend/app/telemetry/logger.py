@@ -1,16 +1,8 @@
-"""LiteLLM callback that records every LLM call.
+"""Hooks into LiteLLM so every model call gets written to the telemetry table.
 
-Design notes:
-
-- Implemented as a LiteLLM `CustomLogger` rather than a wrapper around our own
-  call sites. The Router retries and fails over internally; a wrapper sees one
-  logical call where three physical ones were billed. The callback sees each
-  attempt, so the numbers reconcile against the provider's invoice — which is
-  the whole point of cost telemetry.
-- Cost comes from LiteLLM's own `response_cost`, never a local price table.
-  Model prices change, and a hardcoded table produces confidently wrong numbers.
-- Every handler swallows its own exceptions. Observability must not be able to
-  break the thing it observes.
+This is a LiteLLM callback rather than a wrapper around our own code because the
+router retries and falls back on its own. Those extra attempts get billed, and a
+wrapper around our call sites would never see them.
 """
 
 from __future__ import annotations
@@ -44,30 +36,27 @@ def _duration_ms(start, end) -> int:
 
 
 class BlitzTelemetryLogger(CustomLogger):
-    """Writes one row per LLM call attempt."""
+    """Writes a row for each call LiteLLM finishes, successful or not."""
 
     def _record(self, kwargs: dict, response_obj, start_time, end_time, status: str, error_type=None):
         try:
             params = kwargs.get("litellm_params") or {}
             metadata = params.get("metadata") or {}
 
-            # `model` is what actually served the request; the model group is what
-            # we asked for. Keeping both is what makes a failover visible: a row
-            # with model_group=primary and a gemini model means the fallback ran.
+            # We store both: `model` is what answered, `model_group` is what we
+            # asked for. If they disagree, the fallback kicked in.
             model = kwargs.get("model")
-            # Calls that bypass the Router — the AEO probes name their model
-            # directly on purpose — have no model group. Labelling them "direct"
-            # rather than leaving them null keeps them visible as a deliberate
-            # choice instead of looking like missing data.
+            # The AEO probes skip the router and name a model directly, so they
+            # have no group. Call that "direct" rather than leaving it blank.
             model_group = metadata.get("model_group") or params.get("model_group") or "direct"
 
             usage = getattr(response_obj, "usage", None)
             prompt_tokens = int(getattr(usage, "prompt_tokens", 0) or 0)
             completion_tokens = int(getattr(usage, "completion_tokens", 0) or 0)
 
-            cost = kwargs.get("response_cost")
-            if cost is None:
-                cost = 0.0
+            # LiteLLM works the price out for us. Don't hardcode rates here,
+            # they change.
+            cost = kwargs.get("response_cost") or 0.0
 
             record_call(
                 run_id=metadata.get("run_id") or current_run_id(),
@@ -77,13 +66,13 @@ class BlitzTelemetryLogger(CustomLogger):
                 provider=_provider_of(model),
                 prompt_tokens=prompt_tokens,
                 completion_tokens=completion_tokens,
-                cost_usd=float(cost or 0.0),
+                cost_usd=float(cost),
                 latency_ms=_duration_ms(start_time, end_time),
                 status=status,
                 error_type=error_type,
             )
         except Exception as exc:  # noqa: BLE001
-            logger.warning("Telemetry callback failed (continuing): %s", exc)
+            logger.warning("Telemetry callback failed: %s", exc)
 
     async def async_log_success_event(self, kwargs, response_obj, start_time, end_time):
         self._record(kwargs, response_obj, start_time, end_time, "success")
@@ -95,7 +84,7 @@ class BlitzTelemetryLogger(CustomLogger):
             "failure", type(exc).__name__ if exc else "UnknownError",
         )
 
-    # Sync variants: LiteLLM picks the matching pair for the call style used.
+    # LiteLLM calls the sync pair for sync requests, so both need to exist.
     def log_success_event(self, kwargs, response_obj, start_time, end_time):
         self._record(kwargs, response_obj, start_time, end_time, "success")
 
@@ -111,7 +100,7 @@ _installed = False
 
 
 def install_telemetry() -> None:
-    """Register the callback with LiteLLM. Safe to call more than once."""
+    """Register the callback with LiteLLM. Safe to call twice."""
     global _installed
     if _installed:
         return
@@ -123,4 +112,4 @@ def install_telemetry() -> None:
     init_telemetry_table()
     litellm.callbacks = [*(litellm.callbacks or []), BlitzTelemetryLogger()]
     _installed = True
-    logger.info("Blitz telemetry installed")
+    logger.info("Telemetry enabled")

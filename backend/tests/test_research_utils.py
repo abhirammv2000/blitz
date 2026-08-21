@@ -41,17 +41,16 @@ def test_company_name_drops_the_tld_and_capitalises(url, expected):
 
 
 def test_company_name_is_only_a_fallback_for_vanity_domains():
-    """Documents a known limitation rather than asserting ideal behaviour.
+    """The regex can't know joinblossomhealth.com is "Blossom Health".
 
-    The regex cannot know that joinblossomhealth.com is "Blossom Health"; an LLM
-    call refines it from page content later. This pins what the fallback returns
-    so a change to that path is a deliberate decision, not an accident.
+    An LLM call fixes that up later from the page content. This just pins what
+    the fallback gives us in the meantime.
     """
     assert _extract_company_name("https://joinblossomhealth.com") == "Joinblossomhealth"
 
 
 def test_domain_parsing_does_not_crash_on_junk_input():
-    """The API accepts any string as a URL, so this must degrade, not raise."""
+    """The API takes any string as a URL, so junk shouldn't blow up."""
     for junk in ["not-a-url-at-all", "", "https://", "://///"]:
         _extract_bare_domain(junk)
         _extract_company_name(junk)

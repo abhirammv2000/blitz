@@ -1,29 +1,15 @@
-"""LiteLLM Router singleton — all LLM calls in the pipeline go through this.
+"""Shared LiteLLM router. Every model call in the pipeline goes through here.
 
-Two model groups, so cost tier is a routing decision rather than a hardcoded
-model name at each call site:
+There are two groups. "primary" is for the agent write-ups that need a good
+model; "mini" is for the small stuff like pulling a company name out of a page.
+Each one falls back to the other provider if the first is down or out of credit.
 
-    "primary"  — the reasoning-heavy agent synthesis calls
-    "mini"     — small utility calls (entity extraction, categorisation,
-                 summarisation) that do not need the expensive model
+Retries and timeouts are set on the router instead of at each call site.
 
-Each group has an automatic cross-provider fallback, so no single provider
-being down or out of credits is fatal to a run.
-
-Reliability is configured on the Router itself (timeout, retries, retry policy)
-rather than hand-rolled at every call site.
-
-Timeout sizing is based on measured latency, not guesswork. Observed p50 for the
-agent synthesis calls on an idle system: profile 11.5s, audience 12.9s,
-content 29.5s, ads 29.5s, sales 15-34s. The same sales call has been observed at
-both 15.6s and 33.5s on identical input, so per-attempt timeouts must absorb
-several multiples of p50 or normal variance reads as failure. The fallback is
-slower than the primary on large prompts (44.1s vs 28.6s on the sales prompt),
-so the timeout must leave the fallback room to actually finish.
-
-NOTE: The `gemini/` prefix is required by LiteLLM for Google Gemini models.
-Gemini 2.5 models return 404 ("no longer available to new users") — do not
-reintroduce them here without re-verifying against the live API.
+Careful with the timeout. The sales call takes anywhere from 15 to 34 seconds
+and the fallback is slower again, so anything near 30s starts killing calls that
+would have finished. Gemini 2.5 models 404 now, so don't put them back without
+checking they still work.
 """
 
 from litellm import Router

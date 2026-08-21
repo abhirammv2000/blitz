@@ -157,15 +157,11 @@ def get_agent_output(run_id: str, agent: str) -> str | None:
 # Prompt-facing reads
 # ---------------------------------------------------------------------------
 
-# site_content is the raw Firecrawl page markdown. Measured at ~32k chars, it is
-# 80% of the research blob and the single largest cost driver in the pipeline:
-# every downstream agent embeds the whole research JSON in its prompt, so the
-# scraped page was being sent to the LLM five times per run for ~37k wasted
-# tokens. Agent 0 already distills it into `summary` and `executive_summary`,
-# and internally never reads more than 3000 chars of it itself. Downstream
-# agents read the distillation, not the raw markdown.
-#
-# It stays stored in full — only the prompt-facing copy is trimmed.
+# site_content is the raw scraped page, and it's about 80% of the research
+# output. Every later agent pastes that whole JSON into its prompt, so without
+# trimming we send the same page to the model five times a run. Agent 0 already
+# boils it down into summary and executive_summary, which is what the others
+# actually read. The full copy stays in the database either way.
 _PROMPT_TRIMMED_FIELDS: dict[str, int] = {"site_content": settings.site_content_prompt_chars}
 
 

@@ -309,59 +309,47 @@ Visit `http://localhost:5173/?voice-test` for a standalone voice agent testing i
 
 ## AI Telemetry
 
-Every LLM call the pipeline makes is recorded: run, agent, model group, model
-actually served, provider, tokens, cost, latency, and outcome. Dashboard at
+Every model call gets logged: which run and agent it came from, the model, token
+counts, cost, how long it took, and whether it worked. Dashboard is at
 `http://localhost:5173/?telemetry`.
 
 ```
-GET /telemetry/summary        totals, success rate, split by provider and tier
+GET /telemetry/summary        totals and success rate
 GET /telemetry/agents         cost and latency per agent
-GET /telemetry/runs           per-run rollup
-GET /telemetry/runs/{run_id}  every call in one run
+GET /telemetry/runs           one row per run
+GET /telemetry/runs/{run_id}  every call in a single run
 ```
 
-Three decisions worth knowing:
+This hooks into LiteLLM as a callback rather than wrapping our own calls,
+because the router retries and falls back on its own and those attempts get
+billed too. Cost comes from LiteLLM rather than a hardcoded price list.
 
-- **A LiteLLM `CustomLogger`, not a wrapper around our call sites.** The Router
-  retries and fails over internally, so a wrapper would see one logical call
-  where three were billed. The callback sees each attempt, which is what makes
-  the totals reconcile against the provider's bill.
-- **Identity travels in a `contextvar`, set once per node in `graph.py`.** No
-  call site has to remember to pass metadata, so a call added later is still
-  measured — and the Router's own retries inherit the tag.
-- **Cost comes from LiteLLM's `response_cost`.** A hardcoded price table goes
-  stale and produces confidently wrong numbers.
-
-Telemetry never raises. Observability that can break the pipeline it measures is
-a liability, so a dropped row is the accepted trade.
-
-It earns its place: the first instrumented run showed `agent_0_research` making
-11 of 13 calls and 72% of spend — not something any of us had guessed.
+First run through it showed agent 0 making 11 of the 13 calls and about 70% of
+the spend, which was not what I expected.
 
 ## Tests
 
 ```bash
 cd backend
-pytest tests            # ~5s
+pytest tests
 ruff check app tests
 ```
 
-The suite makes **no network calls and costs nothing to run**, so it is safe to
-run on every save. It covers the pure logic, each agent's output schema, and a
-full LangGraph run with every external call stubbed.
+Nothing in the suite hits the network or a real model, so it runs in a few
+seconds and costs nothing. It covers the helper functions, each agent's output
+schema, and a full graph run with the external calls stubbed.
 
-Two things it deliberately guards, both from bugs that reached production:
+Two things it specifically watches for, both from bugs that got through:
 
-- **Prompt templates.** A literal JSON example in the ads critic prompt made
-  `str.format` raise, and every run died at the last node. Every template is now
-  checked against the exact arguments its call site passes.
-- **Blank error messages.** `str(asyncio.TimeoutError())` is `""`, so pipeline
-  failures surfaced in the UI as an empty box.
+- Prompt templates that crash on `.format()`. The critic prompt had a JSON
+  example in it and every run died on the last node.
+- Blank error messages. A timeout stringifies to nothing, so the UI showed an
+  empty box instead of a reason.
 
-`backend/test_script.py` and `app/agents/*/test_agent*.py` are manual smoke
-scripts, not part of the suite — they call live APIs and cost real money.
+`backend/test_script.py` and the `test_agent*.py` files are manual scripts that
+call live APIs. They are not part of the suite.
 
-CI runs the backend tests, the linter, and the frontend build on every push.
+CI runs the tests, the linter and the frontend build on every push.
 
 ## Key Architecture Decisions
 
