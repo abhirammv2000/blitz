@@ -167,7 +167,7 @@ def test_queries_are_safe_on_an_empty_table():
 
 
 # ---------------------------------------------------------------------------
-# The callback must never break the pipeline
+# Telemetry should never take the pipeline down with it
 # ---------------------------------------------------------------------------
 
 
@@ -200,7 +200,7 @@ async def test_a_malformed_event_does_not_raise():
     """If this throws, it takes a pipeline run down with it."""
     logger_ = BlitzTelemetryLogger()
 
-    await logger_.async_log_success_event({}, None, None, None)  # must not raise
+    await logger_.async_log_success_event({}, None, None, None)  # should not raise
 
 
 def test_store_write_failure_is_swallowed(monkeypatch):
@@ -208,7 +208,7 @@ def test_store_write_failure_is_swallowed(monkeypatch):
 
     monkeypatch.setattr(store, "_DB_PATH", "/nonexistent-dir/does-not-exist.db")
 
-    record_call(  # must not raise
+    record_call(  # should not raise
         run_id="r", agent="a", model_group="primary", model="m",
         provider="openai", status="success",
     )
