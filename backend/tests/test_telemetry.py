@@ -1,10 +1,8 @@
-"""Tests for the AI telemetry layer.
+"""Tests for the telemetry layer.
 
-Telemetry has a failure mode worse than being absent: silently under-recording.
-A cost dashboard that misses the Router's retries, or drops rows when a call
-fails, produces confident numbers that are wrong — and nobody notices, because
-it still renders. These tests pin the guarantees that make the figures
-trustworthy enough to act on.
+The thing to watch for is under-recording. A dashboard that quietly misses
+failed calls or retries still renders fine, it's just wrong, so these check that
+everything gets counted and that nothing here can crash a pipeline run.
 """
 
 from __future__ import annotations
@@ -28,7 +26,7 @@ from app.telemetry.store import (
 
 @pytest.fixture(autouse=True)
 def isolated_db(tmp_path, monkeypatch):
-    """Point SQLite at a throwaway file so tests never touch the real blitz.db."""
+    """Use a throwaway database file so we don't touch the real blitz.db."""
     import app.telemetry.store as store
 
     monkeypatch.setattr(store, "_DB_PATH", tmp_path / "telemetry-test.db")
@@ -68,11 +66,7 @@ def test_nested_contexts_do_not_bleed():
 
 
 async def test_concurrent_runs_keep_separate_identity():
-    """Two pipeline runs in one process must not attribute calls to each other.
-
-    This is the property that makes contextvars safe here; a module-level global
-    would interleave and mis-attribute cost between tenants.
-    """
+    """Two runs at once shouldn't end up with each other's labels."""
     seen = {}
 
     async def one(run_id, agent, delay):
@@ -103,9 +97,7 @@ def test_summary_totals_cost_and_tokens():
 
 
 def test_failures_are_recorded_not_dropped():
-    """A failed call still costs latency and often tokens, and the failure rate
-    is the reliability signal. Recording only successes flatters the numbers.
-    """
+    """Failed calls still cost time and tokens, so they have to be counted."""
     _call(status="success")
     _call(status="failure", error_type="RateLimitError", cost_usd=0.0)
 
@@ -117,7 +109,7 @@ def test_failures_are_recorded_not_dropped():
 
 
 def test_cost_is_attributed_per_agent():
-    """Knowing the total is not actionable; knowing which agent spends it is."""
+    """The total isn't much use on its own; we want to know who spent it."""
     _call(agent="agent_3_content", cost_usd=0.05)
     _call(agent="agent_1_profile", cost_usd=0.01)
     _call(agent="agent_3_content", cost_usd=0.03)
@@ -130,11 +122,7 @@ def test_cost_is_attributed_per_agent():
 
 
 def test_a_failover_is_visible_in_the_data():
-    """The point of storing both the requested group and the served model.
-
-    model_group=primary with a gemini model means the primary failed and the
-    fallback answered — invisible if you only record one of the two.
-    """
+    """Asked for primary, a Gemini model answered: that means the fallback ran."""
     _call(model_group="primary", model="gpt-4o", provider="openai")
     _call(model_group="primary", model="gemini-3.6-flash", provider="gemini")
 
@@ -157,7 +145,7 @@ def test_runs_are_listed_newest_first():
 
 
 def test_run_detail_is_scoped_to_one_run():
-    """Cost attribution across tenants depends on this."""
+    """One run's calls shouldn't show up in another run's detail."""
     _call(run_id="run-1", cost_usd=0.01)
     _call(run_id="run-2", cost_usd=0.99)
 
@@ -168,7 +156,7 @@ def test_run_detail_is_scoped_to_one_run():
 
 
 def test_queries_are_safe_on_an_empty_table():
-    """A fresh deployment must render a dashboard, not divide by zero."""
+    """A fresh install should show an empty dashboard, not crash on a divide."""
     s = get_summary()
 
     assert s["calls"] == 0
@@ -209,7 +197,7 @@ async def test_callback_records_a_successful_call():
 
 
 async def test_a_malformed_event_does_not_raise():
-    """If telemetry can throw, it can take down a paid pipeline run."""
+    """If this throws, it takes a pipeline run down with it."""
     logger_ = BlitzTelemetryLogger()
 
     await logger_.async_log_success_event({}, None, None, None)  # must not raise

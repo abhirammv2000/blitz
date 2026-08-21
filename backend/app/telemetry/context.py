@@ -1,18 +1,8 @@
-"""Ambient run/agent identity for telemetry.
+"""Tracks which run and agent the current LLM call belongs to.
 
-Design note — why contextvars rather than passing metadata at each call site:
-
-LiteLLM will attach anything you hand it in `metadata=` to the logging callback,
-which works but requires every `acompletion(...)` to remember to do it. The
-moment someone adds a call and forgets, that spend disappears from the numbers,
-and a cost dashboard that silently under-reports is worse than none at all.
-
-A contextvar set once per agent is inherited by everything that runs underneath
-it, including the Router's own retry and fallback attempts — which are exactly
-the calls a naive instrumentation misses, and exactly the ones worth seeing.
-
-contextvars are async-safe: each task gets its own copy, so concurrent pipeline
-runs do not read each other's identity.
+The telemetry callback needs to know who made a call, but LiteLLM doesn't tell
+it. We stash the answer in a contextvar instead of passing it to every
+acompletion() call, so a call added later still gets tagged.
 """
 
 from __future__ import annotations
@@ -34,10 +24,10 @@ def current_agent() -> str | None:
 
 @contextmanager
 def agent_context(run_id: str | None, agent: str | None):
-    """Tag every LLM call made inside this block with a run and agent.
+    """Tag every LLM call made inside this block.
 
-    Restores the previous values on exit so nested or sequential agents cannot
-    leak identity into one another.
+    Each asyncio task gets its own copy, so two pipeline runs happening at once
+    don't get each other's labels.
     """
     run_token = _run_id.set(run_id)
     agent_token = _agent.set(agent)

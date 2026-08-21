@@ -329,12 +329,10 @@ async def aeo_check(
     await queue.put({"step": "aeo", "status": "running", "detail": f"Category: {category}. Querying models..."})
 
     # Step 2: Run 3 blind prompts x 2 models concurrently
-    # These are deliberately two DISTINCT model probes, not a primary/fallback
-    # pair — the whole point is to measure recall across different engines. They
-    # stay off the Router for that reason.
-    # Gemini 2.5 returns 404 ("no longer available to new users"); 3.6-flash is
-    # the current live equivalent. A dead model here silently scored every
-    # company as "not mentioned" by that engine, halving real AEO scores.
+    # These are two separate engines we're testing, not a primary and a backup,
+    # so they don't go through the router. Keep them on models that actually
+    # work: a dead model here just scores the company as "not mentioned" and
+    # drags the result down without telling anyone.
     # Both probes are env-overridable so a deployment without credits at one
     # provider can still run AEO. Note this measures recall across whichever two
     # engines are configured — pointing both at the same provider makes the
@@ -385,10 +383,8 @@ async def aeo_check(
     async def _query(model: str, api_key: str, angle_idx: int) -> dict:
         prompt = AEO_BLIND_PROMPTS[angle_idx].format(category=category)
         try:
-            # Deliberately NOT routed. These are two distinct engine probes and
-            # the whole measurement depends on each named model answering for
-            # itself — a fallback would silently attribute one engine's answer
-            # to the other and corrupt the score.
+            # Not routed on purpose. We need this exact model to answer, since
+            # a fallback would put one engine's answer under the other's name.
             response = await asyncio.wait_for(
                 litellm.acompletion(
                     model=model,

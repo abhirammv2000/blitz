@@ -30,16 +30,13 @@ from app.state import BlitzState
 
 logger = logging.getLogger(__name__)
 
-# OpenAI retired dall-e-3; gpt-image-1 is the current OpenAI image model.
-# Gemini also generates images (e.g. gemini/gemini-3.1-flash-image) and works
-# with this same call signature, so IMAGE_MODEL can point at either provider.
-# Both return base64 rather than a URL.
+# dall-e-3 is gone. gpt-image-1 replaces it, and Gemini's image models work with
+# the same call, so IMAGE_MODEL can point at either. Both hand back base64.
 IMAGE_MODEL = settings.image_model
 
 
-# Base64 payloads are identified by their leading bytes. Providers differ on
-# format — gpt-image-1 returns PNG, Gemini returns JPEG — and a data URI whose
-# declared type does not match its payload can fail to render in the browser.
+# Providers don't agree on format: gpt-image-1 sends png, Gemini sends jpeg. The
+# browser goes by what the data URI claims, so we work it out from the bytes.
 _MAGIC_PREFIXES = (
     ("iVBORw0KGgo", "image/png"),   # 89 50 4E 47
     ("/9j/", "image/jpeg"),          # FF D8 FF
@@ -192,10 +189,9 @@ async def run_ads(run_id: str, feedback: str | None = None) -> AdsOutput:
         style_directive=style_directive,
     )
 
-    # Image prompts are a refinement on top of an already-complete AdsOutput.
-    # This call used to sit outside the try below, so any failure here — a
-    # provider outage, an empty balance — destroyed the entire run's ad output
-    # instead of just leaving the default prompts in place.
+    # The ads are already finished at this point; this call just improves the
+    # image prompts. It used to sit outside the try below, so one failure here
+    # threw away the whole set of ads.
     try:
         img_response = await get_router().acompletion(
             model="mini",

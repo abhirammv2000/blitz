@@ -1,13 +1,8 @@
-"""Tests for the prompt-facing context trimming in db.get_agent_context.
+"""Tests for get_agent_context, which trims big fields before they hit a prompt.
 
-Background: the research output embeds the raw scraped page markdown, which
-measured ~32k chars — 80% of the blob. Every downstream agent puts the whole
-research JSON in its prompt, so the page was sent to the model five times per
-run, about 37k wasted tokens. get_agent_context trims that for prompt use while
-leaving the stored artifact whole.
-
-Both halves matter: trimming too little wastes money, trimming the wrong field
-silently degrades output quality.
+The research output carries the whole scraped page, and every later agent pastes
+that JSON into its prompt. Trimming it saves a lot of tokens, but trimming the
+wrong field would quietly make the output worse, so both sides are checked.
 """
 
 from __future__ import annotations
@@ -35,7 +30,7 @@ def test_oversized_field_is_trimmed(research_payload):
 
 
 def test_stored_copy_is_left_intact(research_payload):
-    """The trim is for prompts only — the stored artifact must not lose data."""
+    """We only trim the copy going into a prompt, not what's saved."""
     store_agent_output("run1", "research_decision", json.dumps(research_payload))
 
     get_agent_context("run1", "research_decision")
@@ -45,7 +40,7 @@ def test_stored_copy_is_left_intact(research_payload):
 
 
 def test_every_other_field_survives_untouched(research_payload):
-    """The grounding lives in these fields. Trimming must not disturb them."""
+    """These fields are what the later agents actually read, so leave them be."""
     store_agent_output("run1", "research_decision", json.dumps(research_payload))
 
     trimmed = json.loads(get_agent_context("run1", "research_decision"))
@@ -58,7 +53,7 @@ def test_every_other_field_survives_untouched(research_payload):
 
 
 def test_short_field_is_returned_byte_identical(research_payload):
-    """No rewrite when nothing exceeds the limit — avoids needless churn."""
+    """Nothing over the limit means nothing to rewrite."""
     research_payload["site_content"] = "short enough"
     raw = json.dumps(research_payload)
     store_agent_output("run1", "research_decision", raw)
@@ -71,7 +66,7 @@ def test_missing_run_returns_none():
 
 
 def test_non_json_document_passes_through_unchanged():
-    """Not every stored document is a JSON object; those must survive as-is."""
+    """Not everything we store is JSON, so leave the rest alone."""
     store_agent_output("run1", "notes", "plain text, not json")
 
     assert get_agent_context("run1", "notes") == "plain text, not json"
@@ -84,7 +79,7 @@ def test_json_scalar_document_passes_through_unchanged():
 
 
 def test_runs_are_isolated_from_each_other(research_payload):
-    """Multi-tenancy depends on this: one run must never read another's data."""
+    """One run should never see another run's data."""
     store_agent_output("run1", "research_decision", json.dumps(research_payload))
     other = dict(research_payload, company_name="Globex")
     store_agent_output("run2", "research_decision", json.dumps(other))
@@ -97,7 +92,7 @@ def test_runs_are_isolated_from_each_other(research_payload):
 
 
 def test_trimming_actually_saves_a_worthwhile_amount(research_payload):
-    """Guards the point of the change: a 40k-char field must shrink a lot."""
+    """A 40k-character field should come back a lot smaller than it went in."""
     store_agent_output("run1", "research_decision", json.dumps(research_payload))
 
     full = get_agent_output("run1", "research_decision")

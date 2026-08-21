@@ -1,16 +1,11 @@
-"""Application settings — the single source of truth for configuration.
+"""All the backend settings in one place.
 
-Every tunable value in the backend is declared here and read from the
-environment, so that behaviour can be changed per deployment without editing
-code. Nothing in the pipeline should call os.environ directly; import
-`settings` instead.
+Import `settings` from here rather than reading os.environ around the codebase.
+Real environment variables win, then backend/.env, then the defaults below. A
+fresh checkout should run with just the API keys filled in.
 
-Precedence: real environment variables > backend/.env > the defaults below.
-Defaults are chosen so a fresh checkout runs locally with only the API keys set.
-
-Values are validated at import. A malformed setting fails at startup with a
-clear message rather than surfacing as a confusing runtime error twenty minutes
-into a pipeline run.
+Settings are checked at import so a typo fails on startup instead of twenty
+minutes into a run.
 """
 
 from __future__ import annotations
@@ -21,10 +16,9 @@ from pathlib import Path
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# config.py lives at backend/app/config.py, so the backend root — which holds
-# .env, chroma_data and blitz.db — is two levels up. Anchoring here rather than
-# on the working directory keeps storage in one place no matter where the
-# process is launched from.
+# This file sits at backend/app/config.py, so the backend folder is two levels
+# up. Working off the file path rather than the current directory means the
+# database ends up in the same place wherever you start the server from.
 _BACKEND_DIR = Path(__file__).resolve().parent.parent
 
 
@@ -92,8 +86,8 @@ class Settings(BaseSettings):
     competitor_results_per_search: int = Field(default=8, gt=0)
     max_press_items: int = Field(default=10, gt=0)
 
-    # AEO probes two engines and compares recall. Deliberately not routed: a
-    # fallback would credit one engine with the other's answer.
+    # The AEO check asks two engines the same question. These skip the router,
+    # because a fallback would file one engine's answer under the other's name.
     aeo_first_model: str = "openai/gpt-4o"
     aeo_second_model: str = "gemini/gemini-3.6-flash"
 

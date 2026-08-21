@@ -1,9 +1,4 @@
-"""AI telemetry: per-call usage, cost, latency, and reliability.
-
-Answers the questions you cannot run an agent system in production without:
-what does a run cost, which agent dominates that cost, how often does the
-primary model fail over, and is any of it getting worse.
-"""
+"""Tracks what each LLM call costs, how long it took, and whether it worked."""
 
 from app.telemetry.context import agent_context, current_agent, current_run_id
 from app.telemetry.logger import install_telemetry

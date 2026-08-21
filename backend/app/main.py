@@ -189,26 +189,25 @@ async def stream_graph_with_progress(run_id: str, graph_input: dict, config: dic
                 yield evt
             await asyncio.sleep(0.05)
 
-        # Always flush what did complete before reporting anything. A failure in
-        # agent 5 must not throw away the five agents that already succeeded —
-        # the client has paid for that work and should receive it.
+        # Send whatever finished before reporting the error. If agent 5 dies we
+        # still want the user to get the five agents that worked.
         for evt in drain_progress():
             yield evt
         for evt in drain_results():
             yield evt
 
         if graph_error is not None:
-            # str(asyncio.TimeoutError()) is "", which reached users as a blank
-            # error message. describe_exception() always yields something useful.
+            # A bare TimeoutError stringifies to nothing, which showed up in
+            # the UI as an empty error box.
             yield sse_event({"type": "error", "message": describe_exception(graph_error)})
             return
 
         yield sse_event({"type": "done"})
 
     finally:
-        # If the client disconnected, this generator is closed mid-stream and the
-        # graph task would otherwise keep running to completion — burning API
-        # spend on a result nobody will receive. Cancel it.
+        # If the browser went away this generator gets closed early. Without
+        # cancelling, the pipeline would keep running and billing us for a
+        # result nobody is going to see.
         if not task.done():
             task.cancel()
         cleanup_queue(run_id)
@@ -282,19 +281,19 @@ async def generate_ad_image_endpoint(run_id: str, body: ImageGenRequest):
 
 
 # ---------------------------------------------------------------------------
-# Telemetry — usage, cost, and reliability across the pipeline
+# Telemetry
 # ---------------------------------------------------------------------------
 
 
 @app.get("/telemetry/summary")
 async def telemetry_summary():
-    """Fleet-wide totals: spend, volume, success rate, split by provider and tier."""
+    """Totals across every run: spend, tokens, success rate."""
     return get_summary()
 
 
 @app.get("/telemetry/agents")
 async def telemetry_agents():
-    """Cost and latency per agent — where the money and the time actually go."""
+    """Cost and latency broken down by agent."""
     return get_agent_costs()
 
 
@@ -306,7 +305,7 @@ async def telemetry_runs(limit: int = 50):
 
 @app.get("/telemetry/runs/{run_id}")
 async def telemetry_run_detail(run_id: str):
-    """Every LLM call in one run, with its per-agent breakdown."""
+    """Every call made during one run."""
     return get_run_detail(run_id)
 
 

@@ -1,8 +1,7 @@
 """Shared fixtures.
 
-Guiding rule for this suite: no test may make a real network or LLM call.
-Everything here exists to make that easy, so the suite stays free and fast
-enough that people actually run it.
+No test in here should hit the network or a real LLM. These fixtures keep it
+that way so the suite stays fast and free to run.
 """
 
 from __future__ import annotations

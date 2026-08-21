@@ -1,11 +1,7 @@
-"""Contract tests for each agent's Pydantic output schema.
+"""Checks each agent's schema against the JSON shape its prompt asks for.
 
-Every agent asks the model for JSON and feeds it straight into a schema. When
-the model drifts, or a schema field is renamed without updating the prompt, the
-run dies mid-pipeline with a validation error and the user loses the work.
-
-These tests pin the shape each agent's prompt promises, so a schema change that
-breaks that contract fails here instead of in production.
+If someone renames a schema field without updating the prompt, the run dies
+halfway through and the user loses everything. Better to fail here.
 """
 
 from __future__ import annotations
@@ -94,21 +90,20 @@ def test_schema_accepts_the_documented_shape(name, model, payload):
 
 @pytest.mark.parametrize("name,model,payload", CASES, ids=[c[0] for c in CASES])
 def test_schema_survives_a_round_trip(name, model, payload):
-    """Nodes call .model_dump() before storing; that output must re-validate."""
+    """Nodes dump to a dict before saving, so that dict has to validate again."""
     assert model(**model(**payload).model_dump())
 
 
 @pytest.mark.parametrize("name,model,payload", CASES, ids=[c[0] for c in CASES])
 def test_schema_rejects_a_missing_required_field(name, model, payload):
-    """A schema that accepts anything cannot catch model drift."""
+    """A schema that accepts anything won't catch the model going off-script."""
     field = next(iter(payload))
     with pytest.raises(ValidationError):
         model(**{k: v for k, v in payload.items() if k != field})
 
 
 def test_ad_images_default_to_absent():
-    """Image generation is user-triggered and capped, so a fresh AdsOutput has
-    no image URLs. Defaulting to anything else would render broken images."""
+    """Images are generated on click, so a fresh AdsOutput has none yet."""
     ads = AdsOutput(**ADS)
 
     assert ads.ad_visuals[0].image_url is None

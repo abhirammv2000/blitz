@@ -1,13 +1,8 @@
-"""Every prompt template must survive .format() with its real placeholders.
+"""Checks every prompt template still formats with the arguments we pass it.
 
-This exists because of a bug that broke the whole pipeline: the ads critic
-prompt embedded a literal JSON example, `{"approved": true, ...}`, and str.format
-read those braces as a replacement field. Every run died at the last node with
-KeyError: '"approved"'.
-
-That failure mode is invisible on inspection and catastrophic at runtime, and it
-will recur the moment someone pastes a JSON example into a prompt. These tests
-make it impossible to merge.
+The critic prompt had a JSON example in it, and str.format treated those braces
+as placeholders. Every run crashed on the last node. Easy mistake to repeat any
+time someone pastes JSON into a prompt, so all the templates are checked here.
 """
 
 from __future__ import annotations
@@ -64,18 +59,16 @@ TEMPLATES = [
 
 @pytest.mark.parametrize("name,template,kwargs", TEMPLATES, ids=[t[0] for t in TEMPLATES])
 def test_template_formats_without_error(name, template, kwargs):
-    """The regression guard: .format() must not raise on any prompt."""
+    """None of the templates should blow up when we format them."""
     result = template.format(**kwargs)
     assert result, f"{name} formatted to an empty string"
 
 
 @pytest.mark.parametrize("name,template,kwargs", TEMPLATES, ids=[t[0] for t in TEMPLATES])
 def test_template_declares_exactly_the_expected_fields(name, template, kwargs):
-    """Catch drift in both directions.
+    """A placeholder with no argument crashes; a spare argument is dead code.
 
-    A placeholder added to a template without updating its call site raises
-    KeyError in production; one removed leaves dead arguments behind. Either way
-    the template's fields and the call site's kwargs should agree exactly.
+    Either way, the two lists should match.
     """
     declared = {
         field
@@ -88,12 +81,7 @@ def test_template_declares_exactly_the_expected_fields(name, template, kwargs):
 
 
 def test_critic_prompt_keeps_its_json_example_literal():
-    """The specific bug, pinned.
-
-    The critic prompt shows the model an example of the JSON it should return.
-    Those braces must be escaped so they survive .format() as literal text — if
-    they reach the model mangled, or blow up formatting, the critic is useless.
-    """
+    """The example JSON in the critic prompt has to survive .format() intact."""
     rendered = CRITIC_PROMPT.format(ads_json='{"ad_copies": []}')
     assert '{"approved": true' in rendered
     assert '{"approved": false' in rendered

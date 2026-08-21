@@ -32,12 +32,10 @@ from app.telemetry import agent_context
 builder = StateGraph(BlitzState)
 
 def instrumented(name: str, node):
-    """Tag every LLM call a node makes with the run and agent it belongs to.
+    """Label every LLM call this node makes so telemetry knows who made it.
 
-    Instrumenting here rather than inside each agent keeps the agents unaware of
-    telemetry and puts the wiring in one visible place — a node cannot be added
-    to the pipeline without being measured, which is how the cost figures stay
-    honest as the graph grows.
+    Doing it here means the agents don't need to know telemetry exists, and a
+    new node can't be added without being measured.
     """
 
     async def wrapper(state: BlitzState) -> dict:

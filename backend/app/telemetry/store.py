@@ -1,16 +1,8 @@
-"""SQLite persistence for LLM call telemetry.
+"""Stores one row per LLM call in SQLite, and the queries that read them back.
 
-Design notes:
-
-- One row per LLM call, not per run. Run- and agent-level figures are derived by
-  aggregation, so there is a single source of truth and no rollup to keep in
-  sync. It also means a new question ("what does the fallback cost us?") is a
-  query rather than a schema change.
-- SQLite, in the same blitz.db the rest of the backend uses. It survives restart,
-  unlike the in-memory counters this codebase used for the image cap, and it is
-  queryable with plain SQL.
-- Writes never raise. Telemetry that can break the pipeline it measures is a
-  liability; a dropped row is an acceptable price for that guarantee.
+We keep raw calls rather than per-run totals so a new question is just a new
+query. Nothing in here raises: if telemetry breaks it should cost us a row,
+not a pipeline run.
 """
 
 from __future__ import annotations
@@ -33,7 +25,7 @@ def _get_conn() -> sqlite3.Connection:
 
 
 def init_telemetry_table() -> None:
-    """Create the llm_calls table and its indexes if they do not exist."""
+    """Create the llm_calls table if it isn't there yet."""
     conn = _get_conn()
     try:
         conn.execute("""
@@ -54,7 +46,6 @@ def init_telemetry_table() -> None:
                 error_type TEXT
             )
         """)
-        # Every dashboard query filters or groups by one of these.
         conn.execute("CREATE INDEX IF NOT EXISTS idx_llm_calls_run ON llm_calls(run_id)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_llm_calls_ts ON llm_calls(ts)")
         conn.commit()
@@ -76,7 +67,7 @@ def record_call(
     status: str = "success",
     error_type: str | None = None,
 ) -> None:
-    """Persist one LLM call. Never raises — see module docstring."""
+    """Save one LLM call."""
     try:
         conn = _get_conn()
         try:
@@ -98,16 +89,8 @@ def record_call(
             conn.commit()
         finally:
             conn.close()
-    except Exception as exc:  # noqa: BLE001 - telemetry must not break the pipeline
-        logger.warning("Telemetry write failed (continuing): %s", exc)
-
-
-# ---------------------------------------------------------------------------
-# Queries
-#
-# Deliberately plain SQL rather than an ORM: these are the numbers a reader
-# needs to be able to check by hand, and aggregation is what SQL is for.
-# ---------------------------------------------------------------------------
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Could not write telemetry row: %s", exc)
 
 
 def _rows(sql: str, params: tuple = ()) -> list[dict]:
@@ -123,20 +106,22 @@ def _rows(sql: str, params: tuple = ()) -> list[dict]:
 
 
 def get_summary() -> dict:
-    """Fleet-wide totals: spend, volume, reliability."""
+    """Totals across every call we've recorded."""
     rows = _rows("""
         SELECT
-            COUNT(*)                                        AS calls,
-            COUNT(DISTINCT run_id)                          AS runs,
-            COALESCE(SUM(cost_usd), 0)                      AS total_cost_usd,
-            COALESCE(SUM(total_tokens), 0)                  AS total_tokens,
-            COALESCE(AVG(latency_ms), 0)                    AS avg_latency_ms,
-            COALESCE(SUM(status = 'success'), 0)            AS successes,
-            COALESCE(SUM(status = 'failure'), 0)            AS failures
+            COUNT(*)                             AS calls,
+            COUNT(DISTINCT run_id)               AS runs,
+            COALESCE(SUM(cost_usd), 0)           AS total_cost_usd,
+            COALESCE(SUM(total_tokens), 0)       AS total_tokens,
+            COALESCE(AVG(latency_ms), 0)         AS avg_latency_ms,
+            COALESCE(SUM(status = 'success'), 0) AS successes,
+            COALESCE(SUM(status = 'failure'), 0) AS failures
         FROM llm_calls
     """)
     summary = rows[0] if rows else {}
 
+    # Averages are done here rather than in SQL so an empty table gives 0
+    # instead of a division error.
     runs = summary.get("runs") or 0
     summary["avg_cost_per_run_usd"] = (summary.get("total_cost_usd", 0) / runs) if runs else 0.0
     summary["avg_tokens_per_run"] = (summary.get("total_tokens", 0) / runs) if runs else 0
@@ -160,14 +145,14 @@ def get_summary() -> dict:
 
 
 def get_agent_costs() -> list[dict]:
-    """Spend per agent, which is what tells you where to optimise."""
+    """Spend and latency per agent, most expensive first."""
     return _rows("""
         SELECT agent,
-               COUNT(*)                         AS calls,
-               COALESCE(SUM(cost_usd), 0)       AS cost_usd,
-               COALESCE(SUM(total_tokens), 0)   AS tokens,
-               COALESCE(AVG(latency_ms), 0)     AS avg_latency_ms,
-               COALESCE(MAX(latency_ms), 0)     AS max_latency_ms
+               COUNT(*)                       AS calls,
+               COALESCE(SUM(cost_usd), 0)     AS cost_usd,
+               COALESCE(SUM(total_tokens), 0) AS tokens,
+               COALESCE(AVG(latency_ms), 0)   AS avg_latency_ms,
+               COALESCE(MAX(latency_ms), 0)   AS max_latency_ms
         FROM llm_calls
         WHERE agent IS NOT NULL
         GROUP BY agent
@@ -176,14 +161,14 @@ def get_agent_costs() -> list[dict]:
 
 
 def get_runs(limit: int = 50) -> list[dict]:
-    """Per-run rollup, newest first."""
+    """One row per pipeline run, newest first."""
     return _rows("""
         SELECT run_id,
-               MIN(ts)                          AS started_at,
-               COUNT(*)                         AS calls,
-               COALESCE(SUM(cost_usd), 0)       AS cost_usd,
-               COALESCE(SUM(total_tokens), 0)   AS tokens,
-               COALESCE(SUM(latency_ms), 0)     AS total_latency_ms,
+               MIN(ts)                              AS started_at,
+               COUNT(*)                             AS calls,
+               COALESCE(SUM(cost_usd), 0)           AS cost_usd,
+               COALESCE(SUM(total_tokens), 0)       AS tokens,
+               COALESCE(SUM(latency_ms), 0)         AS total_latency_ms,
                COALESCE(SUM(status = 'failure'), 0) AS failures
         FROM llm_calls
         WHERE run_id IS NOT NULL
@@ -194,7 +179,7 @@ def get_runs(limit: int = 50) -> list[dict]:
 
 
 def get_run_detail(run_id: str) -> dict:
-    """Every call in one run, plus its per-agent breakdown."""
+    """Every call in one run, plus a per-agent breakdown."""
     return {
         "run_id": run_id,
         "calls": _rows("SELECT * FROM llm_calls WHERE run_id = ? ORDER BY ts", (run_id,)),

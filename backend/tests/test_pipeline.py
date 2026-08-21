@@ -1,14 +1,7 @@
-"""End-to-end LangGraph run with every external call stubbed.
+"""Runs the whole graph with the LLM, Tavily and Firecrawl stubbed out.
 
-This is the test that would have caught the bug that broke the pipeline: the
-critic node raised KeyError on a malformed prompt template, so every run died
-at the last node. Nothing in the codebase exercised the assembled graph, so it
-reached production and was only found by running the real thing for five
-minutes at real API cost.
-
-Everything here is offline: no LLM, no Tavily, no Firecrawl. The point is to
-verify wiring — that nodes run in order, that each one's output reaches the
-next, that the critic loop terminates — not to judge output quality.
+Checks the wiring: that nodes run in order, each one's output reaches the next,
+and the critic loop stops. It says nothing about whether the output is any good.
 """
 
 from __future__ import annotations
