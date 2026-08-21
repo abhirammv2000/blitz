@@ -22,6 +22,7 @@ from app.agents.agent_4_sales.node import agent_4_sales_node
 from app.agents.agent_5_ads.critic import critic_ads_node
 from app.agents.agent_5_ads.node import agent_5_ads_node
 from app.state import BlitzState
+from app.telemetry import agent_context
 
 # ---------------------------------------------------------------------------
 # Graph Builder Setup
@@ -30,14 +31,31 @@ from app.state import BlitzState
 # We use a StateGraph to pass around our BlitzState object between agents.
 builder = StateGraph(BlitzState)
 
+def instrumented(name: str, node):
+    """Tag every LLM call a node makes with the run and agent it belongs to.
+
+    Instrumenting here rather than inside each agent keeps the agents unaware of
+    telemetry and puts the wiring in one visible place — a node cannot be added
+    to the pipeline without being measured, which is how the cost figures stay
+    honest as the graph grows.
+    """
+
+    async def wrapper(state: BlitzState) -> dict:
+        with agent_context(state.get("run_id"), name):
+            return await node(state)
+
+    wrapper.__name__ = f"instrumented_{name}"
+    return wrapper
+
+
 # 1. First, we add all our agent functions as "nodes" in the graph.
-builder.add_node("agent_0_research", agent_0_research_node)
-builder.add_node("agent_1_profile", agent_1_profile_node)
-builder.add_node("agent_2_audience", agent_2_audience_node)
-builder.add_node("agent_3_content", agent_3_content_node)
-builder.add_node("agent_4_sales", agent_4_sales_node)
-builder.add_node("agent_5_ads", agent_5_ads_node)
-builder.add_node("critic_ads", critic_ads_node)
+builder.add_node("agent_0_research", instrumented("agent_0_research", agent_0_research_node))
+builder.add_node("agent_1_profile", instrumented("agent_1_profile", agent_1_profile_node))
+builder.add_node("agent_2_audience", instrumented("agent_2_audience", agent_2_audience_node))
+builder.add_node("agent_3_content", instrumented("agent_3_content", agent_3_content_node))
+builder.add_node("agent_4_sales", instrumented("agent_4_sales", agent_4_sales_node))
+builder.add_node("agent_5_ads", instrumented("agent_5_ads", agent_5_ads_node))
+builder.add_node("critic_ads", instrumented("critic_ads", critic_ads_node))
 
 # 2. Next, we define the flow by drawing "edges" (connections) between the nodes.
 builder.add_edge(START, "agent_0_research")

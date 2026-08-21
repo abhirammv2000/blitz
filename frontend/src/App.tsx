@@ -2,6 +2,7 @@ import { useState } from 'react'
 import Landing from './pages/Landing'
 import Wizard from './components/Wizard'
 import VoiceTest from './pages/VoiceTest'
+import Telemetry from './pages/Telemetry'
 import { useBlitzStore } from './store/useBlitzStore'
 
 function App() {
@@ -10,9 +11,13 @@ function App() {
 
   // Quick access: /?voice-test to test voice agent in isolation
   const isVoiceTest = window.location.search.includes('voice-test')
+  // /?telemetry — the AI cost and reliability dashboard
+  const isTelemetry = window.location.search.includes('telemetry')
 
   let page
-  if (isVoiceTest) {
+  if (isTelemetry) {
+    page = <Telemetry />
+  } else if (isVoiceTest) {
     page = <VoiceTest />
   } else if (launched || runId) {
     page = (
