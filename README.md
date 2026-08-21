@@ -307,6 +307,37 @@ Visit `http://localhost:5173/?voice-test` for a standalone voice agent testing i
 
 ---
 
+## AI Telemetry
+
+Every LLM call the pipeline makes is recorded: run, agent, model group, model
+actually served, provider, tokens, cost, latency, and outcome. Dashboard at
+`http://localhost:5173/?telemetry`.
+
+```
+GET /telemetry/summary        totals, success rate, split by provider and tier
+GET /telemetry/agents         cost and latency per agent
+GET /telemetry/runs           per-run rollup
+GET /telemetry/runs/{run_id}  every call in one run
+```
+
+Three decisions worth knowing:
+
+- **A LiteLLM `CustomLogger`, not a wrapper around our call sites.** The Router
+  retries and fails over internally, so a wrapper would see one logical call
+  where three were billed. The callback sees each attempt, which is what makes
+  the totals reconcile against the provider's bill.
+- **Identity travels in a `contextvar`, set once per node in `graph.py`.** No
+  call site has to remember to pass metadata, so a call added later is still
+  measured — and the Router's own retries inherit the tag.
+- **Cost comes from LiteLLM's `response_cost`.** A hardcoded price table goes
+  stale and produces confidently wrong numbers.
+
+Telemetry never raises. Observability that can break the pipeline it measures is
+a liability, so a dropped row is the accepted trade.
+
+It earns its place: the first instrumented run showed `agent_0_research` making
+11 of 13 calls and 72% of spend — not something any of us had guessed.
+
 ## Tests
 
 ```bash

@@ -49,6 +49,13 @@ from app.core.llm import describe_exception
 from app.db import get_agent_context, get_agent_output
 from app.db.leads import get_leads_for_run, init_leads_table, insert_lead
 from app.graph import build_graph
+from app.telemetry import (
+    get_agent_costs,
+    get_run_detail,
+    get_runs,
+    get_summary,
+    install_telemetry,
+)
 
 _backend_dir = Path(__file__).resolve().parent
 load_dotenv(_backend_dir / ".env", override=True)
@@ -77,6 +84,8 @@ async def lifespan(_app: FastAPI):
     global graph  # noqa: PLW0603
     graph = build_graph()
     init_leads_table()
+    # Registers the LiteLLM callback and creates the telemetry table.
+    install_telemetry()
     logger.info(
         "Blitz API ready | primary=%s mini=%s | %d CORS origin(s)",
         settings.primary_model,
@@ -270,6 +279,35 @@ async def generate_ad_image_endpoint(run_id: str, body: ImageGenRequest):
 
     remaining = IMAGE_CAP - _image_counts.get(run_id, 0)
     return {"image_url": image_url, "remaining": remaining}
+
+
+# ---------------------------------------------------------------------------
+# Telemetry — usage, cost, and reliability across the pipeline
+# ---------------------------------------------------------------------------
+
+
+@app.get("/telemetry/summary")
+async def telemetry_summary():
+    """Fleet-wide totals: spend, volume, success rate, split by provider and tier."""
+    return get_summary()
+
+
+@app.get("/telemetry/agents")
+async def telemetry_agents():
+    """Cost and latency per agent — where the money and the time actually go."""
+    return get_agent_costs()
+
+
+@app.get("/telemetry/runs")
+async def telemetry_runs(limit: int = 50):
+    """Per-run rollup, newest first."""
+    return get_runs(limit=limit)
+
+
+@app.get("/telemetry/runs/{run_id}")
+async def telemetry_run_detail(run_id: str):
+    """Every LLM call in one run, with its per-agent breakdown."""
+    return get_run_detail(run_id)
 
 
 # ---------------------------------------------------------------------------
