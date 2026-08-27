@@ -63,10 +63,10 @@ export default function LeadsTable({ runId }: LeadsTableProps) {
           <tbody>
             {leads.map((lead) => (
               <tr key={lead.id} className="border-b border-ink/5 last:border-b-0">
-                <td className="px-4 py-2.5 text-ink">{lead.caller_name || '—'}</td>
-                <td className="px-4 py-2.5 text-ink">{lead.email || '—'}</td>
-                <td className="px-4 py-2.5 text-ink">{lead.phone || '—'}</td>
-                <td className="px-4 py-2.5 text-ink">{lead.callback_time || '—'}</td>
+                <td className="px-4 py-2.5 text-ink">{lead.caller_name || ' - '}</td>
+                <td className="px-4 py-2.5 text-ink">{lead.email || ' - '}</td>
+                <td className="px-4 py-2.5 text-ink">{lead.phone || ' - '}</td>
+                <td className="px-4 py-2.5 text-ink">{lead.callback_time || ' - '}</td>
                 <td className="px-4 py-2.5">
                   {lead.interested === 1 ? (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-teal-600/10 text-teal-700">
@@ -77,7 +77,7 @@ export default function LeadsTable({ runId }: LeadsTableProps) {
                       Not interested
                     </span>
                   ) : (
-                    <span className="text-ink-faint">—</span>
+                    <span className="text-ink-faint"> - </span>
                   )}
                 </td>
               </tr>

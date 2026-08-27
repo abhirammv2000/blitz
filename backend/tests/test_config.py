@@ -2,7 +2,7 @@
 
 config.Settings is the single source of truth for configuration: nothing else in
 the backend reads os.environ. These tests pin the behaviour that makes that safe
-— environment overrides, validation of bad values, and path resolution that does
+ - environment overrides, validation of bad values, and path resolution that does
 not depend on the working directory.
 """
 
@@ -44,7 +44,7 @@ def test_settings_are_case_insensitive(monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# Validation — a bad value should fail loudly at startup
+# Validation - a bad value should fail loudly at startup
 # ---------------------------------------------------------------------------
 
 

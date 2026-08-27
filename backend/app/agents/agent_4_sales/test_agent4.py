@@ -108,7 +108,7 @@ async def test_sales():
         print(f"\n  Segment: {seq.segment}")
         for email in seq.emails:
             label = {1: "Insight", 2: "Value", 3: "Ask"}.get(email.step, f"Step {email.step}")
-            print(f"    Step {email.step} ({label}) — delay: {email.delay_days}d")
+            print(f"    Step {email.step} ({label}) - delay: {email.delay_days}d")
             print(f"      Subject: {email.subject}")
             body_preview = email.body[:200]
             print(f"      Body:    {body_preview}{'...' if len(email.body) > 200 else ''}")

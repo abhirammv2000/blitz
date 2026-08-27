@@ -22,7 +22,7 @@ def _fresh_router():
 
 
 # ---------------------------------------------------------------------------
-# describe_exception — the blank error message bug
+# describe_exception - the blank error message bug
 # ---------------------------------------------------------------------------
 
 

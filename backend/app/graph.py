@@ -5,7 +5,7 @@ This file wires together our 6 AI agents into a single, automated pipeline.
 It exports a `build_graph()` function that gives us the ready-to-run graph.
 
 How it works:
-- The agents run one after another in a straight line: 
+- The agents run one after another in a straight line:
   Research -> Profile -> Audience -> Content -> Sales -> Ads
 - There's no human intervention needed in the middle.
 - They share data with each other using ChromaDB behind the scenes.
@@ -75,10 +75,10 @@ builder.add_conditional_edges("critic_ads", route_after_critic, {"agent_5_ads": 
 def build_graph():
     """
     Compile the graph into a runnable application.
-    
-    We use MemorySaver here to keep track of the pipeline's progress in memory. 
-    We previously used a SQLite database for this, but since we no longer need 
-    to pause and resume the pipeline (it just runs straight through), MemorySaver 
+
+    We use MemorySaver here to keep track of the pipeline's progress in memory.
+    We previously used a SQLite database for this, but since we no longer need
+    to pause and resume the pipeline (it just runs straight through), MemorySaver
     is much faster and avoids pesky file-locking issues, especially on Windows!
     """
     checkpointer = MemorySaver()

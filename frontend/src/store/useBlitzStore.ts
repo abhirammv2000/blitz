@@ -83,10 +83,10 @@ export const useBlitzStore = create<BlitzStore>()((set) => ({
       await startDemoPipeline(url)
       return
     }
-    
+
     // Reset state before starting a new run
     set({ error: null, isRunning: true, researchProgress: [] })
-    
+
     try {
       // 1. Send the URL to the backend to kick off the pipeline
       const res = await fetch(`${API_BASE}/pipeline/start`, {
@@ -110,7 +110,7 @@ export const useBlitzStore = create<BlitzStore>()((set) => ({
 
         // Add the new chunk of text to our buffer
         buffer += decoder.decode(value, { stream: true })
-        
+
         // SSE messages are separated by newlines. We split the buffer into individual
         // messages. If the last chunk is incomplete (doesn't end with a newline),
         // we keep it in the buffer for the next time we read.
@@ -121,7 +121,7 @@ export const useBlitzStore = create<BlitzStore>()((set) => ({
         for (const part of parts) {
           const line = part.trim()
           if (!line.startsWith('data: ')) continue
-          
+
           try {
             // Strip the "data: " prefix and parse the JSON payload
             const event = JSON.parse(line.slice(6))
@@ -182,7 +182,7 @@ export const useBlitzStore = create<BlitzStore>()((set) => ({
         }
       }
 
-      // Stream ended — mark pipeline as complete
+      // Stream ended - mark pipeline as complete
       set({ isRunning: false })
     } catch (err) {
       set({

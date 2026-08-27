@@ -11,7 +11,7 @@ function App() {
 
   // Quick access: /?voice-test to test voice agent in isolation
   const isVoiceTest = window.location.search.includes('voice-test')
-  // /?telemetry — the AI cost and reliability dashboard
+  // /?telemetry - the AI cost and reliability dashboard
   const isTelemetry = window.location.search.includes('telemetry')
 
   let page

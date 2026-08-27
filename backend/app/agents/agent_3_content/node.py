@@ -24,7 +24,7 @@ async def run_content(run_id: str, feedback: str | None = None) -> ContentOutput
     """Run the content synthesis LLM call for a given run_id.
 
     Args:
-        run_id: Pipeline run identifier — used to fetch profile and audience.
+        run_id: Pipeline run identifier - used to fetch profile and audience.
         feedback: Optional feedback to guide refinement.
 
     Returns:

@@ -1,7 +1,7 @@
 """Manual smoke script: drive the real pipeline against a live URL.
 
 This makes real API calls and costs real money. It is a debugging aid, not a
-test — the automated suite lives in backend/tests/ and runs offline for free.
+test - the automated suite lives in backend/tests/ and runs offline for free.
 
 Usage:
     cd backend
@@ -27,7 +27,7 @@ async def main(url: str) -> None:
     config = {"configurable": {"thread_id": "manual-smoke"}}
 
     # NOTE: the state key is `company_url`, not `url`. An earlier version of this
-    # script passed `url`, which the graph ignored — agent 0 then researched an
+    # script passed `url`, which the graph ignored - agent 0 then researched an
     # empty string and every downstream agent inherited the nonsense.
     initial_state = {
         "run_id": "manual-smoke",

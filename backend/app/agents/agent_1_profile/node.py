@@ -24,7 +24,7 @@ async def run_profile(run_id: str, feedback: str | None = None) -> MarketingProf
     """Run the profile synthesis LLM call for a given run_id.
 
     Args:
-        run_id: Pipeline run identifier — used to fetch research from ChromaDB.
+        run_id: Pipeline run identifier - used to fetch research from ChromaDB.
         feedback: Optional feedback to guide refinement.
 
     Returns:

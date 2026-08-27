@@ -1,6 +1,6 @@
 """Pydantic output schema for Agent 4 (Sales Enablement).
 
-Nested models follow the BrandDNA/MarketingGap pattern from agent_1_profile —
+Nested models follow the BrandDNA/MarketingGap pattern from agent_1_profile -
 no loose dict types, enabling reliable frontend rendering and type-safe access.
 """
 
@@ -27,7 +27,7 @@ class LinkedInTemplate(BaseModel):
     """LinkedIn DM templates for a specific audience segment."""
 
     segment: str
-    connection_request: str  # Short, casual — under 300 chars
+    connection_request: str  # Short, casual - under 300 chars
     follow_up_1: str         # Provides value, references connection
     follow_up_2: str         # Soft ask or resource share
 
@@ -55,7 +55,7 @@ class SalesOutput(BaseModel):
     """Structured output from the Sales Enablement agent.
 
     Produces multi-touch outreach sequences, LinkedIn templates, lead scoring
-    criteria, and pipeline stage definitions — all segment-targeted and
+    criteria, and pipeline stage definitions - all segment-targeted and
     typed with nested Pydantic models for reliable frontend rendering.
     """
 

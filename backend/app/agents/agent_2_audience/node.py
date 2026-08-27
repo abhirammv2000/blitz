@@ -24,7 +24,7 @@ async def run_audience(run_id: str, feedback: str | None = None) -> AudienceOutp
     """Run the audience synthesis LLM call for a given run_id.
 
     Args:
-        run_id: Pipeline run identifier — used to fetch the profile from ChromaDB.
+        run_id: Pipeline run identifier - used to fetch the profile from ChromaDB.
         feedback: Optional feedback to guide refinement.
 
     Returns:

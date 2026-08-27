@@ -5,7 +5,7 @@ Architecture:
 - tavily_search, firecrawl_scrape, aeo_check run concurrently via asyncio.gather()
 - extract_competitors runs sequentially after gather (needs Tavily results)
 - Progress events are published to a per-run asyncio.Queue for SSE streaming
-- AEO check calls GPT-4o and Gemini-2.5-pro concurrently (NOT via Router — both models needed)
+- AEO check calls GPT-4o and Gemini-2.5-pro concurrently (NOT via Router - both models needed)
 - On timeout, returns partial results with a note rather than failing entirely
 
 Usage:
@@ -70,7 +70,7 @@ async def _extract_company_name_from_content(site_content: str, url: str, fallba
     if not site_content or site_content.startswith("[Firecrawl"):
         return fallback_name
 
-    # Use first 1500 chars — company name is almost always near the top
+    # Use first 1500 chars - company name is almost always near the top
     excerpt = site_content[:1500]
     try:
         response = await asyncio.wait_for(
@@ -110,7 +110,7 @@ async def tavily_search(
     2. General third-party coverage (exclude company's own domain)
     3. Competitor discovery search (max_results=8)
 
-    All searches exclude the company's own site — we already get site content
+    All searches exclude the company's own site - we already get site content
     from Firecrawl. Press search targets real journalism, not product pages.
 
     Args:
@@ -120,7 +120,7 @@ async def tavily_search(
         feedback: Optional user feedback to refine search queries (reject case).
 
     Returns:
-        Tuple of (press_results, competitor_raw_results) — each a list of Tavily result dicts.
+        Tuple of (press_results, competitor_raw_results) - each a list of Tavily result dicts.
     """
     from tavily import AsyncTavilyClient  # type: ignore[import]
 
@@ -285,7 +285,7 @@ async def aeo_check(
 ) -> tuple[float, list[dict]]:
     """Check AI Engine Optimization (AEO) score for a company.
 
-    Uses blind prompts — the company name is NOT in the question. Instead we
+    Uses blind prompts - the company name is NOT in the question. Instead we
     describe the product category and ask each model to recommend tools. Then
     we check whether the company appears organically in the response and where
     it ranks (position scoring).
@@ -335,7 +335,7 @@ async def aeo_check(
     # drags the result down without telling anyone.
     # Both probes are env-overridable so a deployment without credits at one
     # provider can still run AEO. Note this measures recall across whichever two
-    # engines are configured — pointing both at the same provider makes the
+    # engines are configured - pointing both at the same provider makes the
     # score narrower, not wrong.
     def _key_for(model: str) -> str:
         return settings.gemini_api_key if model.startswith("gemini/") else settings.openai_api_key
@@ -549,8 +549,8 @@ async def run_research(
 
     Args:
         company_url: The company website URL to research.
-        run_id: Pipeline run identifier (UUID4) — used to scope the progress queue.
-        feedback: Optional user feedback from a HITL reject — appended to search queries.
+        run_id: Pipeline run identifier (UUID4) - used to scope the progress queue.
+        feedback: Optional user feedback from a HITL reject - appended to search queries.
 
     Returns:
         ResearchOutput with company intelligence, press coverage, competitors, and AEO scores.
@@ -607,7 +607,7 @@ async def run_research(
     site_excerpt_for_competitors = site_content[:800] if site_content else ""
     competitors = await extract_competitors(competitor_raw, company_name, category=category, site_excerpt=site_excerpt_for_competitors)
 
-    # Build press coverage list — score, filter, and deduplicate.
+    # Build press coverage list - score, filter, and deduplicate.
     # Scoring prevents false positives for generic company names (e.g. "Linear"
     # matching "Linear Technology" or "Linear (LINA) crypto token").
     bare_domain = _extract_bare_domain(company_url)
@@ -625,7 +625,7 @@ async def run_research(
         url_lower = url.lower()
         content_lower = content.lower()
 
-        # Skip the company's own site — we already have site content from Firecrawl
+        # Skip the company's own site - we already have site content from Firecrawl
         if domain_lower in url_lower:
             continue
 
@@ -636,11 +636,11 @@ async def run_research(
             continue
         seen_paths.add(path)
 
-        # Score relevance — higher is better.
+        # Score relevance - higher is better.
         # Domain mentions are the strongest disambiguation signal (e.g. "linear.app"
         # distinguishes Linear the product from "linear algebra" or "Linear Technology").
         score = 0
-        # Score relevance — higher is better
+        # Score relevance - higher is better
         score = 0
         # Full domain in content or URL (strongest disambiguation signal)
         if domain_lower in content_lower or domain_lower in url_lower:
@@ -717,7 +717,7 @@ async def run_research(
     await queue.put({
         "step": "synthesis",
         "status": "done",
-        "detail": f"Research complete — {len(press_coverage)} articles, {len(competitors)} competitors",
+        "detail": f"Research complete - {len(press_coverage)} articles, {len(competitors)} competitors",
     })
 
     return ResearchOutput(

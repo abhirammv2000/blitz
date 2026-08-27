@@ -1,13 +1,13 @@
 """
-FastAPI Backend — The engine driving the Blitz pipeline.
+FastAPI Backend - The engine driving the Blitz pipeline.
 
 This is the main entry point for the backend. It provides endpoints to:
   - Start a new pipeline run (and stream real-time updates back to the browser)
   - Perform health checks
   - Handle voice agent interactions (setting up, getting transcripts, extracting leads)
 
-We use Server-Sent Events (SSE) to stream data back to the frontend. Think of it like a 
-one-way walkie-talkie where the server can continuously push updates (like "agent finished", 
+We use Server-Sent Events (SSE) to stream data back to the frontend. Think of it like a
+one-way walkie-talkie where the server can continuously push updates (like "agent finished",
 "new step started") to the browser without the browser having to constantly ask "are you done yet?".
 """
 
@@ -137,8 +137,8 @@ def sse_event(data: dict) -> str:
 
 async def stream_graph_with_progress(run_id: str, graph_input: dict, config: dict):
     """
-    The magic behind our real-time updates! 
-    
+    The magic behind our real-time updates!
+
     This function listens to two things at once:
       1. The LangGraph pipeline (which outputs the final result of each agent)
       2. A progress queue (which outputs granular, sub-step updates while agents are "thinking")
@@ -226,7 +226,7 @@ async def health():
 @app.post("/pipeline/start")
 async def pipeline_start(payload: PipelineStartRequest):
     """
-    Kick off a new pipeline run! 
+    Kick off a new pipeline run!
     When the frontend says "go", this endpoint spins up a new LangGraph process
     and immediately opens up an SSE stream to send live updates back to the browser.
     """
@@ -310,7 +310,7 @@ async def telemetry_run_detail(run_id: str):
 
 
 # ---------------------------------------------------------------------------
-# Voice agent endpoints (ElevenLabs Conversational AI — browser WebSocket)
+# Voice agent endpoints (ElevenLabs Conversational AI - browser WebSocket)
 # ---------------------------------------------------------------------------
 
 

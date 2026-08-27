@@ -1,27 +1,27 @@
 """Prompt templates for Agent 0 (Research).
 
 Two templates:
-1. COMPETITOR_EXTRACTION_PROMPT — extracts structured competitor data from raw Tavily results
-2. AEO_CHECK_PROMPT — probes whether an LLM mentions a company in a natural customer query
+1. COMPETITOR_EXTRACTION_PROMPT - extracts structured competitor data from raw Tavily results
+2. AEO_CHECK_PROMPT - probes whether an LLM mentions a company in a natural customer query
 """
 
 COMPETITOR_EXTRACTION_PROMPT = """\
 You are a competitive intelligence analyst.
 
 ## Company being analyzed
-{company_name} — a {category} company.
+{company_name} - a {category} company.
 
 ## What {company_name} does
 {company_description}
 
-## Raw search results (may contain noise — use your judgment)
+## Raw search results (may contain noise - use your judgment)
 {raw_results}
 
 Task: Identify 3-5 distinct competitors to {company_name}.
 
 IMPORTANT RULES:
 1. A valid competitor MUST be in the same product category ({category}) and serve a similar audience.
-2. Ignore companies from unrelated industries — even if they appear in the search results.
+2. Ignore companies from unrelated industries - even if they appear in the search results.
    For example, a marketing agency is NOT a competitor to a cashback app.
 3. If the search results lack good competitors, USE YOUR OWN KNOWLEDGE of the {category} \
    space to identify well-known competitors. Real competitors are better than bad search results.
@@ -69,7 +69,7 @@ Write two outputs:
 
 1. **SUMMARY** (2-3 paragraphs): A strategic intelligence brief covering:
    - What the company does, who they serve, and their core value proposition
-   - Their market positioning vs. competitors — strengths and vulnerabilities
+   - Their market positioning vs. competitors - strengths and vulnerabilities
    - Their AI discoverability and digital presence gaps
    - One or two non-obvious strategic insights (e.g. underserved segments, messaging misalignment, untapped channels)
 
@@ -80,7 +80,7 @@ Return ONLY valid JSON with no markdown, no code fences:
 """
 
 # ---------- AEO (Answer Engine Optimization) ----------
-# Three blind prompt angles — the company name is NOT in the question.
+# Three blind prompt angles - the company name is NOT in the question.
 # We feed the category description (extracted from the site) so the LLM
 # answers a realistic customer query. After receiving the response we
 # check whether the company was organically mentioned and at what position.
@@ -93,8 +93,8 @@ You are a knowledgeable business advisor. A potential buyer asks:
 "What are the best {category} tools or platforms available right now? \
 Give me a ranked list of the top 5-8 options with a short explanation for each."
 
-Answer naturally and thoroughly. Only recommend solutions you genuinely know about — \
-do NOT make up products. Number your recommendations (1, 2, 3, …).""",
+Answer naturally and thoroughly. Only recommend solutions you genuinely know about - \
+do NOT make up products. Number your recommendations (1, 2, 3, ...).""",
 
     # Angle 2: Recommendation for a specific use case
     """\

@@ -64,7 +64,7 @@ def isolated_chroma(monkeypatch):
 
     monkeypatch.setattr(settings, "chroma_in_memory", True)
     # Blitz never runs a similarity query, so the default ONNX embedding model
-    # is pure overhead here — it was costing several seconds per test.
+    # is pure overhead here - it was costing several seconds per test.
     monkeypatch.setattr(settings, "chroma_disable_embeddings", True)
     db.reset_client()
     yield

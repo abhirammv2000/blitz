@@ -76,7 +76,7 @@ function BulletList({ items }: { items: string[] }) {
     <ul className="flex flex-col gap-1">
       {items.map((item, i) => (
         <li key={i} className="text-xs text-ink-muted flex items-start gap-1.5">
-          <span className="text-teal-600 mt-0.5 flex-shrink-0">•</span>
+          <span className="text-teal-600 mt-0.5 flex-shrink-0">-</span>
           {item}
         </li>
       ))}
@@ -195,7 +195,7 @@ export default function SegmentCard({ segment, index, onFlag }: SegmentCardProps
         </TabPanels>
       </TabGroup>
 
-      {/* Citation-style reasoning — always visible */}
+      {/* Citation-style reasoning - always visible */}
       <div className="rounded-xl border border-ink/8 bg-cream px-3 py-2.5">
         <p className="text-xs text-ink-faint uppercase tracking-widest font-medium mb-1">Reasoning</p>
         <p className="text-xs text-ink-muted leading-relaxed italic">{segment.reasoning}</p>
@@ -249,14 +249,14 @@ export default function SegmentCard({ segment, index, onFlag }: SegmentCardProps
             className="flex-1 py-1.5 rounded-lg text-xs font-medium text-success hover:bg-success/10 transition-all"
             title="Looks good"
           >
-            ✓ Approve
+            yes Approve
           </button>
           <button
             onClick={() => setFlagging(true)}
             className="flex-1 py-1.5 rounded-lg text-xs font-medium text-gold-600 hover:bg-gold-100 transition-all"
             title="Flag for review"
           >
-            ⚑ Flag
+             Flag
           </button>
         </div>
       ) : (

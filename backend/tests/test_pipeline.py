@@ -125,7 +125,7 @@ async def test_pipeline_runs_every_agent_to_completion(stub_router, offline_rese
         "research_output", "profile_output", "audience_output",
         "content_output", "sales_output", "ads_output",
     ):
-        assert final.get(key), f"{key} missing — the pipeline did not complete"
+        assert final.get(key), f"{key} missing - the pipeline did not complete"
 
 
 async def test_critic_loop_terminates(stub_router, offline_research):

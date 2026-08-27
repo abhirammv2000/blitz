@@ -65,7 +65,7 @@ async def generate_ad_image(prompt: str) -> str | None:
 
     Returns:
         An image URL, or a `data:<mime>;base64,...` URI for models that return
-        base64. None if generation fails — callers treat images as optional.
+        base64. None if generation fails - callers treat images as optional.
     """
     try:
         response = await asyncio.wait_for(
@@ -100,7 +100,7 @@ async def run_ads(run_id: str, feedback: str | None = None) -> AdsOutput:
     """Run the ad creative synthesis LLM call for a given run_id.
 
     Args:
-        run_id: Pipeline run identifier — used to fetch context from ChromaDB.
+        run_id: Pipeline run identifier - used to fetch context from ChromaDB.
         feedback: Optional feedback to guide refinement.
 
     Returns:

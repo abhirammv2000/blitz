@@ -24,7 +24,7 @@ async def run_sales(run_id: str, feedback: str | None = None) -> SalesOutput:
     """Run the sales synthesis LLM call for a given run_id.
 
     Args:
-        run_id: Pipeline run identifier — used to fetch profile and audience.
+        run_id: Pipeline run identifier - used to fetch profile and audience.
         feedback: Optional feedback to guide refinement.
 
     Returns:

@@ -221,7 +221,7 @@ async def test_ads():
     unique_prompts = set(all_image_prompts)
     print(f"\n  Image prompt uniqueness: {len(unique_prompts)} unique / {len(all_image_prompts)} total")
     if len(unique_prompts) < len(all_image_prompts) * 0.5:
-        print("  WARNING: Most image prompts are identical — LLM is copy-pasting style rules!")
+        print("  WARNING: Most image prompts are identical - LLM is copy-pasting style rules!")
     elif len(unique_prompts) == len(all_image_prompts):
         print("  OK: All image prompts are unique")
 

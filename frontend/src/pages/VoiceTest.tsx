@@ -3,7 +3,7 @@ import { useVoiceSession } from '../hooks/useVoiceSession'
 import { API_BASE } from '../config'
 
 /**
- * Standalone voice test page — bypasses the full pipeline.
+ * Standalone voice test page - bypasses the full pipeline.
  * Access via /?voice-test in the browser.
  */
 export default function VoiceTest() {
@@ -14,7 +14,7 @@ export default function VoiceTest() {
     'Hi, I\'m calling from Acme Corp. We help companies automate their sales outreach. Do you have a few minutes to chat?'
   )
   const [firstMessage, setFirstMessage] = useState(
-    'Hey! This is Alex from Acme Corp — do you have a quick minute?'
+    'Hey! This is Alex from Acme Corp - do you have a quick minute?'
   )
 
   async function handleStart() {

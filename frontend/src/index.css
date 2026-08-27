@@ -2,22 +2,22 @@
 @import "tailwindcss";
 
 @theme {
-  /* Ground — warm cream, not clinical white */
+  /* Ground - warm cream, not clinical white */
   --color-cream:       oklch(0.975 0.012 65);
   --color-cream-dark:  oklch(0.932 0.018 60);
 
-  /* Ink — warm brown-gray (h:55) instead of cool blue-gray (h:250) */
+  /* Ink - warm brown-gray (h:55) instead of cool blue-gray (h:250) */
   --color-ink:         oklch(0.15 0.015 55);
   --color-ink-muted:   oklch(0.40 0.012 55);
   --color-ink-faint:   oklch(0.60 0.010 55);
 
-  /* Teal — shifted to true blue-teal (h:175) for better warm/cool complement */
+  /* Teal - shifted to true blue-teal (h:175) for better warm/cool complement */
   --color-teal-100:    oklch(0.94 0.035 175);
   --color-teal-600:    oklch(0.44 0.12 175);
   --color-teal-700:    oklch(0.37 0.11 175);
   --color-teal-800:    oklch(0.30 0.08 175);
 
-  /* Gold — richer amber (h:50), higher chroma */
+  /* Gold - richer amber (h:50), higher chroma */
   --color-gold-100:    oklch(0.96 0.04 50);
   --color-gold-400:    oklch(0.78 0.14 50);
   --color-gold-500:    oklch(0.72 0.18 50);
@@ -27,11 +27,11 @@
   --color-success:     oklch(0.50 0.12 150);
   --color-error:       oklch(0.52 0.18 25);
 
-  /* Warm accents — rust shifted slightly toward red-orange (h:32) for more emotion */
+  /* Warm accents - rust shifted slightly toward red-orange (h:32) for more emotion */
   --color-rust:        oklch(0.58 0.20 32);
   --color-rust-light:  oklch(0.93 0.05 32);
 
-  /* Sage — kept as cool muted accent, slightly separated from teal */
+  /* Sage - kept as cool muted accent, slightly separated from teal */
   --color-sage:        oklch(0.42 0.10 165);
   --color-sage-light:  oklch(0.93 0.05 165);
 

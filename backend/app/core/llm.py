@@ -74,7 +74,7 @@ def get_router() -> Router:
             timeout=settings.request_timeout_seconds,
             num_retries=settings.llm_num_retries,
             # Retry what is worth retrying. Bad requests and auth failures are
-            # deterministic — retrying them just burns latency before the same error.
+            # deterministic - retrying them just burns latency before the same error.
             retry_policy=RetryPolicy(
                 TimeoutErrorRetries=settings.timeout_retries,
                 RateLimitErrorRetries=settings.rate_limit_retries,
@@ -94,7 +94,7 @@ def get_router() -> Router:
 def describe_exception(exc: BaseException) -> str:
     """Render an exception as a message that is actually useful in the UI.
 
-    asyncio.TimeoutError — the most common pipeline failure — has an empty
+    asyncio.TimeoutError - the most common pipeline failure - has an empty
     str(), which surfaced to users as a blank error. Always include the type.
     """
     detail = str(exc).strip()

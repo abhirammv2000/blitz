@@ -1,6 +1,6 @@
 """Pydantic output schema for Agent 3 (Content Strategy).
 
-Nested models follow the BrandDNA/MarketingGap pattern from agent_1_profile —
+Nested models follow the BrandDNA/MarketingGap pattern from agent_1_profile -
 no loose dict types, enabling reliable frontend rendering and type-safe access.
 """
 
@@ -50,7 +50,7 @@ class ContentOutput(BaseModel):
     """Structured output from the Content Strategy agent.
 
     Produces platform-specific content assets and a 30-day content calendar.
-    All items are nested Pydantic models — no loose dicts — for reliable
+    All items are nested Pydantic models - no loose dicts - for reliable
     frontend rendering and downstream agent consumption.
     """
 

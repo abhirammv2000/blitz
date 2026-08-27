@@ -90,7 +90,7 @@ export default function Telemetry() {
   }, [])
 
   if (loading) {
-    return <div className="p-10 text-ink-faint">Loading telemetry…</div>
+    return <div className="p-10 text-ink-faint">Loading telemetry...</div>
   }
   if (error) {
     return <div className="p-10 text-[#B4552D]">Could not reach the telemetry API: {error}</div>
@@ -151,7 +151,7 @@ export default function Telemetry() {
               <YAxis tick={{ fontSize: 12, fill: '#6B6255' }} tickLine={false} axisLine={false} />
               <Tooltip
                 formatter={(v, n) =>
-                  typeof v !== 'number' ? '—' : n === 'cost' ? usd(v) : int(v)
+                  typeof v !== 'number' ? ' - ' : n === 'cost' ? usd(v) : int(v)
                 }
                 contentStyle={{ borderRadius: 12, border: '1px solid rgba(0,0,0,.1)' }}
               />

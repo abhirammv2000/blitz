@@ -1,5 +1,5 @@
 /**
- * demoPlayer.ts — cached demo mode replay engine
+ * demoPlayer.ts - cached demo mode replay engine
  *
  * When VITE_DEMO_MODE=cached is set, the app replays pre-cached fixture data
  * with realistic timing instead of calling the real backend. The experience
@@ -71,11 +71,11 @@ export async function startDemoPipeline(_url: string): Promise<void> {
   // Replay research progress events
   await replayProgressEvents(fixture.progress_events)
 
-  // Agent 0 — Research output (step 0)
+  // Agent 0 - Research output (step 0)
   await delay(Math.max(fixture.research_output_delay_ms, 400))
   store.setAgentOutput(0, fixture.research_output)
   store.setIsRunning(false)
-  // Pause — ApprovalGate will call advanceDemoPipeline(1) on Approve
+  // Pause - ApprovalGate will call advanceDemoPipeline(1) on Approve
 }
 
 /**
@@ -101,7 +101,7 @@ export async function advanceDemoPipeline(nextStep: number): Promise<void> {
 
   const entry = outputMap[nextStep]
   if (!entry) {
-    // All agents complete — pipeline done
+    // All agents complete - pipeline done
     store.setIsRunning(false)
     return
   }
@@ -110,5 +110,5 @@ export async function advanceDemoPipeline(nextStep: number): Promise<void> {
 
   store.setAgentOutput(nextStep, entry.output)
   store.setIsRunning(false)
-  // Pause — ApprovalGate will call advanceDemoPipeline(nextStep + 1) on next Approve
+  // Pause - ApprovalGate will call advanceDemoPipeline(nextStep + 1) on next Approve
 }

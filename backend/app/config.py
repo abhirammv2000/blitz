@@ -115,7 +115,7 @@ class Settings(BaseSettings):
     chroma_collection: str = "blitz_pipeline"
     # In-memory Chroma for tests: no files, no locking, far faster.
     chroma_in_memory: bool = False
-    # Blitz uses Chroma as a key-value store — it reads by id and by run_id
+    # Blitz uses Chroma as a key-value store - it reads by id and by run_id
     # filter, and never runs a similarity query. The default embedding function
     # therefore loads an ONNX model and embeds every document for nothing
     # (measured 0.52s vs 0.03s per client). Disabling it is safe for the current

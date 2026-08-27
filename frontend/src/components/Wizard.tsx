@@ -45,7 +45,7 @@ export default function Wizard() {
 
   return (
     <div className="min-h-screen bg-cream flex">
-      {/* Sidebar — step indicator */}
+      {/* Sidebar - step indicator */}
       <aside className="w-72 border-r border-ink/10 bg-cream-dark flex flex-col py-8 px-6 gap-2">
         {/* Blitz wordmark */}
         <div className="mb-8">
@@ -99,7 +99,7 @@ export default function Wizard() {
           })}
         </div>
 
-        {/* Connector line — visual guide between steps */}
+        {/* Connector line - visual guide between steps */}
         <div className="mt-auto pt-6 border-t border-ink/10">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-teal-600" />

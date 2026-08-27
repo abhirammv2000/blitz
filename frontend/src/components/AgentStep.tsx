@@ -186,7 +186,7 @@ export default function AgentStep({ stepIndex, agentName }: AgentStepProps) {
             <div className="flex flex-col gap-2 mb-6">
               <h3 className="font-display text-lg font-bold text-ink">Launch Voice Sales Agent</h3>
               <p className="text-sm text-ink-muted">
-                Pick a segment, review the script, and place a live outbound call — powered by ElevenLabs Conversational AI.
+                Pick a segment, review the script, and place a live outbound call - powered by ElevenLabs Conversational AI.
               </p>
             </div>
             <VoiceAgentPanel runId={runId} segments={voiceSegments} salesScripts={salesScripts} companyName={companyName} />

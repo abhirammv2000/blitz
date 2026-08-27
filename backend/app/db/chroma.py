@@ -1,14 +1,14 @@
 """
 ChromaDB Database Connection
 
-This file handles how our AI agents save and share their work. 
+This file handles how our AI agents save and share their work.
 We use a vector database called ChromaDB.
 
 How it works:
 - All agents store their outputs in a single, shared "blitz_pipeline" bucket (collection).
 - To make sure one user's pipeline doesn't accidentally read another user's data,
   every piece of data is tagged with a unique `run_id`.
-- If an agent needs to be re-run, it just overwrites its old output using 
+- If an agent needs to be re-run, it just overwrites its old output using
   an ID like `[run_id]::[agent_name]`.
 """
 
@@ -97,10 +97,10 @@ def store_agent_output(
 ) -> None:
     """
     Save what an agent just generated into the database.
-    
+
     We use `upsert`, which means "update if it exists, insert if it doesn't".
-    This is super helpful if an agent fails halfway through and we need to 
-    retry it—it won't crash trying to save the same file twice.
+    This is super helpful if an agent fails halfway through and we need to
+    retry it - it won't crash trying to save the same file twice.
 
     Args:
         run_id: The unique ID for this specific user's pipeline run.
@@ -122,7 +122,7 @@ def store_agent_output(
 def get_run_context(run_id: str) -> list[str]:
     """Retrieve all documents stored for a given run_id.
 
-    Cannot see documents from other runs — the where filter enforces isolation.
+    Cannot see documents from other runs - the where filter enforces isolation.
 
     Args:
         run_id: The pipeline run identifier to retrieve documents for.

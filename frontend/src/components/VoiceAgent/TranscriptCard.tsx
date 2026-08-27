@@ -42,7 +42,7 @@ export default function TranscriptCard({ transcript, status, isSpeaking, onEndCo
       <div className="rounded-xl border border-teal-600/20 bg-teal-100/50 p-5 flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className={`text-2xl ${isSpeaking ? 'animate-pulse' : ''}`}>🎙️</span>
+            <span className={`text-2xl ${isSpeaking ? 'animate-pulse' : ''}`}></span>
             <div className="flex flex-col gap-0.5">
               <p className="text-sm font-semibold text-teal-700">
                 {isSpeaking ? 'Agent is speaking...' : 'Listening...'}
@@ -75,7 +75,7 @@ export default function TranscriptCard({ transcript, status, isSpeaking, onEndCo
     return (
       <div className="rounded-xl border border-teal-600/20 bg-teal-100/50 p-6 flex flex-col items-center gap-4">
         <div className="flex items-center gap-3">
-          <span className="text-2xl animate-pulse">🎙️</span>
+          <span className="text-2xl animate-pulse"></span>
           <div className="flex flex-col gap-0.5">
             <p className="text-sm font-semibold text-teal-700">Connecting...</p>
             <p className="text-xs text-ink-muted">Setting up voice session</p>
@@ -97,7 +97,7 @@ export default function TranscriptCard({ transcript, status, isSpeaking, onEndCo
   if (status === 'completed' && transcript.length === 0) {
     return (
       <div className="rounded-xl border border-ink/10 bg-cream p-6 flex flex-col items-center gap-2">
-        <p className="text-sm text-ink-muted">No transcript available — the conversation may have been too short.</p>
+        <p className="text-sm text-ink-muted">No transcript available - the conversation may have been too short.</p>
       </div>
     )
   }

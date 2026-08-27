@@ -56,7 +56,7 @@ export default function SummaryPage() {
           <h1 className="font-display text-3xl font-black text-ink">Your Marketing Package</h1>
         </div>
         <p className="font-body text-ink-muted text-sm ml-11">
-          All pipeline outputs rendered as platform-native artifacts — ready to deploy.
+          All pipeline outputs rendered as platform-native artifacts - ready to deploy.
         </p>
       </div>
 
@@ -64,12 +64,12 @@ export default function SummaryPage() {
       <section>
         <SectionHeading
           title="Social Media"
-          subtitle="Instagram post preview — generated from your content strategy"
+          subtitle="Instagram post preview - generated from your content strategy"
         />
         {instagramPost ? (
           <InstagramCard post={instagramPost} brandName={brandName} />
         ) : (
-          <Placeholder label="Social posts not yet available — complete the Content Strategist step to see previews" />
+          <Placeholder label="Social posts not yet available - complete the Content Strategist step to see previews" />
         )}
       </section>
 
@@ -82,7 +82,7 @@ export default function SummaryPage() {
         {emailCampaign ? (
           <EmailPreview email={emailCampaign} />
         ) : (
-          <Placeholder label="Email campaigns not yet available — complete the Content Strategist step to see previews" />
+          <Placeholder label="Email campaigns not yet available - complete the Content Strategist step to see previews" />
         )}
       </section>
 
@@ -97,7 +97,7 @@ export default function SummaryPage() {
         ) : varA ? (
           <AdMockup varA={varA} varB={{ variant_label: 'Pending', headline: 'Variation B', body: 'A second variation was not generated.', cta: 'Learn More', test_hypothesis: '', image_url: null }} />
         ) : (
-          <Placeholder label="Ad creatives not yet available — complete the Ad Creative step to see previews" />
+          <Placeholder label="Ad creatives not yet available - complete the Ad Creative step to see previews" />
         )}
       </section>
     </div>

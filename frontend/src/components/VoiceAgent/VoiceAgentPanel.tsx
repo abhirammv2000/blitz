@@ -94,7 +94,7 @@ export default function VoiceAgentPanel({ runId, segments, salesScripts, company
         return
       }
     } catch {
-      setError('Network error — could not reach the backend. Please try again.')
+      setError('Network error - could not reach the backend. Please try again.')
     }
   }
 

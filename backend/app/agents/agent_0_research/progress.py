@@ -5,7 +5,7 @@ The SSE endpoint reads from this queue to stream progress to the frontend.
 
 Design:
 - Module-level dict avoids threading issues (event loop is shared)
-- get_queue() creates on demand — call before starting research
+- get_queue() creates on demand - call before starting research
 - cleanup_queue() removes after SSE stream closes to free memory
 """
 

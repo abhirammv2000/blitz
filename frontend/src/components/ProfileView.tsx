@@ -90,7 +90,7 @@ export default function ProfileView({ profile }: ProfileViewProps) {
             </div>
           </TabPanel>
 
-          {/* USPs & Gaps Tab — SWOT-style grid */}
+          {/* USPs & Gaps Tab - SWOT-style grid */}
           <TabPanel className="p-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               {/* Strengths (USPs) */}

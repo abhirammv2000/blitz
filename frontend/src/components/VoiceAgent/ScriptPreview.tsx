@@ -12,7 +12,7 @@ export default function ScriptPreview({ segmentName, initialScript, companyName,
   const [script, setScript] = useState(initialScript)
   const name = companyName || 'our company'
   const [firstMessage, setFirstMessage] = useState(
-    `Hi there! This is Ava from ${name}. I'd love to share how we've been helping companies like yours — it'll only take a minute. Do you have a moment?`
+    `Hi there! This is Ava from ${name}. I'd love to share how we've been helping companies like yours - it'll only take a minute. Do you have a moment?`
   )
   const [showConfirm, setShowConfirm] = useState(false)
 
@@ -23,7 +23,7 @@ export default function ScriptPreview({ segmentName, initialScript, companyName,
           onClick={onBack}
           className="text-xs text-ink-faint hover:text-ink-muted transition-colors flex items-center gap-1"
         >
-          <span>←</span> Back
+          <span><-</span> Back
         </button>
         <span className="text-xs text-ink-faint">/</span>
         <p className="text-sm font-semibold text-ink">{segmentName}</p>

@@ -2,7 +2,7 @@
 
 **Enter a company URL. Get a complete marketing pipeline.**
 
-Blitz is a multi-agent AI marketing platform that transforms a single company URL into a full marketing package — research dossier, brand profile, audience segments, content strategy, sales outreach, and ad creatives — fully automated, end to end.
+Blitz turns a single company URL into a full marketing package: research dossier, brand profile, audience segments, content strategy, sales outreach and ad creatives, start to finish with no manual steps.
 
 ---
 
@@ -11,7 +11,7 @@ Blitz is a multi-agent AI marketing platform that transforms a single company UR
 A user pastes a company URL into the landing page. The backend spins up a LangGraph pipeline of 6 sequential AI agents, each building on the previous agent's output stored in ChromaDB. As each agent completes, it streams the result to the browser via SSE and the next agent begins automatically. The result is a complete marketing package generated from a single URL.
 
 ```
-Company URL  ──→  6 AI Agents (sequential, automated)  ──→  Full Marketing Package
+Company URL  -->  6 AI Agents (sequential, automated)  -->  Full Marketing Package
 ```
 
 | Step | Agent | Output |
@@ -84,7 +84,7 @@ sequenceDiagram
     U->>F: POST /pipeline/start {url}
     F->>G: graph.astream(BlitzState)
 
-    loop For each agent (0 → 5)
+    loop For each agent (0 -> 5)
         G->>C: get upstream context
         C-->>G: previous agent outputs
         G->>L: prompt with context
@@ -152,33 +152,33 @@ classDiagram
         +aeo_check()
         +extract_competitors()
         +llm_synthesis()
-        → ResearchOutput
+        -> ResearchOutput
     }
 
     class Agent_1_Profile {
         +build_brand_dna()
-        → MarketingProfile
+        -> MarketingProfile
     }
 
     class Agent_2_Audience {
         +generate_segments()
-        → AudienceOutput
+        -> AudienceOutput
     }
 
     class Agent_3_Content {
         +create_content_plan()
-        → ContentOutput
+        -> ContentOutput
     }
 
     class Agent_4_Sales {
         +build_sequences()
-        → SalesOutput
+        -> SalesOutput
     }
 
     class Agent_5_Ads {
         +generate_ad_copy()
         +generate_ad_image()
-        → AdsOutput
+        -> AdsOutput
     }
 
     class ElevenLabs_Voice {
@@ -243,7 +243,7 @@ Every agent (`agent_1` through `agent_5`) follows the same 4-file pattern:
 
 ```
 agent_N_name/
-├── node.py      # LangGraph node function — reads ChromaDB, calls LLM, stores output, returns state
+├── node.py      # LangGraph node function - reads ChromaDB, calls LLM, stores output, returns state
 ├── schemas.py   # Pydantic models for structured output (e.g., MarketingProfile, AudienceOutput)
 ├── prompts.py   # System + user prompt templates
 └── __init__.py
@@ -259,10 +259,10 @@ Each agent also has a `test_agent*.py` standalone test script and an `a*_imp.md`
 | Layer | Technology |
 |-------|-----------|
 | Orchestration | LangGraph (StateGraph, sequential pipeline) |
-| LLM Routing | LiteLLM Router — `primary` and `mini` tiers, each with automatic cross-provider fallback |
+| LLM Routing | LiteLLM Router - `primary` and `mini` tiers, each with automatic cross-provider fallback |
 | Vector DB | ChromaDB (cross-agent context sharing + audit trail) |
 | Backend | Python, FastAPI, SSE streaming, Pydantic |
-| Frontend | React, TypeScript, Vite, Tailwind CSS v4 (Warm Analog theme — Syne font, burnt orange/sage palette), Zustand, Headless UI |
+| Frontend | React, TypeScript, Vite, Tailwind CSS v4 (Warm Analog theme - Syne font, burnt orange/sage palette), Zustand, Headless UI |
 | Research | Tavily API, Firecrawl |
 | Voice | ElevenLabs Conversational AI via `@elevenlabs/convai-widget-embed` (dynamic agent creation, Ava persona, floating overlay widget) |
 | Image Gen | `gpt-image-1` via LiteLLM (user-triggered, capped per run) |
@@ -354,8 +354,8 @@ CI runs the tests, the linter and the frontend build on every push.
 ## Key Architecture Decisions
 
 - **Provider-agnostic**: every model is set by environment variable and routed through LiteLLM, with a fallback on the other provider. A full run completes on either OpenAI or Gemini alone. Image generation remains OpenAI-only.
-- **Smart entity extraction**: Company names are extracted from page content via a fast `gpt-4o-mini` call (with regex fallback), handling vanity domains like `joinblossomhealth.com` → "Blossom Health".
-- **Sequential pipeline**: Each agent depends on the previous agent's output. ChromaDB provides cross-agent context sharing — any agent can read any upstream agent's output by `run_id`.
+- **Entity extraction**: Company names are extracted from page content via a fast `gpt-4o-mini` call (with regex fallback), handling vanity domains like `joinblossomhealth.com` -> "Blossom Health".
+- **Sequential pipeline**: Each agent depends on the previous agent's output. ChromaDB provides cross-agent context sharing - any agent can read any upstream agent's output by `run_id`.
 - **SSE streaming**: Real-time progress updates as each agent runs. The backend interleaves two async sources (research sub-step queue + graph state stream) into one SSE event stream. No polling.
 - **Dynamic voice agents**: Each voice session creates a new ElevenLabs agent on the fly with the Ava persona + a GPT-4o-mini summary of pipeline knowledge. The `@elevenlabs/convai-widget-embed` web component renders as a floating overlay and handles the full conversation UI.
 - **Checkpoint persistence**: `MemorySaver` persists pipeline state in memory. Since the pipeline runs autonomously end-to-end, in-memory state avoids database locking issues while still tracking state per run.
@@ -376,7 +376,7 @@ blitz/
 │   │   │   └── agent_voice/       # ElevenLabs browser voice agent
 │   │   ├── core/llm.py            # LiteLLM Router (primary + mini tiers)
 │   │   ├── db/                    # ChromaDB store + SQLite lead capture
-│   │   ├── config.py              # Settings — all env-driven configuration
+│   │   ├── config.py              # Settings - all env-driven configuration
 │   │   ├── main.py                # FastAPI app + SSE endpoints
 │   │   ├── graph.py               # LangGraph pipeline definition
 │   │   └── state.py               # BlitzState TypedDict
@@ -416,11 +416,11 @@ ELEVENLABS_AGENT_ID=   # Conversational AI agent ID
 
 ## What's Next
 
-- **Parallel agent execution** — Fan-out agents with no data dependency (e.g., Content + Sales) to cut pipeline time
-- **Feedback loop** — Let downstream agents flag weak upstream outputs and trigger targeted re-generation
-- **Campaign export** — One-click export to CSV/PDF or direct push to platforms (HubSpot, Mailchimp, Meta Ads Manager)
-- **Multi-run comparison** — Side-by-side diffs across pipeline runs to track how edits and feedback shift outputs
-- **Persistent brand memory** — Store generated profiles and audience segments so repeat runs for the same company skip redundant work
-- **Auth + multi-tenant** — User accounts with isolated pipeline histories and API key management
+- **Parallel agent execution** - Fan-out agents with no data dependency (e.g., Content + Sales) to cut pipeline time
+- **Feedback loop** - Let downstream agents flag weak upstream outputs and trigger targeted re-generation
+- **Campaign export** - One-click export to CSV/PDF or direct push to platforms (HubSpot, Mailchimp, Meta Ads Manager)
+- **Multi-run comparison** - Side-by-side diffs across pipeline runs to track how edits and feedback shift outputs
+- **Persistent brand memory** - Store generated profiles and audience segments so repeat runs for the same company skip redundant work
+- **Auth + multi-tenant** - User accounts with isolated pipeline histories and API key management
 
 

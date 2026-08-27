@@ -28,11 +28,11 @@ Respond ONLY with valid JSON matching the schema above.
 
 async def critic_ads_node(state: BlitzState) -> dict:
     """Evaluates the ad creative output and determines if it requires a rewrite.
-    
+
     Caps revisions at 2 to prevent infinite loops.
     """
     revision_count = state.get("ads_revision_count") or 0
-    
+
     if revision_count >= 2:
         logger.info("Ads critic: Max revisions reached, forcing approval.")
         return {
@@ -40,12 +40,12 @@ async def critic_ads_node(state: BlitzState) -> dict:
             "ads_critic_feedback": None,
             "ads_revision_count": revision_count + 1
         }
-        
+
     ads_output = state.get("ads_output", {})
     ads_json = json.dumps(ads_output)
-    
+
     prompt = CRITIC_PROMPT.format(ads_json=ads_json)
-    
+
     try:
         response = await get_router().acompletion(
             model="primary",
@@ -53,7 +53,7 @@ async def critic_ads_node(state: BlitzState) -> dict:
             temperature=settings.critic_temperature,
             response_format={"type": "json_object"},
         )
-        
+
         content = response.choices[0].message.content or "{}"
         data = json.loads(content)
         approved = data.get("approved", False)
