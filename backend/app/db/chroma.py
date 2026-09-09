@@ -22,6 +22,7 @@ from chromadb import Collection
 from chromadb.api.types import EmbeddingFunction
 
 from app.config import settings
+from app.core.untrusted_content import wrap_untrusted
 
 
 class _NoopEmbedding(EmbeddingFunction):
@@ -191,12 +192,18 @@ def get_agent_context(run_id: str, agent: str) -> str | None:
     if not isinstance(data, dict):
         return raw
 
-    trimmed = False
+    changed = False
     for field, limit in _PROMPT_TRIMMED_FIELDS.items():
         value = data.get(field)
-        if isinstance(value, str) and len(value) > limit:
+        if not isinstance(value, str) or not value:
+            continue
+        if len(value) > limit:
             note = f"[...truncated for prompt use, {len(value)} chars total]"
-            data[field] = f"{value[:limit]}\n{note}"
-            trimmed = True
+            value = f"{value[:limit]}\n{note}"
+        # Wrapped regardless of whether it was long enough to truncate - a short
+        # scraped page is exactly as untrusted as a long one. See
+        # app/core/untrusted_content.py.
+        data[field] = wrap_untrusted(value, source="scraped_website")
+        changed = True
 
-    return json.dumps(data) if trimmed else raw
+    return json.dumps(data) if changed else raw

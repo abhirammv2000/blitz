@@ -25,8 +25,9 @@ def test_oversized_field_is_trimmed(research_payload):
     trimmed = json.loads(get_agent_context("run1", "research_decision"))
 
     assert len(trimmed["site_content"]) < len(research_payload["site_content"])
-    assert trimmed["site_content"].startswith("x" * 100)
+    assert "x" * 100 in trimmed["site_content"]
     assert "truncated" in trimmed["site_content"]
+    assert "untrusted_web_content" in trimmed["site_content"]
 
 
 def test_stored_copy_is_left_intact(research_payload):
@@ -52,13 +53,16 @@ def test_every_other_field_survives_untouched(research_payload):
         assert trimmed[field] == research_payload[field], f"{field} was altered"
 
 
-def test_short_field_is_returned_byte_identical(research_payload):
-    """Nothing over the limit means nothing to rewrite."""
+def test_short_field_is_wrapped_but_not_truncated(research_payload):
+    """Under the limit means no truncation - it still gets marked untrusted."""
     research_payload["site_content"] = "short enough"
-    raw = json.dumps(research_payload)
-    store_agent_output("run1", "research_decision", raw)
+    store_agent_output("run1", "research_decision", json.dumps(research_payload))
 
-    assert get_agent_context("run1", "research_decision") == raw
+    trimmed = json.loads(get_agent_context("run1", "research_decision"))
+
+    assert "short enough" in trimmed["site_content"]
+    assert "truncated" not in trimmed["site_content"]
+    assert "untrusted_web_content" in trimmed["site_content"]
 
 
 def test_missing_run_returns_none():
