@@ -327,6 +327,22 @@ billed too. Cost comes from LiteLLM rather than a hardcoded price list.
 First run through it showed agent 0 making 11 of the 13 calls and about 70% of
 the spend, which was not what I expected.
 
+## MCP Server
+
+`backend/mcp_server.py` exposes the research pipeline's Tavily search and
+Firecrawl scrape as MCP tools, so an MCP client can call them directly
+instead of only agent 0 deciding when to. It's additive - the pipeline itself
+still runs the way it always has, nothing in it imports this file.
+
+```
+cd backend
+python mcp_server.py                # runs a real stdio MCP server
+pytest tests/test_mcp_server.py     # in-process tests, no server process, no spend
+```
+
+Built against `mcp` v2, the current stable line - not the older v1 branch and
+not the newer stateless spec that was still in beta at the time.
+
 ## Tests
 
 ```bash

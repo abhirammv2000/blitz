@@ -18,6 +18,10 @@ dependencies = [
     "tavily-python>=0.7.21",
     "firecrawl-py>=4.16.0",
     "pydantic-settings>=2.0.0",
+    # v2 is a major rework from v1 with breaking changes (renamed classes,
+    # different attribute casing) - capped below v3 since it's a recent
+    # major version and another break like that is plausible.
+    "mcp>=2.2.0,<3",
 ]
 
 # Declared as an extra rather than a PEP 735 dependency-group: `pip install
