@@ -48,6 +48,54 @@ def _entry(name: str, model: str) -> dict:
     }
 
 
+def build_router(resilience_disabled: bool = False) -> Router:
+    """Construct a Router with the production config.
+
+    ``resilience_disabled`` strips the retries, the per-error policy and the
+    cross-provider fallback, leaving a bare single-attempt call. Only the
+    reliability benchmark uses it, as the "before" baseline; production always
+    calls this with the default.
+    """
+    if resilience_disabled:
+        return Router(
+            model_list=[
+                _entry("primary", settings.primary_model),
+                _entry("mini", settings.mini_model),
+            ],
+            timeout=settings.request_timeout_seconds,
+            num_retries=0,
+        )
+
+    return Router(
+        model_list=[
+            _entry("primary", settings.primary_model),
+            _entry("fallback", settings.fallback_model),
+            _entry("mini", settings.mini_model),
+            _entry("mini_fallback", settings.mini_fallback_model),
+        ],
+        fallbacks=[
+            {"primary": ["fallback"]},
+            {"mini": ["mini_fallback"]},
+        ],
+        timeout=settings.request_timeout_seconds,
+        num_retries=settings.llm_num_retries,
+        # Retry what is worth retrying. Bad requests and auth failures are
+        # deterministic - retrying them just burns latency before the same error.
+        retry_policy=RetryPolicy(
+            TimeoutErrorRetries=settings.timeout_retries,
+            RateLimitErrorRetries=settings.rate_limit_retries,
+            InternalServerErrorRetries=settings.server_error_retries,
+            BadRequestErrorRetries=0,
+            AuthenticationErrorRetries=0,
+            ContentPolicyViolationErrorRetries=0,
+        ),
+        # Take a route out of rotation briefly after repeated failures so a
+        # provider outage fails over instead of retrying into a wall.
+        allowed_fails=settings.router_allowed_fails,
+        cooldown_time=settings.router_cooldown_seconds,
+    )
+
+
 def get_router() -> Router:
     """Get or create the shared LiteLLM Router.
 
@@ -60,34 +108,7 @@ def get_router() -> Router:
     """
     global _router
     if _router is None:
-        _router = Router(
-            model_list=[
-                _entry("primary", settings.primary_model),
-                _entry("fallback", settings.fallback_model),
-                _entry("mini", settings.mini_model),
-                _entry("mini_fallback", settings.mini_fallback_model),
-            ],
-            fallbacks=[
-                {"primary": ["fallback"]},
-                {"mini": ["mini_fallback"]},
-            ],
-            timeout=settings.request_timeout_seconds,
-            num_retries=settings.llm_num_retries,
-            # Retry what is worth retrying. Bad requests and auth failures are
-            # deterministic - retrying them just burns latency before the same error.
-            retry_policy=RetryPolicy(
-                TimeoutErrorRetries=settings.timeout_retries,
-                RateLimitErrorRetries=settings.rate_limit_retries,
-                InternalServerErrorRetries=settings.server_error_retries,
-                BadRequestErrorRetries=0,
-                AuthenticationErrorRetries=0,
-                ContentPolicyViolationErrorRetries=0,
-            ),
-            # Take a route out of rotation briefly after repeated failures so a
-            # provider outage fails over instead of retrying into a wall.
-            allowed_fails=settings.router_allowed_fails,
-            cooldown_time=settings.router_cooldown_seconds,
-        )
+        _router = build_router()
     return _router
 
 
