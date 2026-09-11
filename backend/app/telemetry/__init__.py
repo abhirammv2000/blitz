@@ -4,6 +4,7 @@ from app.telemetry.context import agent_context, current_agent, current_run_id
 from app.telemetry.logger import install_telemetry
 from app.telemetry.store import (
     get_agent_costs,
+    get_failures,
     get_run_detail,
     get_runs,
     get_summary,
@@ -22,4 +23,5 @@ __all__ = [
     "get_agent_costs",
     "get_runs",
     "get_run_detail",
+    "get_failures",
 ]

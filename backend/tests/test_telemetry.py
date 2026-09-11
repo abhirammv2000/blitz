@@ -16,6 +16,7 @@ from app.telemetry import agent_context, current_agent, current_run_id
 from app.telemetry.logger import BlitzTelemetryLogger, _provider_of
 from app.telemetry.store import (
     get_agent_costs,
+    get_failures,
     get_run_detail,
     get_runs,
     get_summary,
@@ -106,6 +107,44 @@ def test_failures_are_recorded_not_dropped():
     assert s["calls"] == 2
     assert s["failures"] == 1
     assert s["success_rate"] == pytest.approx(0.5)
+
+
+def test_get_failures_breaks_down_by_type_and_agent():
+    _call(run_id="r1", agent="agent_0_research", status="failure", error_type="RateLimitError")
+    _call(run_id="r1", agent="agent_0_research", status="failure", error_type="RateLimitError")
+    _call(run_id="r1", agent="agent_0_research", status="success")
+    _call(run_id="r2", agent="agent_4_sales", status="failure", error_type="Timeout")
+    _call(run_id="r2", agent="agent_4_sales", status="success")
+    _call(run_id="r3", agent="agent_1_profile", status="success")
+
+    f = get_failures()
+
+    assert f["total_calls"] == 6
+    assert f["failed_calls"] == 3
+    assert f["failure_rate"] == pytest.approx(3 / 6)
+    assert f["total_runs"] == 3
+    assert f["runs_with_failures"] == 2
+    assert f["run_failure_rate"] == pytest.approx(2 / 3)
+
+    by_type = {row["error_type"]: row["count"] for row in f["by_type"]}
+    assert by_type == {"RateLimitError": 2, "Timeout": 1}
+
+    by_agent = {row["agent"]: row["failures"] for row in f["by_agent"]}
+    assert by_agent == {"agent_0_research": 2, "agent_4_sales": 1}
+
+
+def test_get_failures_labels_missing_error_type_as_unknown():
+    _call(status="failure", error_type=None)
+    assert get_failures()["by_type"] == [{"error_type": "unknown", "count": 1}]
+
+
+def test_get_failures_is_safe_on_an_empty_table():
+    f = get_failures()
+    assert f["total_calls"] == 0
+    assert f["failure_rate"] == 0.0
+    assert f["run_failure_rate"] == 0.0
+    assert f["by_type"] == []
+    assert f["by_agent"] == []
 
 
 def test_cost_is_attributed_per_agent():

@@ -36,6 +36,17 @@ interface RunRow {
   failures: number
 }
 
+interface Failures {
+  total_calls: number
+  failed_calls: number
+  failure_rate: number
+  total_runs: number
+  runs_with_failures: number
+  run_failure_rate: number
+  by_type: { error_type: string; count: number }[]
+  by_agent: { agent: string; failures: number }[]
+}
+
 const usd = (n: number) => `$${n.toFixed(4)}`
 const int = (n: number) => n.toLocaleString()
 const secs = (ms: number) => `${(ms / 1000).toFixed(1)}s`
@@ -57,6 +68,7 @@ export default function Telemetry() {
   const [summary, setSummary] = useState<Summary | null>(null)
   const [agents, setAgents] = useState<AgentCost[]>([])
   const [runs, setRuns] = useState<RunRow[]>([])
+  const [failures, setFailures] = useState<Failures | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -64,15 +76,17 @@ export default function Telemetry() {
     let cancelled = false
     const load = async () => {
       try {
-        const [s, a, r] = await Promise.all([
+        const [s, a, r, f] = await Promise.all([
           fetch(`${API_BASE}/telemetry/summary`).then((x) => x.json()),
           fetch(`${API_BASE}/telemetry/agents`).then((x) => x.json()),
           fetch(`${API_BASE}/telemetry/runs`).then((x) => x.json()),
+          fetch(`${API_BASE}/telemetry/failures`).then((x) => x.json()),
         ])
         if (cancelled) return
         setSummary(s)
         setAgents(a)
         setRuns(r)
+        setFailures(f)
         setError(null)
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load telemetry')
@@ -242,6 +256,46 @@ export default function Telemetry() {
           </table>
         </div>
       </section>
+
+      {failures && failures.failed_calls > 0 && (
+        <section className="mt-6 rounded-2xl border border-ink/10 bg-white p-6">
+          <h2 className="text-sm font-medium uppercase tracking-widest text-ink-faint">Reliability</h2>
+          <p className="mt-3 text-sm text-ink">
+            <span className="font-semibold">{(failures.run_failure_rate * 100).toFixed(0)}%</span> of runs
+            hit at least one failed call ({failures.runs_with_failures}/{failures.total_runs});{' '}
+            <span className="font-semibold">{(failures.failure_rate * 100).toFixed(1)}%</span> of calls
+            failed ({int(failures.failed_calls)}/{int(failures.total_calls)}), retries and failover included.
+          </p>
+          <div className="mt-4 grid gap-6 md:grid-cols-2">
+            <div>
+              <h3 className="text-xs font-medium uppercase tracking-widest text-ink-faint">Errors by type</h3>
+              <table className="mt-3 w-full text-sm">
+                <tbody>
+                  {failures.by_type.map((row) => (
+                    <tr key={row.error_type} className="border-t border-ink/5">
+                      <td className="py-2 text-ink">{row.error_type}</td>
+                      <td className="py-2 text-right text-ink">{int(row.count)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div>
+              <h3 className="text-xs font-medium uppercase tracking-widest text-ink-faint">Failures by agent</h3>
+              <table className="mt-3 w-full text-sm">
+                <tbody>
+                  {failures.by_agent.map((row) => (
+                    <tr key={row.agent} className="border-t border-ink/5">
+                      <td className="py-2 text-ink">{row.agent}</td>
+                      <td className="py-2 text-right text-ink">{int(row.failures)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      )}
     </div>
   )
 }

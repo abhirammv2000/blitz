@@ -51,6 +51,7 @@ from app.db.leads import get_leads_for_run, init_leads_table, insert_lead
 from app.graph import build_graph
 from app.telemetry import (
     get_agent_costs,
+    get_failures,
     get_run_detail,
     get_runs,
     get_summary,
@@ -307,6 +308,12 @@ async def telemetry_runs(limit: int = 50):
 async def telemetry_run_detail(run_id: str):
     """Every call made during one run."""
     return get_run_detail(run_id)
+
+
+@app.get("/telemetry/failures")
+async def telemetry_failures():
+    """What failed, where, and how often - call-level and run-level."""
+    return get_failures()
 
 
 # ---------------------------------------------------------------------------

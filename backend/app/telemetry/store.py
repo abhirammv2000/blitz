@@ -192,3 +192,47 @@ def get_run_detail(run_id: str) -> dict:
             FROM llm_calls WHERE run_id = ? GROUP BY agent ORDER BY cost_usd DESC
         """, (run_id,)),
     }
+
+
+def get_failures() -> dict:
+    """Reliability view: what failed, where, and how often.
+
+    Counts are at the call level, so a call the Router retried three times before
+    it succeeded shows up as three failure rows here and one success elsewhere -
+    which is the point, since those retries still cost latency.
+    """
+    totals = _rows("""
+        SELECT COUNT(*)                             AS total_calls,
+               COALESCE(SUM(status = 'failure'), 0) AS failed_calls,
+               COUNT(DISTINCT run_id)               AS total_runs
+        FROM llm_calls WHERE run_id IS NOT NULL
+    """)
+    t = totals[0] if totals else {"total_calls": 0, "failed_calls": 0, "total_runs": 0}
+
+    affected = _rows("""
+        SELECT COUNT(DISTINCT run_id) AS runs_with_failures
+        FROM llm_calls WHERE status = 'failure' AND run_id IS NOT NULL
+    """)
+    runs_with_failures = affected[0]["runs_with_failures"] if affected else 0
+
+    calls = t["total_calls"] or 0
+    runs = t["total_runs"] or 0
+    return {
+        "total_calls": calls,
+        "failed_calls": t["failed_calls"],
+        "failure_rate": (t["failed_calls"] / calls) if calls else 0.0,
+        "total_runs": runs,
+        "runs_with_failures": runs_with_failures,
+        "run_failure_rate": (runs_with_failures / runs) if runs else 0.0,
+        "by_type": _rows("""
+            SELECT COALESCE(error_type, 'unknown') AS error_type,
+                   COUNT(*)                        AS count
+            FROM llm_calls WHERE status = 'failure'
+            GROUP BY error_type ORDER BY count DESC
+        """),
+        "by_agent": _rows("""
+            SELECT agent, COUNT(*) AS failures
+            FROM llm_calls WHERE status = 'failure' AND agent IS NOT NULL
+            GROUP BY agent ORDER BY failures DESC
+        """),
+    }
