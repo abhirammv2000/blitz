@@ -23,7 +23,7 @@ export default function ScriptPreview({ segmentName, initialScript, companyName,
           onClick={onBack}
           className="text-xs text-ink-faint hover:text-ink-muted transition-colors flex items-center gap-1"
         >
-          <span><-</span> Back
+          <span aria-hidden="true">&larr;</span> Back
         </button>
         <span className="text-xs text-ink-faint">/</span>
         <p className="text-sm font-semibold text-ink">{segmentName}</p>
