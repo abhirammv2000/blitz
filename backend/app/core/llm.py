@@ -12,12 +12,15 @@ would have finished. Gemini 2.5 models 404 now, so don't put them back without
 checking they still work.
 """
 
+import os
+
 from litellm import Router
 from litellm.router import RetryPolicy
 
 from app.config import settings
 
 _router: Router | None = None
+_langfuse_installed = False
 
 # Kept as module attributes for readability at the call sites below; the values
 # themselves are owned by config.Settings and sourced from the environment.
@@ -110,6 +113,39 @@ def get_router() -> Router:
     if _router is None:
         _router = build_router()
     return _router
+
+
+def install_langfuse_tracing() -> None:
+    """Add Langfuse tracing alongside the existing telemetry callback.
+
+    No-ops if no Langfuse keys are configured, the same way the app boots
+    fine without OpenAI/Gemini keys and fails at the call that needs one -
+    tracing is additive, not a requirement to run the pipeline. Safe to call
+    twice.
+
+    litellm's bundled Langfuse integration reads LANGFUSE_HOST from the
+    environment specifically - verified against its source, not assumed -
+    while Langfuse's own onboarding UI calls the same value LANGFUSE_BASE_URL.
+    That env var is set here rather than asked of whoever deploys this, so
+    the .env file can hold exactly what Langfuse's UI told them to paste.
+    """
+    global _langfuse_installed
+    if _langfuse_installed:
+        return
+    if not (settings.langfuse_public_key and settings.langfuse_secret_key):
+        return
+
+    import litellm
+
+    os.environ.setdefault("LANGFUSE_PUBLIC_KEY", settings.langfuse_public_key)
+    os.environ.setdefault("LANGFUSE_SECRET_KEY", settings.langfuse_secret_key)
+    os.environ.setdefault("LANGFUSE_HOST", settings.langfuse_base_url)
+
+    # Verified directly that a plain string entry here coexists on the same
+    # list as an already-instantiated custom logger object - litellm resolves
+    # "langfuse" to its own bundled integration wherever it appears.
+    litellm.callbacks = [*(litellm.callbacks or []), "langfuse"]
+    _langfuse_installed = True
 
 
 def describe_exception(exc: BaseException) -> str:

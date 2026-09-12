@@ -41,6 +41,13 @@ class Settings(BaseSettings):
     firecrawl_api_key: str = ""
     elevenlabs_api_key: str = ""
     elevenlabs_agent_id: str = ""
+    langfuse_public_key: str = ""
+    langfuse_secret_key: str = ""
+    # Langfuse's own onboarding UI calls this LANGFUSE_BASE_URL; litellm's
+    # bundled integration reads LANGFUSE_HOST specifically - verified against
+    # its source, not assumed from either vendor's docs. This setting holds
+    # the value from .env; llm.py sets the env var litellm actually reads.
+    langfuse_base_url: str = "https://cloud.langfuse.com"
 
     # -- Model routing --------------------------------------------------------
     # "primary" handles agent synthesis; "mini" handles cheap utility calls.

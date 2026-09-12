@@ -22,6 +22,10 @@ dependencies = [
     # different attribute casing) - capped below v3 since it's a recent
     # major version and another break like that is plausible.
     "mcp>=2.2.0,<3",
+    # litellm 1.97.0's own bundled integration declares langfuse>=2.59.7,<3.0
+    # (checked in its package metadata) - the real current langfuse release is
+    # v4, which would silently break litellm's integration code if installed.
+    "langfuse>=2.59.7,<3.0",
 ]
 
 # Declared as an extra rather than a PEP 735 dependency-group: `pip install

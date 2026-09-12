@@ -45,7 +45,7 @@ from app.agents.agent_voice.models import (
     VoiceSessionResponse,
 )
 from app.config import settings
-from app.core.llm import describe_exception
+from app.core.llm import describe_exception, install_langfuse_tracing
 from app.db import get_agent_context, get_agent_output
 from app.db.leads import get_leads_for_run, init_leads_table, insert_lead
 from app.graph import build_graph
@@ -87,6 +87,8 @@ async def lifespan(_app: FastAPI):
     init_leads_table()
     # Registers the LiteLLM callback and creates the telemetry table.
     install_telemetry()
+    # No-ops if no Langfuse keys are configured.
+    install_langfuse_tracing()
     logger.info(
         "Blitz API ready | primary=%s mini=%s | %d CORS origin(s)",
         settings.primary_model,

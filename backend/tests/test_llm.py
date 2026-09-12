@@ -7,6 +7,7 @@ router handing an OpenAI key to a Gemini model when PRIMARY_MODEL was changed.
 from __future__ import annotations
 
 import asyncio
+import os
 
 import pytest
 
@@ -125,3 +126,84 @@ def test_gemini_2_5_models_are_not_referenced():
     configured = " ".join(m["litellm_params"]["model"] for m in llm.get_router().model_list)
 
     assert "gemini-2.5" not in configured
+
+
+# ---------------------------------------------------------------------------
+# install_langfuse_tracing - additive, optional, idempotent
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(autouse=True)
+def _fresh_langfuse_state(monkeypatch):
+    """Two things to reset: the install flag, and litellm's own callback list
+    - a leftover 'langfuse' entry from one test would make the next test's
+    no-credentials case look installed when it isn't.
+    """
+    import litellm
+
+    llm._langfuse_installed = False
+    monkeypatch.setattr(litellm, "callbacks", [])
+    monkeypatch.delenv("LANGFUSE_PUBLIC_KEY", raising=False)
+    monkeypatch.delenv("LANGFUSE_SECRET_KEY", raising=False)
+    monkeypatch.delenv("LANGFUSE_HOST", raising=False)
+    yield
+    llm._langfuse_installed = False
+
+
+def test_no_credentials_means_no_callback_registered(monkeypatch):
+    monkeypatch.setattr(llm.settings, "langfuse_public_key", "")
+    monkeypatch.setattr(llm.settings, "langfuse_secret_key", "")
+
+    llm.install_langfuse_tracing()
+
+    import litellm
+
+    assert "langfuse" not in litellm.callbacks
+
+
+def test_credentials_present_registers_the_callback_and_bridges_the_env_var(monkeypatch):
+    """litellm reads LANGFUSE_HOST specifically; Langfuse's own onboarding UI
+    calls the same value LANGFUSE_BASE_URL - this is the bridge between them.
+    """
+    monkeypatch.setattr(llm.settings, "langfuse_public_key", "pk-test")
+    monkeypatch.setattr(llm.settings, "langfuse_secret_key", "sk-test")
+    monkeypatch.setattr(llm.settings, "langfuse_base_url", "https://example.langfuse.test")
+
+    llm.install_langfuse_tracing()
+
+    import litellm
+
+    assert "langfuse" in litellm.callbacks
+    assert os.environ["LANGFUSE_HOST"] == "https://example.langfuse.test"
+    assert os.environ["LANGFUSE_PUBLIC_KEY"] == "pk-test"
+    assert os.environ["LANGFUSE_SECRET_KEY"] == "sk-test"
+
+
+def test_it_does_not_replace_the_existing_telemetry_callback(monkeypatch):
+    """Additive, not a swap - the custom cost/latency telemetry has to keep
+    working whether or not Langfuse is configured."""
+    import litellm
+
+    from app.telemetry.logger import BlitzTelemetryLogger
+
+    existing = BlitzTelemetryLogger()
+    litellm.callbacks = [existing]
+    monkeypatch.setattr(llm.settings, "langfuse_public_key", "pk-test")
+    monkeypatch.setattr(llm.settings, "langfuse_secret_key", "sk-test")
+
+    llm.install_langfuse_tracing()
+
+    assert existing in litellm.callbacks
+    assert "langfuse" in litellm.callbacks
+
+
+def test_calling_it_twice_does_not_register_the_callback_twice(monkeypatch):
+    monkeypatch.setattr(llm.settings, "langfuse_public_key", "pk-test")
+    monkeypatch.setattr(llm.settings, "langfuse_secret_key", "sk-test")
+
+    llm.install_langfuse_tracing()
+    llm.install_langfuse_tracing()
+
+    import litellm
+
+    assert litellm.callbacks.count("langfuse") == 1

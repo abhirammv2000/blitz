@@ -327,6 +327,10 @@ billed too. Cost comes from LiteLLM rather than a hardcoded price list.
 First run through it showed agent 0 making 11 of the 13 calls and about 70% of
 the spend, which was not what I expected.
 
+Langfuse tracing can be wired in alongside it - set `LANGFUSE_PUBLIC_KEY` and
+`LANGFUSE_SECRET_KEY` in `.env` and it registers automatically on startup,
+no code changes needed. Off by default; the app runs the same without it.
+
 ## MCP Server
 
 `backend/mcp_server.py` exposes the research pipeline's Tavily search and
@@ -428,6 +432,9 @@ FIRECRAWL_API_KEY=     # Website crawling
 # Optional
 ELEVENLABS_API_KEY=    # Voice agent
 ELEVENLABS_AGENT_ID=   # Conversational AI agent ID
+LANGFUSE_PUBLIC_KEY=   # LLM tracing, off if unset
+LANGFUSE_SECRET_KEY=   # LLM tracing, off if unset
+LANGFUSE_BASE_URL=     # defaults to https://cloud.langfuse.com
 ```
 
 ## What's Next
