@@ -439,11 +439,18 @@ async def aeo_check(
                 "position": position,
                 "quote": quote,
                 "reasoning": content,
+                "ok": True,
             }
         except asyncio.TimeoutError:
-            return {"model": model, "angle": angle_idx + 1, "mentioned": False, "position": -1, "quote": "[timeout]", "reasoning": "[timeout]"}
+            return {
+                "model": model, "angle": angle_idx + 1, "mentioned": False, "position": -1,
+                "quote": "[timeout]", "reasoning": "[timeout]", "ok": False,
+            }
         except Exception as exc:
-            return {"model": model, "angle": angle_idx + 1, "mentioned": False, "position": -1, "quote": f"[error: {exc}]", "reasoning": str(exc)}
+            return {
+                "model": model, "angle": angle_idx + 1, "mentioned": False, "position": -1,
+                "quote": f"[error: {exc}]", "reasoning": str(exc), "ok": False,
+            }
 
     # Fire all 6 queries concurrently
     tasks = [
@@ -456,12 +463,21 @@ async def aeo_check(
     details: list[dict] = []
     for r in results:
         if isinstance(r, Exception):
-            details.append({"model": "unknown", "angle": 0, "mentioned": False, "position": -1, "quote": f"[error: {r}]"})
+            details.append({
+                "model": "unknown", "angle": 0, "mentioned": False, "position": -1,
+                "quote": f"[error: {r}]", "ok": False,
+            })
         else:
             details.append(r)
 
     # Step 3: Compute score from mention rate + position
-    valid = [d for d in details if d.get("position", -1) != -1 or d.get("mentioned") is not None]
+    # A probe that failed - timeout, provider error, anything caught above -
+    # is not the same as a probe that ran and genuinely found nothing. The
+    # old filter here checked `mentioned is not None`, which every entry
+    # satisfies (a failed probe still sets mentioned=False), so it excluded
+    # nothing: a run where every probe timed out scored a confirmed 0/10
+    # instead of reporting that no data came back at all.
+    valid = [d for d in details if d.get("ok")]
     if not valid:
         score = 0.0
     else:
@@ -483,9 +499,11 @@ async def aeo_check(
         score = round((mention_rate * 0.6 + avg_position * 0.4) * 10, 1)
 
     # Build per-model summary for backward compatibility with the UI
+    # Same fix as `valid` above: only count probes that actually got a
+    # response, not ones that timed out or errored.
     model_summaries = []
     for model, _ in models:
-        model_results = [d for d in details if d.get("model") == model]
+        model_results = [d for d in details if d.get("model") == model and d.get("ok")]
         mentions = sum(1 for d in model_results if d["mentioned"])
         positions = [d["position"] for d in model_results if d["mentioned"] and d["position"] > 0]
         avg_pos = sum(positions) / len(positions) if positions else 0
