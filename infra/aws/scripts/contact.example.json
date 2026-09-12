@@ -1,0 +1,13 @@
+{
+  "_comment": "Copy this file to contact.json (gitignored) and fill in real details - Route53 domain registration submits this to the registry as the domain's registrant/admin/tech contact. See the RegistrantContact shape: https://docs.aws.amazon.com/Route53/latest/APIReference/API_domains_ContactDetail.html",
+  "FirstName": "",
+  "LastName": "",
+  "ContactType": "PERSON",
+  "AddressLine1": "",
+  "City": "",
+  "State": "",
+  "CountryCode": "US",
+  "ZipCode": "",
+  "PhoneNumber": "+1.5555555555",
+  "Email": ""
+}
