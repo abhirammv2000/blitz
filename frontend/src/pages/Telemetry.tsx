@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { API_BASE } from '../config'
+import { apiFetch } from '../config'
 
 interface Summary {
   calls: number
@@ -77,10 +77,10 @@ export default function Telemetry() {
     const load = async () => {
       try {
         const [s, a, r, f] = await Promise.all([
-          fetch(`${API_BASE}/telemetry/summary`).then((x) => x.json()),
-          fetch(`${API_BASE}/telemetry/agents`).then((x) => x.json()),
-          fetch(`${API_BASE}/telemetry/runs`).then((x) => x.json()),
-          fetch(`${API_BASE}/telemetry/failures`).then((x) => x.json()),
+          apiFetch('/telemetry/summary').then((x) => x.json()),
+          apiFetch('/telemetry/agents').then((x) => x.json()),
+          apiFetch('/telemetry/runs').then((x) => x.json()),
+          apiFetch('/telemetry/failures').then((x) => x.json()),
         ])
         if (cancelled) return
         setSummary(s)

@@ -138,6 +138,16 @@ class Settings(BaseSettings):
     dev_cors_port_start: int = 5173
     dev_cors_port_end: int = 5200
 
+    # -- Access control ---------------------------------------------------
+    # Empty means "development": every route answers with no key required.
+    # A real deployment must set ACCESS_KEY or every route that spends money
+    # is open to anyone who finds the URL.
+    access_key: str = ""
+    # 0 means "no cap" - the local default. A real deployment sets this as a
+    # backstop for the case where the access key leaks or gets shared past
+    # who it was meant for.
+    daily_run_cap: int = Field(default=0, ge=0)
+
     log_level: str = "INFO"
 
     @field_validator("log_level")

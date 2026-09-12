@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { IS_DEMO_MODE } from '../demo/demoConfig'
-import { API_BASE } from '../config'
+import { apiFetch } from '../config'
 
 export const OUTPUT_KEYS: Record<string, number> = {
   research_output: 0,
@@ -90,11 +90,13 @@ export const useBlitzStore = create<BlitzStore>()((set) => ({
 
     try {
       // 1. Send the URL to the backend to kick off the pipeline
-      const res = await fetch(`${API_BASE}/pipeline/start`, {
+      const res = await apiFetch('/pipeline/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url }),
       })
+      if (res.status === 401) throw new Error('This deployment needs an access key - enter one above and try again.')
+      if (res.status === 429) throw new Error((await res.json().catch(() => null))?.detail ?? 'Daily run limit reached.')
       if (!res.ok) throw new Error(`Server error: ${res.status}`)
 
       // 2. The backend responds with an open stream (Server-Sent Events)
@@ -198,7 +200,8 @@ export const useBlitzStore = create<BlitzStore>()((set) => ({
   loadRun: async (runId: string) => {
     set({ error: null, isRunning: false })
     try {
-      const res = await fetch(`${API_BASE}/pipeline/${runId}`)
+      const res = await apiFetch(`/pipeline/${runId}`)
+      if (res.status === 401) throw new Error('This deployment needs an access key - enter one on the landing page and try again.')
       if (res.status === 404) throw new Error('No run found with that id.')
       if (!res.ok) throw new Error(`Server error: ${res.status}`)
 

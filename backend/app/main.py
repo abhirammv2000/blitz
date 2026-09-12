@@ -12,6 +12,7 @@ one-way walkie-talkie where the server can continuously push updates (like "agen
 """
 
 import asyncio
+import hmac
 import json
 import logging
 import uuid
@@ -19,7 +20,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -46,8 +47,9 @@ from app.agents.agent_voice.models import (
 )
 from app.config import settings
 from app.core.llm import describe_exception, install_langfuse_tracing
-from app.db import get_agent_context, get_agent_output
+from app.db import check_and_increment_daily_cap, get_agent_context, get_agent_output
 from app.db.leads import get_leads_for_run, init_leads_table, insert_lead
+from app.db.usage import init_usage_table
 from app.graph import build_graph
 from app.telemetry import (
     get_agent_costs,
@@ -85,6 +87,7 @@ async def lifespan(_app: FastAPI):
     global graph  # noqa: PLW0603
     graph = build_graph()
     init_leads_table()
+    init_usage_table()
     # Registers the LiteLLM callback and creates the telemetry table.
     install_telemetry()
     # No-ops if no Langfuse keys are configured.
@@ -112,6 +115,21 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# ---------------------------------------------------------------------------
+# Access control
+# ---------------------------------------------------------------------------
+# Every route that spends money or reads pipeline data requires this, except
+# /health (the load balancer's health check has no way to send it). An empty
+# ACCESS_KEY - the local default - turns the check off entirely.
+
+
+async def require_access_key(x_blitz_key: str = Header(default="")) -> None:
+    if not settings.access_key:
+        return
+    if not hmac.compare_digest(x_blitz_key, settings.access_key):
+        raise HTTPException(status_code=401, detail="Missing or invalid access key")
 
 
 # ---------------------------------------------------------------------------
@@ -226,13 +244,19 @@ async def health():
     return {"status": "ok"}
 
 
-@app.post("/pipeline/start")
+@app.post("/pipeline/start", dependencies=[Depends(require_access_key)])
 async def pipeline_start(payload: PipelineStartRequest):
     """
     Kick off a new pipeline run!
     When the frontend says "go", this endpoint spins up a new LangGraph process
     and immediately opens up an SSE stream to send live updates back to the browser.
     """
+    if not check_and_increment_daily_cap(settings.daily_run_cap):
+        raise HTTPException(
+            status_code=429,
+            detail=f"Daily limit of {settings.daily_run_cap} pipeline runs reached. Try again tomorrow.",
+        )
+
     run_id = str(uuid.uuid4())
 
     async def event_stream():
@@ -267,7 +291,7 @@ _CHROMA_KEY_TO_OUTPUT_FIELD = {
 }
 
 
-@app.get("/pipeline/{run_id}")
+@app.get("/pipeline/{run_id}", dependencies=[Depends(require_access_key)])
 async def pipeline_state(run_id: str):
     """Look up a run's results after the fact - finished, partial, or failed
     partway through. Works even after a server restart, since Chroma is
@@ -302,7 +326,7 @@ class ImageGenRequest(BaseModel):
     prompt: str
 
 
-@app.post("/ads/{run_id}/generate-image")
+@app.post("/ads/{run_id}/generate-image", dependencies=[Depends(require_access_key)])
 async def generate_ad_image_endpoint(run_id: str, body: ImageGenRequest):
     """Generate a single DALL-E 3 image from a user-edited prompt.
 
@@ -327,31 +351,31 @@ async def generate_ad_image_endpoint(run_id: str, body: ImageGenRequest):
 # ---------------------------------------------------------------------------
 
 
-@app.get("/telemetry/summary")
+@app.get("/telemetry/summary", dependencies=[Depends(require_access_key)])
 async def telemetry_summary():
     """Totals across every run: spend, tokens, success rate."""
     return get_summary()
 
 
-@app.get("/telemetry/agents")
+@app.get("/telemetry/agents", dependencies=[Depends(require_access_key)])
 async def telemetry_agents():
     """Cost and latency broken down by agent."""
     return get_agent_costs()
 
 
-@app.get("/telemetry/runs")
+@app.get("/telemetry/runs", dependencies=[Depends(require_access_key)])
 async def telemetry_runs(limit: int = 50):
     """Per-run rollup, newest first."""
     return get_runs(limit=limit)
 
 
-@app.get("/telemetry/runs/{run_id}")
+@app.get("/telemetry/runs/{run_id}", dependencies=[Depends(require_access_key)])
 async def telemetry_run_detail(run_id: str):
     """Every call made during one run."""
     return get_run_detail(run_id)
 
 
-@app.get("/telemetry/failures")
+@app.get("/telemetry/failures", dependencies=[Depends(require_access_key)])
 async def telemetry_failures():
     """What failed, where, and how often - call-level and run-level."""
     return get_failures()
@@ -362,12 +386,12 @@ async def telemetry_failures():
 # ---------------------------------------------------------------------------
 
 
-@app.get("/voice/setup-check", response_model=SetupCheckResponse)
+@app.get("/voice/setup-check", response_model=SetupCheckResponse, dependencies=[Depends(require_access_key)])
 async def voice_setup_check():
     return check_setup()
 
 
-@app.post("/voice/session", response_model=VoiceSessionResponse)
+@app.post("/voice/session", response_model=VoiceSessionResponse, dependencies=[Depends(require_access_key)])
 async def voice_session(req: VoiceSessionRequest):
     setup = check_setup()
     if not setup.configured:
@@ -428,7 +452,11 @@ async def voice_session(req: VoiceSessionRequest):
     )
 
 
-@app.get("/voice/transcript/{conversation_id}", response_model=TranscriptResponse)
+@app.get(
+    "/voice/transcript/{conversation_id}",
+    response_model=TranscriptResponse,
+    dependencies=[Depends(require_access_key)],
+)
 async def voice_transcript(conversation_id: str):
     raw = await get_transcript(conversation_id)
 
@@ -455,7 +483,11 @@ async def voice_transcript(conversation_id: str):
     )
 
 
-@app.post("/voice/leads/extract", response_model=LeadExtractResponse)
+@app.post(
+    "/voice/leads/extract",
+    response_model=LeadExtractResponse,
+    dependencies=[Depends(require_access_key)],
+)
 async def voice_leads_extract(req: LeadExtractRequest):
     """Extract lead data from a completed conversation and store it."""
     raw = await get_transcript(req.conversation_id)
@@ -509,7 +541,7 @@ async def voice_leads_extract(req: LeadExtractRequest):
     return LeadExtractResponse(success=True, lead=lead, message="Lead extracted successfully")
 
 
-@app.get("/voice/leads/{run_id}")
+@app.get("/voice/leads/{run_id}", dependencies=[Depends(require_access_key)])
 async def voice_leads_list(run_id: str):
     """Return all leads captured for a given pipeline run."""
     return get_leads_for_run(run_id)

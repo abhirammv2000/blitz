@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useVoiceSession } from '../hooks/useVoiceSession'
-import { API_BASE } from '../config'
+import { apiFetch } from '../config'
 
 /**
  * Standalone voice test page - bypasses the full pipeline.
@@ -23,7 +23,7 @@ export default function VoiceTest() {
 
     try {
       // First check setup
-      const check = await fetch(`${API_BASE}/voice/setup-check`)
+      const check = await apiFetch('/voice/setup-check')
       const checkData = await check.json()
       if (!checkData.configured) {
         setError(`Missing env vars: ${checkData.missing.join(', ')}`)
@@ -32,7 +32,7 @@ export default function VoiceTest() {
       }
 
       // Start session with dummy run_id (backend handles missing research gracefully)
-      const res = await fetch(`${API_BASE}/voice/session`, {
+      const res = await apiFetch('/voice/session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

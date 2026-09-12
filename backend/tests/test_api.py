@@ -14,6 +14,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 import app.main as main_mod
+from app.config import settings
 
 pytestmark = pytest.mark.usefixtures("isolated_chroma")
 
@@ -129,6 +130,72 @@ def test_a_run_that_only_got_through_research_reports_step_zero(client):
 
     assert body["current_step"] == 0
     assert body["complete"] is False
+
+
+# ---------------------------------------------------------------------------
+# Access key - open by default, gated once ACCESS_KEY is configured
+# ---------------------------------------------------------------------------
+
+
+def test_no_key_configured_means_every_route_is_open(client):
+    """The local/dev default: ACCESS_KEY unset, nothing is gated."""
+    assert client.get("/telemetry/summary").status_code == 200
+
+
+def test_missing_key_is_rejected_once_one_is_configured(client, monkeypatch):
+    monkeypatch.setattr(settings, "access_key", "secret123")
+    assert client.get("/telemetry/summary").status_code == 401
+
+
+def test_wrong_key_is_rejected(client, monkeypatch):
+    monkeypatch.setattr(settings, "access_key", "secret123")
+    r = client.get("/telemetry/summary", headers={"X-Blitz-Key": "not-it"})
+    assert r.status_code == 401
+
+
+def test_correct_key_is_accepted(client, monkeypatch):
+    monkeypatch.setattr(settings, "access_key", "secret123")
+    r = client.get("/telemetry/summary", headers={"X-Blitz-Key": "secret123"})
+    assert r.status_code == 200
+
+
+def test_health_never_needs_a_key(client, monkeypatch):
+    """The load balancer's health check can't send a header, so this one route
+    must stay open even with ACCESS_KEY configured."""
+    monkeypatch.setattr(settings, "access_key", "secret123")
+    assert client.get("/health").status_code == 200
+
+
+# ---------------------------------------------------------------------------
+# Daily run cap - the backstop for a leaked or over-shared access key
+# ---------------------------------------------------------------------------
+
+
+def test_pipeline_start_is_refused_once_the_daily_cap_is_hit(client, monkeypatch):
+    monkeypatch.setattr(main_mod, "check_and_increment_daily_cap", lambda _cap: False)
+
+    r = client.post("/pipeline/start", json={"url": "https://acme.com"})
+
+    assert r.status_code == 429
+    assert "limit" in r.json()["detail"].lower()
+
+
+def test_pipeline_start_checks_the_cap_before_touching_the_graph(client, monkeypatch):
+    """A refused run shouldn't spin up the graph at all."""
+    called = False
+
+    class _ExplodingGraph:
+        async def astream(self, *_args, **_kwargs):
+            nonlocal called
+            called = True
+            yield {}
+
+    monkeypatch.setattr(main_mod, "graph", _ExplodingGraph())
+    monkeypatch.setattr(main_mod, "check_and_increment_daily_cap", lambda _cap: False)
+
+    client.post("/pipeline/start", json={"url": "https://acme.com"})
+
+    assert called is False
 
 
 # ---------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { API_BASE } from '../../config'
+import { apiFetch } from '../../config'
 
 interface Lead {
   id: number
@@ -23,7 +23,7 @@ export default function LeadsTable({ runId }: LeadsTableProps) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch(`${API_BASE}/voice/leads/${runId}`)
+    apiFetch(`/voice/leads/${runId}`)
       .then((res) => res.json())
       .then((data) => {
         setLeads(data)

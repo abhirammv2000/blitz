@@ -5,7 +5,7 @@ import TranscriptCard from './TranscriptCard'
 import LeadsTable from './LeadsTable'
 import { useBlitzStore } from '../../store/useBlitzStore'
 import { useVoiceSession } from '../../hooks/useVoiceSession'
-import { API_BASE } from '../../config'
+import { apiFetch } from '../../config'
 
 interface Segment {
   name: string
@@ -35,7 +35,7 @@ export default function VoiceAgentPanel({ runId, segments, salesScripts, company
 
     // Best-effort lead extraction
     try {
-      await fetch(`${API_BASE}/voice/leads/extract`, {
+      await apiFetch('/voice/leads/extract', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -57,7 +57,7 @@ export default function VoiceAgentPanel({ runId, segments, salesScripts, company
     setSetupError(false)
 
     try {
-      const res = await fetch(`${API_BASE}/voice/session`, {
+      const res = await apiFetch('/voice/session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

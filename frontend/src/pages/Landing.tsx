@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useBlitzStore } from '../store/useBlitzStore'
+import { getAccessKey, setAccessKey } from '../config'
 
 interface LandingProps {
   onLaunch: () => void
@@ -8,6 +9,8 @@ interface LandingProps {
 export default function Landing({ onLaunch }: LandingProps) {
   const [url, setUrl] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showKeyField, setShowKeyField] = useState(() => getAccessKey().length > 0)
+  const [accessKey, setAccessKeyField] = useState(() => getAccessKey())
   const { error, startPipeline } = useBlitzStore()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -65,6 +68,28 @@ export default function Landing({ onLaunch }: LandingProps) {
             disabled={loading}
             autoFocus
           />
+
+          {showKeyField ? (
+            <input
+              type="password"
+              value={accessKey}
+              onChange={(e) => {
+                setAccessKeyField(e.target.value)
+                setAccessKey(e.target.value)
+              }}
+              placeholder="Access key"
+              className="w-full bg-white border border-ink/10 rounded-xl px-5 py-3 text-ink text-sm placeholder-ink-faint outline-none focus:border-sage/60 focus:ring-2 focus:ring-sage/10 transition-all duration-200"
+              disabled={loading}
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowKeyField(true)}
+              className="text-ink-faint text-xs text-center hover:text-ink-muted transition-colors"
+            >
+              Have an access key?
+            </button>
+          )}
 
           {error && (
             <p className="text-error text-sm text-center">{error}</p>
