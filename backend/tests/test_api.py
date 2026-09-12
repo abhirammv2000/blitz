@@ -76,6 +76,62 @@ def test_pipeline_start_rejects_a_body_with_no_url(client):
 
 
 # ---------------------------------------------------------------------------
+# GET /pipeline/{run_id} - looking a run back up after the fact
+# ---------------------------------------------------------------------------
+
+
+def test_unknown_run_id_is_a_404(client):
+    assert client.get("/pipeline/no-such-run").status_code == 404
+
+
+def test_a_fully_finished_run_comes_back_complete(client):
+    from app.db import store_agent_output
+
+    run_id = "run-finished"
+    for key in ("research_decision", "profile", "audience", "content", "sales", "ads"):
+        store_agent_output(run_id, key, json.dumps({"stub": key}))
+
+    body = client.get(f"/pipeline/{run_id}").json()
+
+    assert body["complete"] is True
+    assert body["current_step"] == 5
+    assert body["research_output"] == {"stub": "research_decision"}
+    assert body["ads_output"] == {"stub": "ads"}
+
+
+def test_a_partial_run_comes_back_with_only_what_finished(client):
+    """Closing the tab after agent 2 should not lose agents 0 and 1 - this is
+    the whole point of reading from Chroma instead of the in-memory
+    checkpoint."""
+    from app.db import store_agent_output
+
+    run_id = "run-partial"
+    store_agent_output(run_id, "research_decision", json.dumps({"stub": "research_decision"}))
+    store_agent_output(run_id, "profile", json.dumps({"stub": "profile"}))
+
+    body = client.get(f"/pipeline/{run_id}").json()
+
+    assert body["complete"] is False
+    assert body["current_step"] == 1
+    assert body["research_output"] == {"stub": "research_decision"}
+    assert body["profile_output"] == {"stub": "profile"}
+    assert body["audience_output"] is None
+    assert body["ads_output"] is None
+
+
+def test_a_run_that_only_got_through_research_reports_step_zero(client):
+    from app.db import store_agent_output
+
+    run_id = "run-just-started"
+    store_agent_output(run_id, "research_decision", json.dumps({"stub": "research_decision"}))
+
+    body = client.get(f"/pipeline/{run_id}").json()
+
+    assert body["current_step"] == 0
+    assert body["complete"] is False
+
+
+# ---------------------------------------------------------------------------
 # Streaming: the happy path
 # ---------------------------------------------------------------------------
 

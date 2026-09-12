@@ -251,6 +251,45 @@ async def pipeline_start(payload: PipelineStartRequest):
     return StreamingResponse(event_stream(), media_type="text/event-stream")
 
 
+# Every agent stores its own output in Chroma by run_id as it finishes,
+# independent of the SSE stream that delivered it live - closing the tab
+# mid-run does not lose the agents that already completed, only the
+# connection watching them. This maps each stored key back to the field name
+# the SSE `state` event uses, so a run loaded this way looks the same to the
+# frontend as one that streamed in live.
+_CHROMA_KEY_TO_OUTPUT_FIELD = {
+    "research_decision": "research_output",
+    "profile": "profile_output",
+    "audience": "audience_output",
+    "content": "content_output",
+    "sales": "sales_output",
+    "ads": "ads_output",
+}
+
+
+@app.get("/pipeline/{run_id}")
+async def pipeline_state(run_id: str):
+    """Look up a run's results after the fact - finished, partial, or failed
+    partway through. Works even after a server restart, since Chroma is
+    on-disk; a run still executing when the server restarts is genuinely
+    gone either way, since MemorySaver's checkpoint does not survive that.
+    """
+    state: dict = {"run_id": run_id}
+    for chroma_key, field in _CHROMA_KEY_TO_OUTPUT_FIELD.items():
+        raw = get_agent_output(run_id, chroma_key)
+        state[field] = json.loads(raw) if raw else None
+
+    if all(state[field] is None for field in _CHROMA_KEY_TO_OUTPUT_FIELD.values()):
+        raise HTTPException(status_code=404, detail="No run found with that id")
+
+    completed_steps = [
+        i for i, field in enumerate(_CHROMA_KEY_TO_OUTPUT_FIELD.values()) if state[field] is not None
+    ]
+    state["current_step"] = max(completed_steps) if completed_steps else 0
+    state["complete"] = state["ads_output"] is not None
+    return state
+
+
 # ---------------------------------------------------------------------------
 # Ad image generation (user-triggered, capped at 3 per run)
 # ---------------------------------------------------------------------------

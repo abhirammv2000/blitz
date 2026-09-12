@@ -35,6 +35,7 @@ interface BlitzStore {
   setError: (err: string | null) => void
   setActiveAgentId: (id: string | null) => void
   startPipeline: (url: string) => Promise<void>
+  loadRun: (runId: string) => Promise<void>
   reset: () => void
 }
 
@@ -189,6 +190,34 @@ export const useBlitzStore = create<BlitzStore>()((set) => ({
         error: err instanceof Error ? err.message : 'Failed to connect to backend',
         isRunning: false,
       })
+    }
+  },
+  // Loads a run that already exists (or partly exists) in the backend's
+  // storage, without going through the SSE flow - what /?run=<id> uses to
+  // reopen a run after the tab that started it is long gone.
+  loadRun: async (runId: string) => {
+    set({ error: null, isRunning: false })
+    try {
+      const res = await fetch(`${API_BASE}/pipeline/${runId}`)
+      if (res.status === 404) throw new Error('No run found with that id.')
+      if (!res.ok) throw new Error(`Server error: ${res.status}`)
+
+      const data = await res.json()
+      const agentOutputs: Record<number, unknown> = {}
+      for (const [key, step] of Object.entries(OUTPUT_KEYS)) {
+        if (data[key] !== undefined && data[key] !== null) {
+          agentOutputs[step] = data[key]
+        }
+      }
+
+      set({
+        runId: data.run_id,
+        currentStep: data.current_step ?? 0,
+        viewStep: data.current_step ?? 0,
+        agentOutputs,
+      })
+    } catch (err) {
+      set({ error: err instanceof Error ? err.message : 'Failed to load run' })
     }
   },
   reset: () =>
