@@ -47,9 +47,15 @@ from app.agents.agent_voice.models import (
 )
 from app.config import settings
 from app.core.llm import describe_exception, install_langfuse_tracing
-from app.db import check_and_increment_daily_cap, get_agent_context, get_agent_output
+from app.db import (
+    check_and_increment_daily_cap,
+    get_agent_context,
+    get_agent_output,
+    image_count,
+    increment_image_count,
+)
 from app.db.leads import get_leads_for_run, init_leads_table, insert_lead
-from app.db.usage import init_usage_table
+from app.db.usage import init_image_counts_table, init_usage_table
 from app.graph import build_graph
 from app.telemetry import (
     get_agent_costs,
@@ -88,6 +94,7 @@ async def lifespan(_app: FastAPI):
     graph = build_graph()
     init_leads_table()
     init_usage_table()
+    init_image_counts_table()
     # Registers the LiteLLM callback and creates the telemetry table.
     install_telemetry()
     # No-ops if no Langfuse keys are configured.
@@ -318,7 +325,6 @@ async def pipeline_state(run_id: str):
 # Ad image generation (user-triggered, capped at 3 per run)
 # ---------------------------------------------------------------------------
 
-_image_counts: dict[str, int] = {}
 IMAGE_CAP = settings.image_cap_per_run
 
 
@@ -330,9 +336,12 @@ class ImageGenRequest(BaseModel):
 async def generate_ad_image_endpoint(run_id: str, body: ImageGenRequest):
     """Generate a single DALL-E 3 image from a user-edited prompt.
 
-    Capped at IMAGE_CAP (3) generations per run_id to control costs.
+    Capped at IMAGE_CAP (3) generations per run_id to control costs. The
+    count lives in SQLite (app.db.usage) rather than a process-local dict -
+    a dict resets per process, so it silently stopped enforcing the cap the
+    moment this ran as more than one replica.
     """
-    count = _image_counts.get(run_id, 0)
+    count = image_count(run_id)
     if count >= IMAGE_CAP:
         return {"error": f"Image generation limit ({IMAGE_CAP}) reached for this run.", "image_url": None}
 
@@ -340,9 +349,9 @@ async def generate_ad_image_endpoint(run_id: str, body: ImageGenRequest):
 
     image_url = await generate_ad_image(body.prompt)
     if image_url:
-        _image_counts[run_id] = count + 1
+        increment_image_count(run_id)
 
-    remaining = IMAGE_CAP - _image_counts.get(run_id, 0)
+    remaining = IMAGE_CAP - image_count(run_id)
     return {"image_url": image_url, "remaining": remaining}
 
 

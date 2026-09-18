@@ -302,10 +302,24 @@ async def test_the_progress_queue_is_released_after_a_run(monkeypatch):
 # ---------------------------------------------------------------------------
 
 
-def test_image_generation_is_capped_per_run(client, monkeypatch):
+@pytest.fixture
+def isolated_image_counts(tmp_path, monkeypatch):
+    """Give the image-generation cap its own throwaway SQLite file.
+
+    Same reasoning as test_usage.py's isolated_db: the cap now lives in
+    app.db.usage's SQLite table (was a process-local dict, which didn't
+    survive more than one replica), so a test exercising it must not write
+    to the developer's real blitz.db.
+    """
+    import app.db.usage as usage
+
+    monkeypatch.setattr(usage, "_DB_PATH", tmp_path / "image-counts-test.db")
+    usage.init_image_counts_table()
+
+
+def test_image_generation_is_capped_per_run(client, monkeypatch, isolated_image_counts):
     """Images are the priciest thing a click can trigger, so the cap matters."""
     monkeypatch.setattr(main_mod, "IMAGE_CAP", 2)
-    monkeypatch.setattr(main_mod, "_image_counts", {})
 
     async def fake_image(_prompt):
         return "data:image/png;base64,AAAA"
@@ -322,10 +336,9 @@ def test_image_generation_is_capped_per_run(client, monkeypatch):
     assert "limit" in seen[2]["error"].lower()
 
 
-def test_a_failed_generation_does_not_consume_cap(client, monkeypatch):
+def test_a_failed_generation_does_not_consume_cap(client, monkeypatch, isolated_image_counts):
     """Otherwise an outage quietly eats someone's allowance."""
     monkeypatch.setattr(main_mod, "IMAGE_CAP", 2)
-    monkeypatch.setattr(main_mod, "_image_counts", {})
 
     async def failing_image(_prompt):
         return None
@@ -336,3 +349,21 @@ def test_a_failed_generation_does_not_consume_cap(client, monkeypatch):
 
     assert body["image_url"] is None
     assert body["remaining"] == 2, "a failed generation consumed part of the cap"
+
+
+def test_image_count_persists_across_a_fresh_module_state(monkeypatch, isolated_image_counts):
+    """The whole point of the fix: a second process/replica must see the same count.
+
+    The old process-local dict couldn't fail this test - a fresh dict always
+    starts empty. Calling the db-layer functions directly (not through the
+    dict main.py used to hold) is what actually exercises persistence.
+    """
+    from app.db.usage import image_count, increment_image_count
+
+    assert image_count("run-persist") == 0
+    increment_image_count("run-persist")
+    increment_image_count("run-persist")
+
+    # A fresh read with no in-process state carried over - simulating a
+    # second replica handling the next request for the same run_id.
+    assert image_count("run-persist") == 2
