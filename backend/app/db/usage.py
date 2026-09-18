@@ -1,10 +1,13 @@
-"""A hard ceiling on how many pipeline runs can start in a day.
+"""Hard ceilings on spend: pipeline runs per day, ad images per run.
 
 The access key (see app.main.require_access_key) stops anonymous drive-by
-use; this is the backstop for the case where the key itself leaks or gets
-shared past who it was meant for. One row per UTC day, incremented
-atomically so two requests racing to start a run can't both slip through
-one slot under the cap.
+use; these are the backstop for the case where the key itself leaks or gets
+shared past who it was meant for. One row per key (UTC day, or run_id),
+persisted here rather than in memory so the cap actually holds once the API
+runs as more than one replica. The daily cap is a single atomic
+check-and-increment; the per-run image cap checks and increments as two
+separate steps so a failed generation doesn't consume the cap - see each
+function's docstring.
 """
 
 from __future__ import annotations
@@ -31,6 +34,21 @@ def init_usage_table() -> None:
         conn.execute("""
             CREATE TABLE IF NOT EXISTS daily_runs (
                 day TEXT PRIMARY KEY,
+                count INTEGER NOT NULL DEFAULT 0
+            )
+        """)
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def init_image_counts_table() -> None:
+    """Create the image_counts table if it doesn't exist."""
+    conn = _get_conn()
+    try:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS image_counts (
+                run_id TEXT PRIMARY KEY,
                 count INTEGER NOT NULL DEFAULT 0
             )
         """)
@@ -78,5 +96,47 @@ def runs_today() -> int:
     try:
         row = conn.execute("SELECT count FROM daily_runs WHERE day = ?", (_today(),)).fetchone()
         return row["count"] if row else 0
+    finally:
+        conn.close()
+
+
+def image_count(run_id: str) -> int:
+    """How many images have been generated for this run so far.
+
+    Was a module-level `dict[str, int]` in app.main - fine for one process,
+    but silently stopped enforcing the per-run cap the moment the API ran
+    as more than one replica, since each process had its own empty dict.
+    """
+    conn = _get_conn()
+    try:
+        row = conn.execute("SELECT count FROM image_counts WHERE run_id = ?", (run_id,)).fetchone()
+        return row["count"] if row else 0
+    finally:
+        conn.close()
+
+
+def increment_image_count(run_id: str) -> None:
+    """Record one successful image generation for this run.
+
+    Only called after `generate_ad_image` returns a real image - a failed
+    generation must not consume part of the cap (see
+    test_a_failed_generation_does_not_consume_cap), so unlike
+    check_and_increment_daily_cap this isn't a single atomic
+    check-and-increment: the caller checks `image_count` first, generates,
+    and only then calls this. That leaves a narrow window where two
+    concurrent requests for the same run_id could both read the same count
+    and both generate - acceptable here since this endpoint is a manual,
+    one-click-at-a-time UI action, not the daily cap's "stop anonymous
+    drive-by use" backstop.
+    """
+    conn = _get_conn()
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+        row = conn.execute("SELECT count FROM image_counts WHERE run_id = ?", (run_id,)).fetchone()
+        if row:
+            conn.execute("UPDATE image_counts SET count = count + 1 WHERE run_id = ?", (run_id,))
+        else:
+            conn.execute("INSERT INTO image_counts (run_id, count) VALUES (?, 1)", (run_id,))
+        conn.commit()
     finally:
         conn.close()
