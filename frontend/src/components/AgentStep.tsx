@@ -7,6 +7,7 @@ import ContentView from './ContentView'
 import SalesView from './SalesView'
 import AdsView from './AdsView'
 import ProgressTimeline from './ProgressTimeline'
+import FeedbackBar from './FeedbackBar'
 import VoiceAgentPanel from './VoiceAgent/VoiceAgentPanel'
 import type { ResearchOutput } from './DossierView'
 import type { MarketingProfile } from './ProfileView'
@@ -76,11 +77,24 @@ interface StepLayoutProps {
   children: ReactNode
 }
 
+// Backend agent names, in step order. Ratings are stored under these.
+const AGENT_KEYS = [
+  'agent_0_research',
+  'agent_1_profile',
+  'agent_2_audience',
+  'agent_3_content',
+  'agent_4_sales',
+  'agent_5_ads',
+]
+
 function StepLayout({ displayNumber, agentName, subtitle, children }: StepLayoutProps) {
+  const runId = useBlitzStore((s) => s.runId)
+  const agentKey = AGENT_KEYS[displayNumber - 1]
   return (
     <div className="flex flex-col gap-6">
       <StepHeader displayNumber={displayNumber} agentName={agentName} subtitle={subtitle} />
       {children}
+      {runId && agentKey && <FeedbackBar runId={runId} agent={agentKey} />}
     </div>
   )
 }
@@ -200,7 +214,7 @@ export default function AgentStep({ stepIndex, agentName }: AgentStepProps) {
   if (stepIndex === 5) {
     return (
       <StepLayout displayNumber={6} agentName={agentName} subtitle="Ad Creative ready">
-        <AdsView output={output as AdsOutput} />
+        <AdsView output={output as AdsOutput} runId={runId ?? ''} />
       </StepLayout>
     )
   }

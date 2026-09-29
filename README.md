@@ -396,6 +396,23 @@ python reliability_benchmark.py   # how much the router's retries help
 
 Failures are injected independently on each attempt, which is kinder to retries than a real rate-limit storm, where a retry a moment later hits the same wall. Read it as what the config buys against independent transient errors, not as a failure rate for any provider.
 
+## Feedback and experiments
+
+Every agent's output has a "Was this useful?" yes/no under it, and the A/B variations tab has a "Pick Variant X as the better ad" button. Both are stored in the same SQLite file as the telemetry, so cost sits next to the quality signal. Clicking again changes your vote instead of adding another.
+
+There is also one live experiment, `ads_critic`. The ads agent normally drafts copy and then a critic reviews it, and can send it back for another pass. That costs extra model calls, and I don't know if the results are better enough to justify them. With `EXPERIMENTS_ENABLED=true`, each new run is randomly given the critic loop or skips it (the split is a hash of the run id, so a run always gets the same answer). The Telemetry page then compares the two on thumbs-up rate for the ads step, with a 95% range, alongside average cost and LLM time per run.
+
+It is off by default, so nothing changes unless you turn it on. It also gives no verdict until each side has at least 20 rated runs, since a handful of thumbs can't tell you anything. The comparison is a two-proportion z-test, which is fine at those sizes and rough below them.
+
+There is no real data behind this yet. It's built and tested, but until people use it there are no results to report.
+
+```
+POST /feedback/rating       {run_id, agent, value: 1 or -1}
+POST /feedback/ad-pick      {run_id, ad_copy_ref, chosen}
+GET  /feedback/summary      thumbs per agent and ad variant picks
+GET  /experiments/ads_critic
+```
+
 ## Key Architecture Decisions
 
 - **Provider-agnostic**: every model is set by environment variable and routed through LiteLLM, with a fallback on the other provider. A full run completes on either OpenAI or Gemini alone. Image generation remains OpenAI-only.
@@ -443,6 +460,10 @@ blitz/
 | `GET` | `/voice/setup-check` | Check ElevenLabs configuration |
 | `POST` | `/voice/session` | PATCH agent prompt and get signed WebSocket URL for browser voice session |
 | `GET` | `/voice/transcript/{id}` | Get conversation transcript |
+| `POST` | `/feedback/rating` | Thumbs up or down on one agent's output |
+| `POST` | `/feedback/ad-pick` | Which ad variant the person preferred |
+| `GET` | `/feedback/summary` | Thumbs per agent and ad variant picks |
+| `GET` | `/experiments/ads_critic` | Results of the ads critic experiment |
 | `GET` | `/health` | Health check |
 
 ## Environment Variables
@@ -460,6 +481,7 @@ ELEVENLABS_AGENT_ID=   # Conversational AI agent ID
 LANGFUSE_PUBLIC_KEY=   # LLM tracing, off if unset
 LANGFUSE_SECRET_KEY=   # LLM tracing, off if unset
 LANGFUSE_BASE_URL=     # defaults to https://cloud.langfuse.com
+EXPERIMENTS_ENABLED=   # false by default, see Feedback and experiments
 ```
 
 ## What's Next

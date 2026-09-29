@@ -47,6 +47,33 @@ interface Failures {
   by_agent: { agent: string; failures: number }[]
 }
 
+interface ExperimentVariant {
+  variant: string
+  runs: number
+  rated: number
+  up: number
+  up_rate: number | null
+  ci_low: number
+  ci_high: number
+  avg_cost_usd: number | null
+  avg_latency_ms: number | null
+}
+
+interface Experiment {
+  experiment: string
+  metric: string
+  variants: ExperimentVariant[]
+  verdict: string
+}
+
+interface FeedbackSummary {
+  by_agent: { agent: string; up: number; down: number; total: number; up_rate: number; ci_low: number; ci_high: number }[]
+  ad_picks: { chosen: string; count: number }[]
+}
+
+const pct = (n: number) => `${(n * 100).toFixed(0)}%`
+const variantName = (v: string) => v.replace(/_/g, ' ')
+
 const usd = (n: number) => `$${n.toFixed(4)}`
 const int = (n: number) => n.toLocaleString()
 const secs = (ms: number) => `${(ms / 1000).toFixed(1)}s`
@@ -69,6 +96,8 @@ export default function Telemetry() {
   const [agents, setAgents] = useState<AgentCost[]>([])
   const [runs, setRuns] = useState<RunRow[]>([])
   const [failures, setFailures] = useState<Failures | null>(null)
+  const [experiment, setExperiment] = useState<Experiment | null>(null)
+  const [feedback, setFeedback] = useState<FeedbackSummary | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -82,11 +111,18 @@ export default function Telemetry() {
           apiFetch('/telemetry/runs').then((x) => x.json()),
           apiFetch('/telemetry/failures').then((x) => x.json()),
         ])
+        // Feedback is optional: a backend without these routes just shows no panel.
+        const [exp, fb] = await Promise.all([
+          apiFetch('/experiments/ads_critic').then((x) => (x.ok ? x.json() : null)).catch(() => null),
+          apiFetch('/feedback/summary').then((x) => (x.ok ? x.json() : null)).catch(() => null),
+        ])
         if (cancelled) return
         setSummary(s)
         setAgents(a)
         setRuns(r)
         setFailures(f)
+        setExperiment(exp)
+        setFeedback(fb)
         setError(null)
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load telemetry')
@@ -288,6 +324,81 @@ export default function Telemetry() {
                     <tr key={row.agent} className="border-t border-ink/5">
                       <td className="py-2 text-ink">{row.agent}</td>
                       <td className="py-2 text-right text-ink">{int(row.failures)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {experiment && experiment.variants.length > 0 && (
+        <section className="mt-6 rounded-2xl border border-ink/10 bg-white p-6">
+          <h2 className="text-sm font-medium uppercase tracking-widest text-ink-faint">Experiment: ads critic</h2>
+          <p className="mt-3 text-sm text-ink-faint">
+            Each run either keeps the ads critic loop or skips it. Judged on the {experiment.metric}.
+          </p>
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-ink-faint">
+                  <th className="pb-2 font-medium">Variant</th>
+                  <th className="pb-2 text-right font-medium">Runs</th>
+                  <th className="pb-2 text-right font-medium">Rated</th>
+                  <th className="pb-2 text-right font-medium">Thumbs up (95% range)</th>
+                  <th className="pb-2 text-right font-medium">Avg cost</th>
+                  <th className="pb-2 text-right font-medium">Avg LLM time</th>
+                </tr>
+              </thead>
+              <tbody>
+                {experiment.variants.map((v) => (
+                  <tr key={v.variant} className="border-t border-ink/5">
+                    <td className="py-2 text-ink">{variantName(v.variant)}</td>
+                    <td className="py-2 text-right text-ink">{int(v.runs)}</td>
+                    <td className="py-2 text-right text-ink">{int(v.rated)}</td>
+                    <td className="py-2 text-right text-ink">
+                      {v.up_rate === null ? 'no ratings yet' : `${pct(v.up_rate)} (${pct(v.ci_low)} to ${pct(v.ci_high)})`}
+                    </td>
+                    <td className="py-2 text-right text-ink">{v.avg_cost_usd === null ? ' - ' : usd(v.avg_cost_usd)}</td>
+                    <td className="py-2 text-right text-ink">{v.avg_latency_ms === null ? ' - ' : secs(v.avg_latency_ms)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-4 text-sm text-ink">{experiment.verdict}</p>
+        </section>
+      )}
+
+      {feedback && (feedback.by_agent.length > 0 || feedback.ad_picks.length > 0) && (
+        <section className="mt-6 rounded-2xl border border-ink/10 bg-white p-6">
+          <h2 className="text-sm font-medium uppercase tracking-widest text-ink-faint">User feedback</h2>
+          <div className="mt-4 grid gap-6 md:grid-cols-2">
+            <div>
+              <h3 className="text-xs font-medium uppercase tracking-widest text-ink-faint">Thumbs by agent</h3>
+              <table className="mt-3 w-full text-sm">
+                <tbody>
+                  {feedback.by_agent.map((row) => (
+                    <tr key={row.agent} className="border-t border-ink/5">
+                      <td className="py-2 text-ink">{row.agent}</td>
+                      <td className="py-2 text-right text-ink">
+                        {row.up} up, {row.down} down
+                      </td>
+                      <td className="py-2 text-right text-ink-faint">{pct(row.up_rate)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div>
+              <h3 className="text-xs font-medium uppercase tracking-widest text-ink-faint">Ad variant picks</h3>
+              <table className="mt-3 w-full text-sm">
+                <tbody>
+                  {feedback.ad_picks.map((row) => (
+                    <tr key={row.chosen} className="border-t border-ink/5">
+                      <td className="py-2 text-ink">Variant {row.chosen}</td>
+                      <td className="py-2 text-right text-ink">{int(row.count)}</td>
                     </tr>
                   ))}
                 </tbody>
