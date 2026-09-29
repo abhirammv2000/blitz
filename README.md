@@ -371,6 +371,31 @@ call live APIs. They are not part of the suite.
 
 CI runs the tests, the linter and the frontend build on every push.
 
+## Evals
+
+Two scripts check the pipeline's safety nets. Neither makes a network call or costs anything.
+
+```
+cd backend
+python run_evals.py               # schema conformance and the grounding detector
+python reliability_benchmark.py   # how much the router's retries help
+```
+
+**Schema conformance.** Each of the five agents that parse model JSON (profile through ads) is given four bad responses: plain text, valid JSON in the wrong shape, an empty string, and truncated JSON. All 20 were rejected, and every agent accepted a well-formed response. Agent 0 is left out because it has its own fallback path.
+
+**Grounding.** Two narrow checks on generated copy: does it name the company or a competitor, and does it reuse a number that is actually in the research. The script scores 5 hand-written examples (60% and 40%). That only shows the detector can tell grounded copy from generic copy. It says nothing about how grounded real pipeline output is, and I haven't measured that yet.
+
+**Retry benchmark.** The script builds the real router, injects transient failures at a fixed rate, and compares one bare attempt with the production config (retries, typed retry policy, cross-provider failover). A run is 12 calls, projected as 1-(1-p)^12 from the per-call rate. 500 trials per cell:
+
+| injected failure rate | bare call | router call | bare run | router run |
+|---|---|---|---|---|
+| 5% | 6.4% | 0% | 54.8% | 0% |
+| 10% | 11.0% | 0% | 75.3% | 0% |
+| 20% | 19.4% | 0% | 92.5% | 0% |
+| 30% | 27.2% | 0% | 97.8% | 0% |
+
+Failures are injected independently on each attempt, which is kinder to retries than a real rate-limit storm, where a retry a moment later hits the same wall. Read it as what the config buys against independent transient errors, not as a failure rate for any provider.
+
 ## Key Architecture Decisions
 
 - **Provider-agnostic**: every model is set by environment variable and routed through LiteLLM, with a fallback on the other provider. A full run completes on either OpenAI or Gemini alone. Image generation remains OpenAI-only.
