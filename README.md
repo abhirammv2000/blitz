@@ -101,142 +101,6 @@ sequenceDiagram
 
 ## Code Structure
 
-```mermaid
-classDiagram
-    direction TB
-
-    class FastAPI_App {
-        +POST /pipeline/start
-        +POST /ads/run_id/generate-image
-        +POST /voice/signed-url
-        +GET /voice/setup-check
-        +GET /voice/transcript/id
-        +GET /health
-    }
-
-    class LangGraph_Pipeline {
-        +StateGraph~BlitzState~
-        +MemorySaver checkpointer
-        +build_graph() CompiledGraph
-    }
-
-    class BlitzState {
-        +str run_id
-        +str company_url
-        +int current_step
-        +ResearchOutput research_output
-        +MarketingProfile profile_output
-        +AudienceOutput audience_output
-        +ContentOutput content_output
-        +SalesOutput sales_output
-        +AdsOutput ads_output
-    }
-
-    class ChromaDB {
-        +get_collection() Collection
-        +store_agent_output()
-        +get_agent_output()
-        +get_run_context()
-    }
-
-    class LiteLLM_Router {
-        +primary / mini tiers
-        +cross-provider fallback
-        +acompletion()
-    }
-
-    class Agent_0_Research {
-        +tavily_search()
-        +firecrawl_scrape()
-        +extract_category_from_content()
-        +aeo_check()
-        +extract_competitors()
-        +llm_synthesis()
-        -> ResearchOutput
-    }
-
-    class Agent_1_Profile {
-        +build_brand_dna()
-        -> MarketingProfile
-    }
-
-    class Agent_2_Audience {
-        +generate_segments()
-        -> AudienceOutput
-    }
-
-    class Agent_3_Content {
-        +create_content_plan()
-        -> ContentOutput
-    }
-
-    class Agent_4_Sales {
-        +build_sequences()
-        -> SalesOutput
-    }
-
-    class Agent_5_Ads {
-        +generate_ad_copy()
-        +generate_ad_image()
-        -> AdsOutput
-    }
-
-    class ElevenLabs_Voice {
-        +build_agent_prompt()
-        +get_signed_url()
-        +get_transcript()
-    }
-
-    FastAPI_App --> LangGraph_Pipeline : starts
-    FastAPI_App --> ElevenLabs_Voice : voice endpoints
-    LangGraph_Pipeline --> BlitzState : reads/writes
-    LangGraph_Pipeline --> Agent_0_Research
-    LangGraph_Pipeline --> Agent_1_Profile
-    LangGraph_Pipeline --> Agent_2_Audience
-    LangGraph_Pipeline --> Agent_3_Content
-    LangGraph_Pipeline --> Agent_4_Sales
-    LangGraph_Pipeline --> Agent_5_Ads
-    Agent_0_Research --> ChromaDB : store
-    Agent_1_Profile --> ChromaDB : read/store
-    Agent_2_Audience --> ChromaDB : read/store
-    Agent_3_Content --> ChromaDB : read/store
-    Agent_4_Sales --> ChromaDB : read/store
-    Agent_5_Ads --> ChromaDB : read/store
-    Agent_0_Research --> LiteLLM_Router
-    Agent_1_Profile --> LiteLLM_Router
-    Agent_2_Audience --> LiteLLM_Router
-    Agent_3_Content --> LiteLLM_Router
-    Agent_4_Sales --> LiteLLM_Router
-    Agent_5_Ads --> LiteLLM_Router
-
-    class Zustand_Store {
-        +string runId
-        +number currentStep
-        +number viewStep
-        +Record agentOutputs
-        +boolean isRunning
-        +string|null activeAgentId
-        +ResearchProgressStep[] researchProgress
-        +startPipeline(url)
-        +setActiveAgentId(id)
-        +reset()
-    }
-
-    class Wizard {
-        +Sidebar: 6 step nav
-        +Panel: AgentStep or SummaryPage
-    }
-
-    class AgentStep {
-        +routes to view component
-        +shows ProgressTimeline
-    }
-
-    Zustand_Store --> Wizard : drives UI
-    Wizard --> AgentStep : renders per step
-    AgentStep --> Zustand_Store : state updates
-```
-
 ### Agent Module Pattern
 
 Every agent (`agent_1` through `agent_5`) follows the same 4-file pattern:
@@ -251,7 +115,7 @@ agent_N_name/
 
 Agent 0 (Research) adds `research.py` (Tavily/Firecrawl/AEO logic) and `progress.py` (sub-step streaming).
 
-Each agent also has a `test_agent*.py` standalone test script and an `a*_imp.md` implementation changelog.
+Each agent also has a `test_agent*.py` script that calls the live APIs. They are manual and not part of the test suite.
 
 
 ## Tech Stack
@@ -306,6 +170,16 @@ Navigate to `http://localhost:5173`, enter a company URL, and watch the pipeline
 Visit `http://localhost:5173/?voice-test` for a standalone voice agent testing interface.
 
 ---
+
+## Running it for other people
+
+Locally the API is open. Before you put it on a public URL:
+
+- Set `ACCESS_KEY`. Every route that spends money then needs an `X-Blitz-Key` header with that value, and the check is constant-time.
+- Set `DAILY_RUN_CAP` to limit pipeline runs per day. It backs up the access key if the key leaks.
+- Set `CORS_ORIGINS` to the origin your frontend is served from.
+
+`backend/Dockerfile` builds the API. `infra/aws/` has Terraform for ECS Fargate behind a load balancer, with the frontend on S3 and CloudFront. Its [README](infra/aws/README.md) has the steps. A run calls paid APIs (OpenAI, Gemini, Tavily, Firecrawl), so a public demo costs money for every visitor.
 
 ## AI Telemetry
 
@@ -460,6 +334,9 @@ ELEVENLABS_AGENT_ID=   # Conversational AI agent ID
 LANGFUSE_PUBLIC_KEY=   # LLM tracing, off if unset
 LANGFUSE_SECRET_KEY=   # LLM tracing, off if unset
 LANGFUSE_BASE_URL=     # defaults to https://cloud.langfuse.com
+ACCESS_KEY=            # required header value for spending routes, empty means open (local only)
+DAILY_RUN_CAP=         # pipeline runs per day, 0 means no cap
+CORS_ORIGINS=          # comma-separated allowed origins, empty means the local dev ports
 ```
 
 ## What's Next
