@@ -62,7 +62,13 @@ builder.add_edge("agent_1_profile", "agent_2_audience")
 builder.add_edge("agent_2_audience", "agent_3_content")
 builder.add_edge("agent_3_content", "agent_4_sales")
 builder.add_edge("agent_4_sales", "agent_5_ads")
-builder.add_edge("agent_5_ads", "critic_ads")
+def route_after_ads(state: BlitzState):
+    # The critic runs unless a live experiment turned it off for this run.
+    if state.get("ads_critic_enabled", True):
+        return "critic_ads"
+    return END
+
+builder.add_conditional_edges("agent_5_ads", route_after_ads, {"critic_ads": "critic_ads", END: END})
 
 def route_after_critic(state: BlitzState):
     if state.get("ads_approved"):

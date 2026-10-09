@@ -51,6 +51,7 @@ class BlitzState(TypedDict, total=False):
     ads_output: Optional[AdsOutput]
     human_feedback: Optional[str]
     approved: bool
+    ads_critic_enabled: bool
     ads_critic_feedback: Optional[str]
     ads_approved: Optional[bool]
     ads_revision_count: Optional[int]

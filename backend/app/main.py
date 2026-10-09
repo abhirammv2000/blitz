@@ -18,12 +18,13 @@ import logging
 import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Literal
 
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.agents.agent_0_research.progress import cleanup_queue, get_queue
 from app.agents.agent_voice.elevenlabs_client import (
@@ -54,8 +55,10 @@ from app.db import (
     image_count,
     increment_image_count,
 )
+from app.db import feedback as feedback_db
 from app.db.leads import get_leads_for_run, init_leads_table, insert_lead
 from app.db.usage import init_image_counts_table, init_usage_table
+from app.experiments import ADS_CRITIC, ADS_CRITIC_VARIANTS, assign
 from app.graph import build_graph
 from app.telemetry import (
     get_agent_costs,
@@ -95,6 +98,7 @@ async def lifespan(_app: FastAPI):
     init_leads_table()
     init_usage_table()
     init_image_counts_table()
+    feedback_db.init_feedback_tables()
     # Registers the LiteLLM callback and creates the telemetry table.
     install_telemetry()
     # No-ops if no Langfuse keys are configured.
@@ -266,6 +270,17 @@ async def pipeline_start(payload: PipelineStartRequest):
 
     run_id = str(uuid.uuid4())
 
+    critic_enabled = True
+    if settings.experiments_enabled:
+        variant = assign(ADS_CRITIC, run_id, ADS_CRITIC_VARIANTS)
+        try:
+            feedback_db.record_assignment(run_id, ADS_CRITIC, variant)
+            critic_enabled = variant == "critic_on"
+        except Exception:  # noqa: BLE001
+            # A run we can't record can't be part of the comparison, so it
+            # just runs the normal way.
+            logger.warning("Could not record the %s assignment for %s", ADS_CRITIC, run_id, exc_info=True)
+
     async def event_stream():
         yield sse_event({"type": "init", "run_id": run_id})
 
@@ -273,6 +288,7 @@ async def pipeline_start(payload: PipelineStartRequest):
             "run_id": run_id,
             "company_url": payload.url,
             "current_step": 0,
+            "ads_critic_enabled": critic_enabled,
         }
         config = {"configurable": {"thread_id": run_id}}
 
@@ -388,6 +404,54 @@ async def telemetry_run_detail(run_id: str):
 async def telemetry_failures():
     """What failed, where, and how often - call-level and run-level."""
     return get_failures()
+
+
+# ---------------------------------------------------------------------------
+# User feedback and live experiments
+# ---------------------------------------------------------------------------
+
+
+class RatingRequest(BaseModel):
+    run_id: str = Field(min_length=8, max_length=64)
+    agent: Literal[
+        "agent_0_research", "agent_1_profile", "agent_2_audience",
+        "agent_3_content", "agent_4_sales", "agent_5_ads",
+    ]
+    value: Literal[1, -1]
+
+
+class AdPickRequest(BaseModel):
+    run_id: str = Field(min_length=8, max_length=64)
+    ad_copy_ref: str = Field(min_length=1, max_length=200)
+    chosen: str = Field(min_length=1, max_length=50)
+
+
+@app.post("/feedback/rating", dependencies=[Depends(require_access_key)])
+async def feedback_rating(body: RatingRequest):
+    """Thumbs up (1) or down (-1) on one agent's output. Sending it again changes the vote."""
+    feedback_db.save_rating(body.run_id, body.agent, body.value)
+    return {"ok": True}
+
+
+@app.post("/feedback/ad-pick", dependencies=[Depends(require_access_key)])
+async def feedback_ad_pick(body: AdPickRequest):
+    """Which ad variant the person preferred for one ad group."""
+    feedback_db.save_pick(body.run_id, body.ad_copy_ref, body.chosen)
+    return {"ok": True}
+
+
+@app.get("/feedback/summary", dependencies=[Depends(require_access_key)])
+async def feedback_summary():
+    """Thumbs per agent and how often each ad variant was picked."""
+    return feedback_db.get_feedback_summary()
+
+
+@app.get("/experiments/{name}", dependencies=[Depends(require_access_key)])
+async def experiment_results(name: str):
+    """Rating rate, cost and latency per variant for one experiment."""
+    if name != ADS_CRITIC:
+        raise HTTPException(status_code=404, detail=f"Unknown experiment '{name}'.")
+    return feedback_db.get_experiment_results(name)
 
 
 # ---------------------------------------------------------------------------

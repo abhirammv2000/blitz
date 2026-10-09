@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from '@headlessui/react'
 import { useBlitzStore } from '../store/useBlitzStore'
 import { apiFetch } from '../config'
+import AdPick from './AdPick'
 
 // TypeScript interfaces matching backend Pydantic schemas
 export interface AdCopy {
@@ -40,6 +41,7 @@ export interface AdsOutput {
 
 interface AdsViewProps {
   output: AdsOutput
+  runId?: string
 }
 
 const PLATFORM_BADGE: Record<string, string> = {
@@ -142,7 +144,7 @@ function ImageGenerator({
   )
 }
 
-export default function AdsView({ output }: AdsViewProps) {
+export default function AdsView({ output, runId }: AdsViewProps) {
   const { ad_copies = [], ad_visuals = [], ab_variations = [] } = output
   const [activeVariations, setActiveVariations] = useState<Record<number, number>>({})
   const [imagesGenerated, setImagesGenerated] = useState(0)
@@ -304,6 +306,7 @@ export default function AdsView({ output }: AdsViewProps) {
                         imagesGenerated={imagesGenerated}
                         onImageGenerated={handleImageGenerated}
                       />
+                      {runId && <AdPick runId={runId} adCopyRef={ref} label={active.variant_label} />}
                     </div>
                   )
                 })()}

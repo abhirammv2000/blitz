@@ -148,6 +148,12 @@ class Settings(BaseSettings):
     # who it was meant for.
     daily_run_cap: int = Field(default=0, ge=0)
 
+    # -- Live experiments -----------------------------------------------------
+    # Off by default, so every run behaves the same as before. When on, each new
+    # run is randomly given the ads critic loop or skips it, and the thumbs people
+    # give the ads step are compared between the two (see app/experiments.py).
+    experiments_enabled: bool = False
+
     log_level: str = "INFO"
 
     @field_validator("log_level")

@@ -41,10 +41,12 @@ class _StubRouter:
 
     def __init__(self):
         self.calls: list[str] = []
+        self.prompts: list[str] = []
 
     async def acompletion(self, model, messages, **kwargs):
         prompt = messages[0]["content"]
         self.calls.append(model)
+        self.prompts.append(prompt)
 
         for marker, payload in _BY_MARKER:
             if marker in prompt:
@@ -103,13 +105,13 @@ def offline_research(monkeypatch):
     monkeypatch.setattr(research_mod, "extract_competitors", fake_competitors)
 
 
-async def _run_graph(run_id="test-run"):
+async def _run_graph(run_id="test-run", **extra_state):
     from app.graph import build_graph
 
     graph = build_graph()
     chunks = []
     async for chunk in graph.astream(
-        {"run_id": run_id, "company_url": "https://acme.com", "current_step": 0},
+        {"run_id": run_id, "company_url": "https://acme.com", "current_step": 0, **extra_state},
         config={"configurable": {"thread_id": run_id}},
         stream_mode="values",
     ):
@@ -138,6 +140,24 @@ async def test_critic_loop_terminates(stub_router, offline_research):
 
     assert final.get("ads_approved") is True
     assert final.get("ads_revision_count", 0) <= 3
+
+
+_CRITIC_MARKER = "marketing director evaluating"
+
+
+async def test_the_critic_runs_by_default(stub_router, offline_research):
+    """Guards the next test: it only means something if the critic normally runs."""
+    await _run_graph()
+
+    assert any(_CRITIC_MARKER in p for p in stub_router.prompts)
+
+
+async def test_an_experiment_can_skip_the_critic(stub_router, offline_research):
+    final = await _run_graph(ads_critic_enabled=False)
+
+    assert final.get("ads_output"), "the ads agent should still run"
+    assert not any(_CRITIC_MARKER in p for p in stub_router.prompts)
+    assert final.get("ads_approved") is None
 
 
 async def test_each_agent_persists_its_output_for_the_next(stub_router, offline_research):
